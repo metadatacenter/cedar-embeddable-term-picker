@@ -1,5 +1,14 @@
 import { Injectable } from '@angular/core';
-import { Hierarchy, SearchQuery, SearchResponse } from './search-types';
+import {
+  Hierarchy,
+  SearchQuery,
+  SearchResponse,
+  SEARCH_KINDS,
+  PropertySummary,
+  PropertyHit,
+  PropertyHierarchy,
+  VersionInfo,
+} from './search-types';
 
 /**
  * The picker's one call to the terminology server.
@@ -34,6 +43,33 @@ export class TerminologyClient {
    * one that never ran.
    */
   async search(query: SearchQuery, signal?: AbortSignal): Promise<SearchResponse> {
+    const types = query.types ?? SEARCH_KINDS.filter((type) => type !== 'property');
+    if (types.includes('property')) {
+      const ordinary = types.filter((type) => type !== 'property');
+      const [classes, properties] = await Promise.all([
+        ordinary.length
+          ? this.search({ ...query, types: ordinary }, signal)
+          : Promise.resolve({ query: query.query, sources: [], results: {} } as SearchResponse),
+        this.searchProperties(query, signal).catch((error: unknown): SearchResponse => {
+          if (!ordinary.length || signal?.aborted) throw error;
+          return {
+            query: query.query,
+            sources: [],
+            results: {},
+            errors: {
+              property: error instanceof Error ? error.message : 'Property search failed.',
+            },
+          };
+        }),
+      ]);
+      return {
+        query: query.query,
+        sources: classes.sources,
+        errors: properties.errors,
+        results: { ...classes.results, property: properties.results.property },
+      };
+    }
+    if (!types.length) return { query: query.query, sources: [], results: {} };
     const response = await fetch(this.endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -45,6 +81,82 @@ export class TerminologyClient {
       throw new Error(refusalMessage(body) ?? `The terminology server answered ${response.status}.`);
     }
     return body as SearchResponse;
+  }
+
+  private propertyEndpoint(): string {
+    return this.endpoint.replace(/search$/, 'properties');
+  }
+
+  private async propertyRequest<T>(path: string, init?: RequestInit): Promise<T> {
+    const response = await fetch(`${this.propertyEndpoint()}${path}`, init);
+    const body: unknown = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(refusalMessage(body) ?? `Property lookup failed (${response.status}).`);
+    return body as T;
+  }
+
+  private async searchProperties(query: SearchQuery, signal?: AbortSignal): Promise<SearchResponse> {
+    const result = await this.propertyRequest<{
+      total: number;
+      page: number;
+      pageSize: number;
+      items: { sourceAcronym: string; versionId: string; property: PropertySummary }[];
+    }>('/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal,
+      body: JSON.stringify({
+        query: query.query,
+        page: query.page,
+        pageSize: query.pageSize,
+        sources: query.sources?.map((source) => ({
+          sourceAcronym: source.sourceAcronym,
+          versionId: typeof source.version === 'object' ? source.version.id : undefined,
+        })),
+      }),
+    });
+    return {
+      query: query.query,
+      sources: [],
+      results: {
+        property: {
+          totalCount: result.total,
+          countCapped: false,
+          page: result.page,
+          pageSize: result.pageSize,
+          collection: result.items.map(({ sourceAcronym, versionId, property }): PropertyHit => ({
+            type: 'property',
+            sourceSystem: 'bioportal',
+            sourceAcronym,
+            versionId,
+            termIri: property.iri,
+            termLabel: property.label,
+            propertyKind: property.kind,
+            obsolete: property.obsolete,
+            hasChildren: property.hasChildren,
+          })),
+        },
+      },
+    };
+  }
+
+  propertyHierarchy(hit: PropertyHit, signal?: AbortSignal, offset = 0): Promise<PropertyHierarchy> {
+    return this.propertyRequest(
+      `/hierarchy?${new URLSearchParams({
+        sourceAcronym: hit.sourceAcronym,
+        versionId: hit.versionId,
+        propertyIri: hit.termIri,
+        kind: hit.propertyKind,
+        offset: String(offset),
+      })}`,
+      { signal },
+    );
+  }
+
+  propertyVersions(
+    acronym: string,
+    signal?: AbortSignal,
+  ): Promise<readonly (VersionInfo & { propertiesAvailable: boolean })[]> {
+    return this.propertyRequest(`/versions?${new URLSearchParams({ sourceAcronym: acronym })}`, { signal });
   }
 
   /**

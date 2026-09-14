@@ -86,7 +86,19 @@ export interface ValueSetConstraint extends ControlledTermCommon {
   numTerms?: number | null;
 }
 
-export type ControlledTermConfig = OntologyConstraint | BranchConstraint | ClassConstraint | ValueSetConstraint;
+/** One property from a versioned ontology; not a class value constraint. */
+export interface PropertyConstraint extends ControlledTermCommon {
+  sourceType: 'ontology-property';
+  sourceId: string;
+  sourceName: string;
+  ontologyId: string;
+  ontologyName?: string;
+  source?: string;
+  label?: string;
+  propertyKind: 'object' | 'datatype' | 'annotation';
+}
+export type ControlledTermConfig =
+  OntologyConstraint | BranchConstraint | ClassConstraint | ValueSetConstraint | PropertyConstraint;
 
 export interface ControlledTermAction {
   action: string;

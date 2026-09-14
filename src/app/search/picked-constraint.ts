@@ -62,7 +62,13 @@ export interface PickedValueSet extends HitBase {
   readonly termBaseLabel?: string;
 }
 
-export type PickedConstraint = PickedClass | PickedBranch | PickedOntology | PickedValueSet;
+export interface PickedProperty extends HitBase {
+  readonly type: 'property';
+  readonly termIri: string;
+  readonly termLabel: string;
+  readonly propertyKind: 'object' | 'datatype' | 'annotation';
+}
+export type PickedConstraint = PickedClass | PickedBranch | PickedOntology | PickedValueSet | PickedProperty;
 
 import { ControlledTermConfig } from './constraint-set';
 
@@ -100,6 +106,17 @@ export function toControlledTermConfig(picked: PickedConstraint): ControlledTerm
   const sourceName = picked.sourceName || picked.sourceAcronym;
 
   switch (picked.type) {
+    case 'property':
+      return {
+        sourceType: 'ontology-property',
+        sourceId: picked.termIri,
+        sourceName: picked.termLabel,
+        ontologyId: picked.sourceAcronym,
+        ontologyName: sourceName,
+        propertyKind: picked.propertyKind,
+        sourceSystem: picked.sourceSystem,
+        version,
+      };
     case 'class':
       return {
         sourceType: 'ontology-term',

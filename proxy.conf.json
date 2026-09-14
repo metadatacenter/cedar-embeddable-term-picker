@@ -1,4 +1,5 @@
 {
+  "/properties": { "target": "http://localhost:9004", "secure": false, "changeOrigin": true },
   "/search": {
     "target": "http://localhost:9004",
     "secure": false,

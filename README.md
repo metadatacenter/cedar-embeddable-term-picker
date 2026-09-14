@@ -3,9 +3,9 @@
 [![Test](https://github.com/metadatacenter/cedar-embeddable-term-picker/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/metadatacenter/cedar-embeddable-term-picker/actions/workflows/test.yml)
 
 A reusable Web Component for choosing what constrains a CEDAR field: an
-ontology, a branch of one, an individual term, or a value set.
+ontology, a branch of one, an individual class, a value set, or a property.
 
-An author types one search term and sees how many matches each of those four
+An author types one search term and sees how many matches each of those five
 kinds has, then opens the one they came for. Refining the query updates every
 count at once. This inverts the choice the CEDAR Workbench asks for today,
 where an author picks a search mode before searching and only then discovers
@@ -23,13 +23,14 @@ and value sets either from the versioned local store or from BioPortal. The
 component is published as a custom element, `<cedar-embeddable-term-picker>`, rendered in
 shadow DOM so a host page's stylesheet cannot reach inside it.
 
-The CETP repository and package will also house the CEDAR Embeddable Property
-Picker (CEPP), exposed as `<cedar-embeddable-property-picker>`, with a shared
-version and release cycle. CEPP is planned and is not included yet.
+Properties are a tab within CETP. They are read only from the terminology server's
+versioned SQLite store, with object, datatype and annotation properties sharing
+the ontology snapshot and version identity used for classes. Parents and children
+are browsable, including properties with multiple parents.
 
 ## Status
 
-It searches. One query answers all four tabs against the CEDAR terminology
+It searches. One query answers all enabled tabs against the CEDAR terminology
 server's version-aware search, folding repeated labels into a row apiece,
 ranking ontologies by what they hold, narrowing to the ones an author names,
 paging through the rest, and stepping a constraint back through an ontology's
@@ -138,7 +139,8 @@ and cancellation:
   const picker = document.getElementById('picker');
   picker.terminologyBaseUrl = 'https://terminology.metadatacenter.org/';
   picker.query = 'melanoma';
-  picker.selectionMode = 'constraints';
+  picker.termTypes = ['ontology', 'class', 'branch', 'valueSet'];
+  picker.maximumTerms = 4; // Omit for unlimited selections.
   picker.constraintSet = { constraints: [], actions: [] };
   picker.addEventListener('constraintsSelected', (event) => console.log(event.detail));
   picker.addEventListener('cancelled', () => picker.remove());
@@ -149,8 +151,7 @@ and cancellation:
 its own origin for `/search`, which is what the development server's proxy
 answers and what no host page has.
 
-To assemble a field's complete constraint set, set `selectionMode = 'constraints'`
-and assign `constraintSet = { constraints: [], actions: [] }` (or the existing set).
+The default workflow collects selections in the table at the top. Assign `constraintSet = { constraints: [], actions: [] }` (or the existing set).
 Selections add to the draft. Its tables let authors inspect and remove
 individual entries and edit branch depth. Term
 exclusions (`delete`) and result positions (`move`, zero-based) are preserved actions;
@@ -162,9 +163,27 @@ host validation). `cancelled` leaves the host's original set unchanged. The impo
 `ControlledTermSet`, `ControlledTermConfig` and `ControlledTermAction` declarations
 ship with the public API. Serialization belongs to the host's model library.
 
-The default `selectionMode = 'constraint'` retains the single-selection `selected`
+`termTypes` accepts any array of `class`, `branch`, `ontology`, `valueSet` and
+`property`. Omit it to enable all five; `[]` enables none. For a property-only
+picker, set `termTypes = ['property']`. `maximumTerms` is an optional positive
+whole number and counts table entries across all enabled types: a whole ontology
+or branch counts as one entry. At the limit, trying to select another entry shows
+an error; the author must remove an entry before adding another. Existing entries
+are never silently trimmed when the limit changes. Omitting the limit allows any
+number of selections. These inputs are JavaScript properties (arrays and numbers).
+
+Property entries have `sourceType: 'ontology-property'`, `sourceId` (the property
+IRI), `sourceName`, `ontologyId`, `propertyKind` (`object`, `datatype`, or
+`annotation`) and a `version.id` naming the exact ontology snapshot. They are
+picker selections, not class value constraints; a host decides where to store them.
+Property lookups use `/properties/search`, `/properties/hierarchy` and
+`/properties/versions`. A release without extracted properties reports an error
+and is not replaced by a different release or a direct BioPortal result.
+
+Explicit `selectionMode = 'constraint'` retains the single-selection `selected`
 event for existing hosts. For a field default use `selectionMode = 'term'`, which
-only emits individual terms. `sources` accepts source systems, acronyms and version
+only emits individual terms. Setting either `termTypes` or `maximumTerms` selects
+the table workflow instead of these legacy single-selection modes. `sources` accepts source systems, acronyms and version
 selectors. When several scopes are supplied, a vocabulary/release selector searches
 one at a time, including distinct pins of the same ontology. An empty list searches
 all sources. The host must verify a chosen default against the complete field

@@ -7,18 +7,19 @@
  */
 
 /** The four kinds a controlled-term field can be constrained to. */
-export const SEARCH_KINDS = ['ontology', 'branch', 'class', 'valueSet'] as const;
+export const SEARCH_KINDS = ['ontology', 'branch', 'class', 'valueSet', 'property'] as const;
 
 export type SearchKind = (typeof SEARCH_KINDS)[number];
 
 /** What the tab strip shows, in the order it shows them. */
-export const TAB_ORDER: readonly SearchKind[] = ['class', 'branch', 'ontology', 'valueSet'];
+export const TAB_ORDER: readonly SearchKind[] = ['class', 'branch', 'ontology', 'valueSet', 'property'];
 
 export const TAB_LABELS: Readonly<Record<SearchKind, string>> = {
   class: 'terms',
   branch: 'branches',
   ontology: 'ontologies',
   valueSet: 'value sets',
+  property: 'properties',
 };
 
 export interface VersionSelector {
@@ -154,7 +155,35 @@ export interface ValueSetHit extends HitBase {
  * A hit, discriminated by `type` — a union rather than one shape with optional everything, so a
  * row that reads `termBaseIri` cannot be handed a class.
  */
-export type Hit = ClassHit | BranchHit | OntologyHit | ValueSetHit;
+export type PropertyKind = 'object' | 'datatype' | 'annotation';
+export interface PropertyHit extends HitBase {
+  readonly type: 'property';
+  readonly termIri: string;
+  readonly termLabel: string;
+  readonly propertyKind: PropertyKind;
+  readonly obsolete: boolean;
+  readonly hasChildren: boolean;
+  /** Exact ontology snapshot that supplied this property. */
+  readonly versionId: string;
+}
+export interface PropertySummary {
+  readonly iri: string;
+  readonly kind: PropertyKind;
+  readonly label: string;
+  readonly obsolete: boolean;
+  readonly hasChildren: boolean;
+}
+export interface PropertyDetail extends Omit<PropertySummary, 'hasChildren'> {
+  readonly parents: readonly string[];
+  readonly literals: readonly { predicate: string; lang: string; value: string }[];
+}
+export interface PropertyHierarchy {
+  readonly selected: { sourceAcronym: string; versionId: string; property: PropertyDetail };
+  readonly ancestors: readonly PropertyDetail[];
+  readonly children: readonly PropertySummary[];
+  readonly offset: number;
+}
+export type Hit = ClassHit | BranchHit | OntologyHit | ValueSetHit | PropertyHit;
 
 /**
  * What the picker emits: the entry the author chose, carrying the version they pinned.
@@ -177,6 +206,7 @@ export interface TypeResults {
 }
 
 export interface SearchResponse {
+  readonly errors?: Partial<Record<SearchKind, string>>;
   readonly query: string;
   readonly sources: readonly SourceBlock[];
   readonly results: Partial<Record<SearchKind, TypeResults>>;

@@ -20,6 +20,8 @@ export type {
   Hit,
   MatchedLabel,
   OntologyHit,
+  PropertyHit,
+  PropertyKind,
   SearchKind,
   SelectedConstraint,
   SourceSelector,
@@ -40,6 +42,10 @@ import type { SelectedConstraint, SourceSelector } from './search/search-types';
  */
 export interface CedarEmbeddableTermPickerElement extends HTMLElement {
   query: string;
+  /** Enabled types. Omitted means all five; an empty array enables none. */
+  termTypes?: readonly import('./search/search-types').SearchKind[];
+  /** Maximum table entries; omitted means unlimited. */
+  maximumTerms?: number;
   /** Term mode only emits individual terms, for a field's default value. */
   selectionMode: 'constraint' | 'constraints' | 'term';
   constraintSet: ControlledTermSet;

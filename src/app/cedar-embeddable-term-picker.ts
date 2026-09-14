@@ -12,13 +12,16 @@ import {
   output,
   signal,
   viewChild,
+  untracked,
 } from '@angular/core';
 import { ControlledTermSet, ControlledTermConfig, ControlledTermAction } from './search/constraint-set';
 import { toControlledTermConfig } from './search/picked-constraint';
+import { PropertyDetailComponent } from './search/property-detail';
 import { NgTemplateOutlet } from '@angular/common';
 import { FontRegistrar } from './font-registrar/font-registrar';
 import { HierarchyOutcome, TerminologyClient } from './search/terminology-client';
 import {
+  PropertyHit,
   BranchHit,
   ClassHit,
   Hierarchy,
@@ -120,7 +123,7 @@ export interface LabelGroup {
 
 @Component({
   selector: CETP_TAG,
-  imports: [FontRegistrar, NgTemplateOutlet],
+  imports: [FontRegistrar, NgTemplateOutlet, PropertyDetailComponent],
   templateUrl: './cedar-embeddable-term-picker.html',
   styleUrl: './cedar-embeddable-term-picker.scss',
   encapsulation: ViewEncapsulation.ShadowDom,
@@ -133,7 +136,25 @@ export class CedarEmbeddableTermPicker {
   readonly query = input('');
 
   /** A default is one term; constraint authoring also offers branches and vocabularies. */
-  readonly selectionMode = input<'constraint' | 'constraints' | 'term'>('constraint');
+  readonly selectionMode = input<'constraint' | 'constraints' | 'term'>('constraints');
+  /** Any subset of the five selectable kinds; omitted enables all. */
+  readonly termTypes = input<readonly SearchKind[] | undefined>();
+  /** Maximum number of selected table entries; omitted means unlimited. */
+  readonly maximumTerms = input<number | undefined>();
+  protected readonly selectionError = signal<string | null>(null);
+  protected readonly tableMode = computed(
+    () => this.termTypes() !== undefined || this.maximumTerms() !== undefined || this.selectionMode() === 'constraints',
+  );
+  protected readonly configurationError = computed(() => {
+    const max = this.maximumTerms();
+    if (max !== undefined && (!Number.isSafeInteger(max) || max < 1))
+      return 'maximumTerms must be a positive whole number, or omitted for no limit.';
+    const types = this.termTypes();
+    if (types !== undefined && (!Array.isArray(types) || types.some((type) => !TAB_ORDER.includes(type))))
+      return 'termTypes must be an array of class, branch, ontology, valueSet or property.';
+    return null;
+  });
+
   /** Editable draft; applying emits the whole set and cancellation changes nothing. */
   readonly constraintSet = input<ControlledTermSet>({ constraints: [], actions: [] });
   readonly constraintsSelected = output<ControlledTermSet>();
@@ -149,9 +170,13 @@ export class CedarEmbeddableTermPicker {
   }
 
   protected constraintKind(c: ControlledTermConfig): string {
-    return { 'ontology-term': 'term', 'ontology-branch': 'Branch', ontology: 'Ontology', 'value-set': 'Value set' }[
-      c.sourceType
-    ];
+    return {
+      'ontology-term': 'term',
+      'ontology-branch': 'Branch',
+      ontology: 'Ontology',
+      'value-set': 'Value set',
+      'ontology-property': 'Property',
+    }[c.sourceType];
   }
 
   /**
@@ -168,6 +193,7 @@ export class CedarEmbeddableTermPicker {
         return c.branchRootName || c.branchRootId || c.sourceType;
       case 'ontology':
         return c.ontologyName || c.ontologyId || c.sourceType;
+      case 'ontology-property':
       case 'ontology-term':
         return c.label || c.sourceName || c.sourceId || c.sourceType;
       case 'value-set':
@@ -188,6 +214,7 @@ export class CedarEmbeddableTermPicker {
         return c.branchRootId;
       case 'ontology':
         return c.uri || c.ontologyId;
+      case 'ontology-property':
       case 'ontology-term':
       case 'value-set':
         return c.sourceId;
@@ -201,6 +228,7 @@ export class CedarEmbeddableTermPicker {
         return c.ontologyId;
       case 'ontology-branch':
         return c.sourceId || c.source || '';
+      case 'ontology-property':
       case 'ontology-term':
         return c.ontologyId || c.source || '';
       case 'value-set':
@@ -234,6 +262,7 @@ export class CedarEmbeddableTermPicker {
   }
 
   protected removeConstraint(index: number): void {
+    this.selectionError.set(null);
     this.draft.update((d) => ({ ...d, constraints: d.constraints.filter((_, i) => i !== index) }));
     this.editing.set(null);
     this.actionMode.set(null);
@@ -270,6 +299,12 @@ export class CedarEmbeddableTermPicker {
   }
 
   protected applyConstraints(): void {
+    if (this.configurationError()) return;
+    const maximum = this.maximumTerms();
+    if (maximum !== undefined && this.draft().constraints.length > maximum) {
+      this.selectionError.set(`Select at most ${maximum} terms. Remove entries from the table before continuing.`);
+      return;
+    }
     this.constraintsSelected.emit(structuredClone(this.draft()));
   }
 
@@ -443,7 +478,15 @@ export class CedarEmbeddableTermPicker {
   protected readonly historyFor = signal<string | null>(null);
 
   protected readonly tabs = computed<readonly SearchKind[]>(() =>
-    this.selectionMode() === 'term' || this.actionMode() ? ['class'] : TAB_ORDER,
+    this.actionMode()
+      ? ['class']
+      : this.termTypes() === undefined
+        ? this.selectionMode() === 'term'
+          ? ['class']
+          : this.selectionMode() === 'constraint'
+            ? TAB_ORDER.filter((type) => type !== 'property')
+            : TAB_ORDER
+        : TAB_ORDER.filter((type) => this.termTypes()?.includes(type)),
   );
   protected readonly tabLabels = TAB_LABELS;
 
@@ -486,7 +529,8 @@ export class CedarEmbeddableTermPicker {
     effect(() => this.client.setBaseUrl(this.terminologyBaseUrl()));
 
     effect(() => {
-      if (this.selectionMode() === 'term' || this.actionMode()) this.activeTab.set('class');
+      const tabs = this.tabs();
+      if (!tabs.includes(untracked(() => this.activeTab()))) this.activeTab.set(tabs[0] ?? 'class');
       const query = this.text().trim();
       const sources = this.effectiveSources();
       const belowFloor =
@@ -535,7 +579,7 @@ export class CedarEmbeddableTermPicker {
   private async run(query: string, keepCandidates = false): Promise<void> {
     // Cancel rather than let a slower earlier query land on top of a faster later one.
     this.inFlight?.abort();
-    if (query.length === 0) {
+    if (query.length === 0 || this.configurationError() || !this.tabs().length) {
       this.response.set(null);
       this.error.set(null);
       this.searching.set(false);
@@ -553,7 +597,7 @@ export class CedarEmbeddableTermPicker {
           query,
           pageSize: PAGE_SIZE,
           sources: this.sourceSelectors(),
-          ...(this.selectionMode() === 'term' || this.actionMode() ? { types: ['class'] as const } : {}),
+          types: this.tabs(),
         },
         controller.signal,
       );
@@ -676,6 +720,10 @@ export class CedarEmbeddableTermPicker {
     }));
   });
   protected readonly ontologies = computed(() => this.hitsOf('ontology').filter(isOntologyHit));
+  protected readonly properties = computed(() =>
+    this.hitsOf('property').filter((hit): hit is PropertyHit => hit.type === 'property'),
+  );
+
   protected readonly valueSets = computed(() => this.hitsOf('valueSet').filter(isValueSetHit));
 
   /** Sources the search could not read, which have to be shown or their absence reads as no matches. */
@@ -853,7 +901,7 @@ export class CedarEmbeddableTermPicker {
   protected async loadMore(kind: SearchKind): Promise<void> {
     const current = this.response();
     const query = this.text().trim();
-    if (!current || query.length === 0 || this.searching() || this.isExhausted(kind)) {
+    if (!current || current.errors?.[kind] || query.length === 0 || this.searching() || this.isExhausted(kind)) {
       return;
     }
     const page = this.pageOf(kind) + 1;
@@ -1172,6 +1220,8 @@ export class CedarEmbeddableTermPicker {
     if (hit.type === 'ontology') {
       return `ontology:${hit.sourceAcronym}`;
     }
+    if (hit.type === 'property')
+      return `property:${hit.sourceAcronym}:${hit.propertyKind}:${hit.termIri}:${hit.versionId}`;
     if (hit.type === 'class') {
       return `class:${hit.sourceAcronym}:${hit.termIri}`;
     }
@@ -1180,7 +1230,7 @@ export class CedarEmbeddableTermPicker {
 
   /** The IRI a constraint would carry, which differs by kind: a class names one, a branch its root. */
   protected termIriOf(hit: Hit): string {
-    if (hit.type === 'class') {
+    if (hit.type === 'class' || hit.type === 'property') {
       return hit.termIri;
     }
     // An ontology is addressed by its acronym within its system, not by a term IRI.
@@ -1214,6 +1264,7 @@ export class CedarEmbeddableTermPicker {
   private iriOf(hit: Hit): string {
     switch (hit.type) {
       case 'class':
+      case 'property':
         return hit.termIri;
       case 'branch':
       case 'valueSet':
@@ -1355,7 +1406,11 @@ export class CedarEmbeddableTermPicker {
     const acronym = hit.sourceAcronym;
     const fixed = this.effectiveSources().find((source) => source.sourceAcronym === acronym)?.version;
     const pinned =
-      fixed && fixed !== 'latest' ? { ...this.sourceOf(acronym)?.version, id: fixed.id } : this.pinned().get(acronym);
+      hit.type === 'property'
+        ? { id: hit.versionId }
+        : fixed && fixed !== 'latest'
+          ? { ...this.sourceOf(acronym)?.version, id: fixed.id }
+          : this.pinned().get(acronym);
     const version = CedarEmbeddableTermPicker.nameOf(pinned ?? this.sourceOf(acronym)?.version);
     // The date and the hash only where one was chosen: they are what a pinned constraint records
     // beside the declared version, and an unpinned one records none of the three.
@@ -1400,7 +1455,14 @@ export class CedarEmbeddableTermPicker {
           ...of,
         };
       default:
-        return { noun: 'term', what: hit.termLabel, acronym, version, pinned: pinned !== undefined, ...of };
+        return {
+          noun: hit.type === 'property' ? 'property' : 'term',
+          what: hit.termLabel,
+          acronym,
+          version,
+          pinned: pinned !== undefined,
+          ...of,
+        };
     }
   });
 
@@ -1773,7 +1835,9 @@ export class CedarEmbeddableTermPicker {
    */
   protected unrecordable(hit: Hit | null): string | null {
     if (hit && this.actionMode() && hit.type !== 'class') return 'Choose an individual term for the action.';
-    if (hit && this.selectionMode() === 'term' && hit.type !== 'class')
+    if (hit && !this.tabs().includes(hit.type)) return 'This term type is not enabled.';
+    if (this.configurationError()) return this.configurationError();
+    if (hit && this.termTypes() === undefined && this.selectionMode() === 'term' && hit.type !== 'class')
       return 'Choose a single term for the default value.';
     if (
       hit &&
@@ -1822,8 +1886,13 @@ export class CedarEmbeddableTermPicker {
     if (this.unrecordable(hit) !== null) {
       return;
     }
-    const version = this.selectionMode() === 'term' ? undefined : this.pinned().get(hit.sourceAcronym);
-    if (this.selectionMode() !== 'constraints') {
+    const version =
+      hit.type === 'property'
+        ? { id: hit.versionId }
+        : this.selectionMode() === 'term'
+          ? undefined
+          : this.pinned().get(hit.sourceAcronym);
+    if (!this.tableMode()) {
       this.selected.emit(version === undefined ? hit : { ...hit, version });
       return;
     }
@@ -1858,6 +1927,14 @@ export class CedarEmbeddableTermPicker {
       this.actionMode.set(null);
       return;
     }
+    const maximum = this.maximumTerms();
+    if (this.editing() === null && maximum !== undefined && this.draft().constraints.length >= maximum) {
+      this.selectionError.set(
+        `You can select at most ${maximum} terms. Remove an entry from the table to select another.`,
+      );
+      return;
+    }
+    this.selectionError.set(null);
     const source = this.sourceOf(hit.sourceAcronym);
     const config = toControlledTermConfig({
       ...hit,

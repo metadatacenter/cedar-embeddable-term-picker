@@ -10,16 +10,17 @@
     }
   </select>
 </label>
-} @if (selectionMode() === 'constraints') {
+} @if (tableMode()) {
 <section class="constraint-set" aria-label="Field constraints">
   <header class="constraint-heading">
-    <h2>Field constraints</h2>
+    <h2>Selected terms</h2>
+    <span>{{ draft().constraints.length }}@if (maximumTerms() !== undefined) { / {{ maximumTerms() }} }</span>
   </header>
   <div class="constraint-table-layout">
     <table class="constraint-table">
       <thead>
         <tr>
-          <th scope="col">Constraint</th>
+          <th scope="col">Term</th>
           <th scope="col">Source and release</th>
           <th scope="col"><span class="sr-only">Remove</span></th>
         </tr>
@@ -65,8 +66,8 @@
           <td>
             <span>{{ constraintAcronym(c) }}</span
             ><small>
-              · {{ c.sourceSystem || 'bioportal' }} · @if (c.version) { {{ c.version.declaredVersion || c.version.id }}
-              } @else { <em>latest</em> } @if (constraintHash(c); as hash) { ·
+              · {{ c.sourceSystem || 'bioportal' }} · @if (c.version) { {{ c.version.declaredVersion ||
+              c.version.effectiveDate || 'pinned' }} } @else { <em>latest</em> } @if (constraintHash(c); as hash) { ·
               <code class="hash" [title]="hash">{{ shortHash(hash) }}</code> }
             </small>
           </td>
@@ -89,7 +90,7 @@
         </tr>
         } @empty {
         <tr>
-          <td colspan="3" class="constraint-empty">No constraints yet. Search below to add one.</td>
+          <td colspan="3" class="constraint-empty">No terms selected. Search below to add one.</td>
         </tr>
         }
       </tbody>
@@ -108,6 +109,10 @@
   </details>
   }
 </section>
+} @if (configurationError(); as message) {
+<p class="selection-error" role="alert">{{ message }}</p>
+} @if (selectionError(); as message) {
+<p class="selection-error" role="alert">{{ message }}</p>
 }
 <cetp-font-registrar />
 
@@ -242,7 +247,7 @@
           <span class="meta inline">reading…</span>
           }
         </div>
-        @if (selectionMode() === 'constraints') {
+        @if (tableMode()) {
         <button type="button" class="use" [disabled]="!!selectionBlocked()" (click)="choose(picked() || hit)">
           Select
         </button>
@@ -272,9 +277,9 @@
       </dd>
       }
     </dl>
-    @if (selectionMode() !== 'constraints' || (hit.type !== 'class' && hit.type !== 'branch')) {
+    @if (!tableMode() || (hit.type !== 'class' && hit.type !== 'branch')) {
     <button type="button" class="use" [disabled]="!!selectionBlocked()" (click)="choose(picked() || hit)">
-      {{ selectionMode() === 'constraints' ? 'Select' : 'Use this term' }}
+      {{ tableMode() ? 'Select' : 'Use this term' }}
     </button>
     }
   </div>
@@ -326,13 +331,13 @@
   }
 </ng-template>
 
-<section class="picker" [class.set-mode]="selectionMode() === 'constraints'">
+<section class="picker" [class.set-mode]="tableMode()">
   <header class="bar">
     <label class="search">
-      <span class="label">Find a controlled value for this field</span>
+      <span class="label">Find terms</span>
       <input
         type="search"
-        [placeholder]="selectionMode() === 'term' ? 'Search for a default term' : 'Search for a term, a branch, a vocabulary or a value set'"
+        [placeholder]="selectionMode() === 'term' ? 'Search for a default term' : 'Search for terms'"
         [value]="text()"
         (input)="onInput($event)"
       />
@@ -363,7 +368,7 @@
         -->
       <div class="selection-heading">
         <span class="label">Selected {{ chosen.noun }}</span>
-        @if (selectionMode() === 'constraints') { @if (picked(); as hit) {
+        @if (tableMode()) { @if (picked(); as hit) {
         <button type="button" [disabled]="!!selectionBlocked()" (click)="choose(hit)">Select</button>
         } }
       </div>
@@ -449,7 +454,7 @@
       closes with the field's constraints as they were. The label is the glyph, so it carries the
       words for anyone who cannot see it.
     -->
-    @if (selectionMode() !== 'constraints') {
+    @if (!tableMode()) {
     <button
       type="button"
       class="dismiss"
@@ -743,7 +748,34 @@
     <ng-container *ngTemplateOutlet="detail; context: { $implicit: hit }" />
     } @empty { @if (!searching()) {
     <p class="empty">No vocabulary is named this, and none of them matched terms.</p>
-    } } } @case ('valueSet') { @for (hit of valueSets(); track hit.termBaseIri) {
+    } } } @case ('property') { @if (response()?.errors?.property; as message) {
+    <p role="alert" class="selection-error">{{ message }}</p>
+    } @for (hit of properties(); track keyOf(hit)) {
+    <div
+      class="row oneline pick"
+      tabindex="0"
+      role="option"
+      [attr.aria-selected]="isSelected(hit)"
+      [class.marked]="isSelected(hit)"
+      (click)="mark(hit)"
+      (keydown.enter)="mark(hit)"
+      (dblclick)="choose(hit)"
+    >
+      <span class="grow ellipsis"
+        ><span class="title">{{ hit.termLabel }}</span><span class="who">{{ hit.sourceAcronym }}</span></span
+      >
+      <span class="meta inline">{{ hit.propertyKind }} property</span>
+    </div>
+    @if (isMarked(hit)) {
+    <cetp-property-detail
+      [hit]="hit"
+      [allowVersions]="!effectiveSources().length"
+      (focused)="picked.set($event)"
+      (chosen)="choose($event)"
+    />
+    } } @empty { @if (!searching()) { @if (!response()?.errors?.property) {
+    <p class="empty">No properties match.</p>
+    } } } } @case ('valueSet') { @for (hit of valueSets(); track hit.termBaseIri) {
     <div
       class="row oneline pick"
       tabindex="0"

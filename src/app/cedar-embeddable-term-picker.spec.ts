@@ -151,7 +151,7 @@ describe('CedarEmbeddableTermPicker', () => {
     expect(selected).toHaveBeenCalledOnce();
   });
 
-  it('names the four kinds a query answers', async () => {
+  it('names the five kinds a query answers', async () => {
     const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     await fixture.whenStable();
     const tabs = [...shadow(fixture).querySelectorAll('.tab')].map(
@@ -257,6 +257,7 @@ describe('CedarEmbeddableTermPicker', () => {
 
   it('emits no version while the author stays on latest', async () => {
     const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('selectionMode', 'constraint');
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -473,7 +474,9 @@ describe('CedarEmbeddableTermPicker', () => {
     await fixture.whenStable();
     let cancelled = 0;
     fixture.componentInstance.cancelled.subscribe(() => (cancelled += 1));
-    shadow(fixture).querySelector<HTMLButtonElement>('.dismiss')?.click();
+    [...shadow(fixture).querySelectorAll<HTMLButtonElement>('button')]
+      .find((button) => button.textContent?.trim() === 'Cancel')
+      ?.click();
     expect(cancelled).toBe(1);
   });
   it('assembles and applies a set while targeted changes preserve unrelated entries and actions', async () => {
@@ -613,8 +616,81 @@ describe('CedarEmbeddableTermPicker', () => {
     await settle();
     expect(client.lastQuery?.sources).toEqual([sources[1]]);
   });
+  it('restricts multiple enabled types and rejects a mixed selection beyond the shared limit until removal', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('termTypes', ['ontology', 'property']);
+    fixture.componentRef.setInput('maximumTerms', 2);
+    await fixture.whenStable();
+    const picker = fixture.componentInstance;
+    expect([...shadow(fixture).querySelectorAll('.tab')].map((tab) => tab.textContent?.trim())).toEqual([
+      'ontologies',
+      'properties',
+    ]);
+    const ontology = { type: 'ontology' as const, sourceAcronym: 'RO', sourceSystem: 'bioportal' };
+    const property = {
+      type: 'property' as const,
+      sourceAcronym: 'RO',
+      sourceSystem: 'bioportal',
+      termIri: 'urn:part',
+      termLabel: 'part of',
+      propertyKind: 'object' as const,
+      versionId: 'release-one',
+      obsolete: false,
+      hasChildren: true,
+    };
+    picker['choose'](ontology);
+    picker['choose'](property);
+    picker['choose']({ ...ontology, sourceAcronym: 'OBI' });
+    fixture.detectChanges();
+    expect(picker['draft']().constraints).toHaveLength(2);
+    expect(shadow(fixture).textContent).toContain('Remove an entry from the table');
+    expect(picker['draft']().constraints[1]).toMatchObject({
+      sourceType: 'ontology-property',
+      propertyKind: 'object',
+      version: { id: 'release-one' },
+    });
+    picker['removeConstraint'](0);
+    picker['choose']({ ...ontology, sourceAcronym: 'OBI' });
+    expect(picker['draft']().constraints).toHaveLength(2);
+    expect(picker['selectionError']()).toBeNull();
+    fixture.componentRef.setInput('termTypes', ['property']);
+    await fixture.whenStable();
+    picker['removeConstraint'](1);
+    picker['choose'](ontology);
+    expect(picker['draft']().constraints).toHaveLength(1);
+    expect(picker['activeTab']()).toBe('property');
+  });
+
+  it('defaults to an unlimited table and retains over-limit initial entries for the author to remove', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    await fixture.whenStable();
+    const picker = fixture.componentInstance;
+    for (let i = 0; i < 30; i++)
+      picker['choose']({ type: 'ontology', sourceAcronym: `O${i}`, sourceSystem: 'bioportal' });
+    expect(picker['draft']().constraints).toHaveLength(30);
+    const applied = vi.fn();
+    picker.constraintsSelected.subscribe(applied);
+    fixture.componentRef.setInput('maximumTerms', 1);
+    await fixture.whenStable();
+    picker['applyConstraints']();
+    expect(applied).not.toHaveBeenCalled();
+    expect(picker['draft']().constraints).toHaveLength(30);
+    fixture.componentRef.setInput('maximumTerms', undefined);
+    await fixture.whenStable();
+    picker['applyConstraints']();
+    expect(applied).toHaveBeenCalledOnce();
+    fixture.componentRef.setInput('termTypes', []);
+    await fixture.whenStable();
+    expect(picker['tabs']()).toEqual([]);
+  });
 });
 
 function tabsLabel(kind: string): string {
-  return kind === 'class' ? 'terms' : kind === 'branch' ? 'branches' : 'ontologies';
+  return kind === 'property'
+    ? 'properties'
+    : kind === 'class'
+      ? 'terms'
+      : kind === 'branch'
+        ? 'branches'
+        : 'ontologies';
 }
