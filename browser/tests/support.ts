@@ -191,11 +191,11 @@ export function results(collection: readonly object[], options: ResultsOptions =
 /** Opens the host page and waits for the element to have rendered something. */
 export async function openPicker(page: Page): Promise<void> {
   await page.goto('/?mode=constraint');
-  await page.locator('cedar-term-picker .picker').waitFor();
+  await page.locator('cedar-embeddable-term-picker .picker').waitFor();
 }
 
 /** Types a query and waits for the debounce and the reply. */
 export async function search(page: Page, query: string): Promise<void> {
-  await page.locator('cedar-term-picker input[type=search]').fill(query);
-  await page.locator('cedar-term-picker .tabs .badge').first().waitFor();
+  await page.locator('cedar-embeddable-term-picker input[type=search]').fill(query);
+  await page.locator('cedar-embeddable-term-picker .tabs .badge').first().waitFor();
 }

@@ -19,7 +19,7 @@
   // 0px of layout to 11px once these moved out of its way.
   @supports not selector(::-webkit-scrollbar) {
     scrollbar-width: thin;
-    scrollbar-color: var(--ctp-color-border) transparent;
+    scrollbar-color: var(--cetp-color-border) transparent;
   }
 
   &::-webkit-scrollbar {
@@ -33,14 +33,14 @@
   &::-webkit-scrollbar-thumb {
     // Inset by a transparent border rather than by width, so the thumb is thin while the hit area
     // stays the full track.
-    background: var(--ctp-color-border);
+    background: var(--cetp-color-border);
     background-clip: content-box;
     border: 3px solid transparent;
     border-radius: 6px;
   }
 
   &:hover::-webkit-scrollbar-thumb {
-    background: var(--ctp-color-muted);
+    background: var(--cetp-color-muted);
     background-clip: content-box;
   }
 }
@@ -58,36 +58,36 @@
 // ordinary. CEE reached the same rule from the other direction: its Material internals are not host
 // API. Adding a property here is a change to a public contract, not a tweak.
 :host {
-  --ctp-color-primary: #{tokens.$cee-color-primary};
-  --ctp-color-on-primary: #{tokens.$cee-color-on-primary};
-  --ctp-color-heading: #{tokens.$cee-color-component-title};
-  --ctp-color-text: #{neutrals.$cedar-text-primary};
-  --ctp-color-muted: #{neutrals.$cedar-text-muted};
-  --ctp-color-surface: #{neutrals.$cedar-surface-panel};
-  --ctp-color-border: #{neutrals.$cedar-border-rule};
-  --ctp-color-warning: #{tokens.$cee-color-warning};
-  --ctp-font-family: #{tokens.$cee-font-family};
-  --ctp-font-size: #{tokens.$cee-font-size};
+  --cetp-color-primary: #{tokens.$cee-color-primary};
+  --cetp-color-on-primary: #{tokens.$cee-color-on-primary};
+  --cetp-color-heading: #{tokens.$cee-color-component-title};
+  --cetp-color-text: #{neutrals.$cedar-text-primary};
+  --cetp-color-muted: #{neutrals.$cedar-text-muted};
+  --cetp-color-surface: #{neutrals.$cedar-surface-panel};
+  --cetp-color-border: #{neutrals.$cedar-border-rule};
+  --cetp-color-warning: #{tokens.$cee-color-warning};
+  --cetp-font-family: #{tokens.$cee-font-family};
+  --cetp-font-size: #{tokens.$cee-font-size};
 
   // Derived, not settable. The type scale is CEDAR's — 14 for the body, 12 for what supports it,
   // 15 for what leads — and it moves with the base a host sets rather than being pinned beside it,
-  // so `--ctp-font-size: 16px` reads as a larger component and not a broken one.
-  --ctp-font-size-small: calc(var(--ctp-font-size) - 2px);
-  --ctp-font-size-lead: calc(var(--ctp-font-size) + 1px);
+  // so `--cetp-font-size: 16px` reads as a larger component and not a broken one.
+  --cetp-font-size-small: calc(var(--cetp-font-size) - 2px);
+  --cetp-font-size-lead: calc(var(--cetp-font-size) + 1px);
 
   // Derived from the brand, so a host that re-points the primary colour gets a tint that matches it
   // rather than one left behind. A chip and a pinned version share this; the panel behind expanded
   // rows is the neutral surface, and the two have to stay distinguishable.
-  --ctp-color-tint: color-mix(in srgb, var(--ctp-color-primary) 12%, white);
+  --cetp-color-tint: color-mix(in srgb, var(--cetp-color-primary) 12%, white);
 
   display: block;
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  font-family: var(--ctp-font-family);
-  font-size: var(--ctp-font-size);
+  font-family: var(--cetp-font-family);
+  font-size: var(--cetp-font-size);
   line-height: normal;
-  color: var(--ctp-color-text);
+  color: var(--cetp-color-text);
 }
 
 *,
@@ -98,7 +98,7 @@
 
 .picker {
   position: relative;
-  border: 1px solid var(--ctp-color-border);
+  border: 1px solid var(--cetp-color-border);
   border-radius: 4px;
   padding: 0.75rem;
   background: #fff;
@@ -158,8 +158,8 @@
   // A definition is prose: left to wrap it would set the bar's height from its longest sentence, and
   // left to appear only when present it would move everything below it as the selection changed.
   .meaning {
-    font-size: var(--ctp-font-size-small);
-    color: var(--ctp-color-muted);
+    font-size: var(--cetp-font-size-small);
+    color: var(--cetp-color-muted);
     line-height: 1.5;
     height: 1.5em;
     padding-bottom: 0.35rem;
@@ -173,13 +173,13 @@
     // Tall enough for what is in it, and the same box as the line below. A monospace face wants more
     // than 1.25 line boxes, and at 1.25 the fixed height that keeps the bar still was clipping the
     // descenders off the namespace.
-    font-size: var(--ctp-font-size-small);
+    font-size: var(--cetp-font-size-small);
     line-height: 1.5;
     height: 1.5em;
 
     code {
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      color: var(--ctp-color-muted);
+      color: var(--cetp-color-muted);
     }
 
     .ns {
@@ -210,33 +210,33 @@
   // it carries comes from the store.
   .blocked {
     padding: 0.1rem 0 0.2rem;
-    font-size: var(--ctp-font-size-small);
-    color: var(--ctp-color-muted);
+    font-size: var(--cetp-font-size-small);
+    color: var(--cetp-color-muted);
   }
 
   strong {
-    color: var(--ctp-color-heading);
+    color: var(--cetp-color-heading);
     font-weight: 500;
   }
 }
 
 .label {
-  font-size: var(--ctp-font-size-small);
+  font-size: var(--cetp-font-size-small);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--ctp-color-heading);
+  color: var(--cetp-color-heading);
 }
 
 input {
   padding: 0.5rem;
-  border: 1px solid var(--ctp-color-border);
+  border: 1px solid var(--cetp-color-border);
   border-radius: 3px;
   font: inherit;
   color: inherit;
   min-width: 0;
 
   &:focus {
-    outline: 2px solid var(--ctp-color-primary);
+    outline: 2px solid var(--cetp-color-primary);
     outline-offset: 1px;
   }
 }
@@ -247,27 +247,27 @@ input {
 button:focus-visible,
 [tabindex]:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--ctp-color-primary);
+  outline: 2px solid var(--cetp-color-primary);
   outline-offset: 1px;
 }
 
 button {
   font: inherit;
-  font-size: var(--ctp-font-size-small);
+  font-size: var(--cetp-font-size-small);
   // Sized so a row carrying buttons is the same height as a row without: the ontology rows stood a
   // third taller than the folded term rows, which is the vertical creep this component keeps
   // attracting.
   padding: 0.2rem 0.6rem;
-  border: 1px solid var(--ctp-color-primary);
+  border: 1px solid var(--cetp-color-primary);
   border-radius: 3px;
-  background: var(--ctp-color-primary);
-  color: var(--ctp-color-on-primary);
+  background: var(--cetp-color-primary);
+  color: var(--cetp-color-on-primary);
   cursor: pointer;
   white-space: nowrap;
 
   &.ghost {
     background: transparent;
-    color: var(--ctp-color-primary);
+    color: var(--cetp-color-primary);
   }
 }
 
@@ -285,7 +285,7 @@ button {
   padding: 0.1rem 0.45rem;
 
   .x {
-    color: var(--ctp-color-muted);
+    color: var(--cetp-color-muted);
     margin-left: 0.15rem;
   }
 }
@@ -294,8 +294,8 @@ button {
 // reads as the ontologies chosen plus one empty slot rather than as one more of them.
 .chip.adder {
   background: transparent;
-  border: 1px dashed var(--ctp-color-border);
-  color: var(--ctp-color-primary);
+  border: 1px dashed var(--cetp-color-border);
+  color: var(--cetp-color-primary);
   cursor: pointer;
   padding: 0.1rem 0.45rem;
 }
@@ -306,13 +306,13 @@ button {
   background: transparent;
   border: none;
   padding: 0.1rem 0.2rem;
-  color: var(--ctp-color-muted);
+  color: var(--cetp-color-muted);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
 
   &:hover {
-    color: var(--ctp-color-heading);
+    color: var(--cetp-color-heading);
   }
 }
 
@@ -328,9 +328,9 @@ button {
     flex: 0 1 22rem;
     min-width: 0;
     height: 28px;
-    font-size: var(--ctp-font-size-small);
+    font-size: var(--cetp-font-size-small);
     padding: 0 0.45rem;
-    border: 1px solid var(--ctp-color-border);
+    border: 1px solid var(--cetp-color-border);
     border-radius: 3px;
     background: #fff;
     color: inherit;
@@ -345,8 +345,8 @@ button {
   gap: 0.5rem;
   margin: 0.5rem 0 0.15rem;
   padding: 0 0.4rem;
-  font-size: var(--ctp-font-size-small);
-  color: var(--ctp-color-muted);
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
 
   .grow {
     flex: 1 1 auto;
@@ -363,7 +363,7 @@ button {
   @include scrolls;
   margin-top: 0.4rem;
   padding: 0.35rem;
-  background: var(--ctp-color-surface);
+  background: var(--cetp-color-surface);
   border-radius: 3px;
 }
 
@@ -380,7 +380,7 @@ button {
   min-width: 0;
 
   &.on {
-    background: var(--ctp-color-tint);
+    background: var(--cetp-color-tint);
     font-weight: 500;
   }
 
@@ -394,7 +394,7 @@ button {
   align-items: center;
   gap: 0.25rem;
   margin-top: 0.75rem;
-  border-bottom: 1px solid var(--ctp-color-border);
+  border-bottom: 1px solid var(--cetp-color-border);
 }
 
 .tab {
@@ -402,28 +402,28 @@ button {
   border: none;
   border-bottom: 2px solid transparent;
   border-radius: 0;
-  color: var(--ctp-color-muted);
-  font-size: var(--ctp-font-size);
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size);
   padding: 0.4rem 0.6rem;
 
   &.active {
-    color: var(--ctp-color-heading);
-    border-bottom-color: var(--ctp-color-primary);
+    color: var(--cetp-color-heading);
+    border-bottom-color: var(--cetp-color-primary);
     font-weight: 500;
   }
 }
 
 .badge {
   margin-left: 0.35rem;
-  font-size: var(--ctp-font-size-small);
-  color: var(--ctp-color-muted);
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
 }
 
 .working {
   margin: 0;
   padding: 0.35rem 0.2rem 0;
-  font-size: var(--ctp-font-size-small);
-  color: var(--ctp-color-muted);
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
 
   // Holding the line, saying nothing, so the list below does not move when a search starts.
   &.idle {
@@ -452,8 +452,8 @@ button {
   margin: 0;
   padding: 0.4rem 0.2rem 0;
   min-height: 1.6rem;
-  color: var(--ctp-color-muted);
-  font-size: var(--ctp-font-size-small);
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-small);
   text-align: center;
 }
 
@@ -463,7 +463,7 @@ button {
   grid-template-columns: subgrid;
   align-items: center;
   padding: 0.35rem 0.2rem;
-  border-bottom: 1px solid var(--ctp-color-border);
+  border-bottom: 1px solid var(--cetp-color-border);
 
   &.group {
     display: block;
@@ -478,12 +478,12 @@ button {
   cursor: pointer;
 
   &:hover {
-    background: var(--ctp-color-surface);
+    background: var(--cetp-color-surface);
   }
 
   &.marked,
   &.marked:hover {
-    background: var(--ctp-color-tint);
+    background: var(--cetp-color-tint);
   }
 }
 
@@ -499,14 +499,14 @@ button {
   background: transparent;
   border: none;
   border-radius: 3px;
-  color: var(--ctp-color-muted);
-  font-size: var(--ctp-font-size-lead);
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-lead);
   line-height: 1;
   padding: 0.2rem 0.4rem;
 
   &:hover {
-    color: var(--ctp-color-heading);
-    background: var(--ctp-color-surface);
+    color: var(--cetp-color-heading);
+    background: var(--cetp-color-surface);
   }
 }
 
@@ -522,14 +522,14 @@ button {
   background: transparent;
   border: none;
   border-radius: 3px;
-  color: var(--ctp-color-primary);
-  font-size: var(--ctp-font-size-small);
+  color: var(--cetp-color-primary);
+  font-size: var(--cetp-font-size-small);
   white-space: nowrap;
   padding: 0 0.2rem;
   text-align: left;
 
   &:hover {
-    background: var(--ctp-color-surface);
+    background: var(--cetp-color-surface);
   }
 }
 
@@ -554,7 +554,7 @@ button {
   padding: 0.25rem 0.35rem;
   max-height: 14rem;
   background: #fff;
-  border: 1px solid var(--ctp-color-border);
+  border: 1px solid var(--cetp-color-border);
   border-radius: 3px;
   @include scrolls;
 }
@@ -563,23 +563,23 @@ button {
   display: flex;
   align-items: baseline;
   gap: 0.2rem;
-  color: var(--ctp-color-muted);
+  color: var(--cetp-color-muted);
   white-space: nowrap;
 
   &.spine {
-    color: var(--ctp-color-text);
+    color: var(--cetp-color-text);
   }
 
   &.self > .term {
-    color: var(--ctp-color-heading);
+    color: var(--cetp-color-heading);
     font-weight: 500;
   }
 
   // The term the bar is describing. The tint alone: a bar down its edge is the mark a row and a
   // release carry, and inside a tree it read as another level of indent rather than as emphasis.
   &.picked > .term {
-    background: var(--ctp-color-tint);
-    color: var(--ctp-color-heading);
+    background: var(--cetp-color-tint);
+    color: var(--cetp-color-heading);
   }
 
   > .twist {
@@ -588,7 +588,7 @@ button {
     border: none;
     border-radius: 2px;
     padding: 0;
-    color: var(--ctp-color-primary);
+    color: var(--cetp-color-primary);
     font-size: 0.85em;
     text-align: center;
   }
@@ -607,7 +607,7 @@ button {
     text-align: left;
 
     &:hover {
-      background: var(--ctp-color-tint);
+      background: var(--cetp-color-tint);
     }
   }
 }
@@ -625,12 +625,12 @@ button {
   // this one and this padding — into a finger's width of nothing above the tree.
   margin: 0 0 0.35rem 0;
   padding: 0 0.6rem 0.3rem;
-  background: var(--ctp-color-surface);
+  background: var(--cetp-color-surface);
   border-radius: 3px;
-  font-size: var(--ctp-font-size-small);
+  font-size: var(--cetp-font-size-small);
 
   dt {
-    color: var(--ctp-color-muted);
+    color: var(--cetp-color-muted);
     text-align: right;
   }
 
@@ -648,7 +648,7 @@ button {
     white-space: normal;
     line-height: 1.4;
     padding-bottom: 0.15rem;
-    color: var(--ctp-color-text);
+    color: var(--cetp-color-text);
   }
 
   .wide {
@@ -658,7 +658,7 @@ button {
   // The IRI is the value a template records, so it is shown whole and set apart from the prose.
   .iri {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: var(--ctp-color-heading);
+    color: var(--cetp-color-heading);
   }
 }
 
@@ -666,7 +666,7 @@ button {
 // releases and nothing bounds the number an ontology can accumulate.
 .history {
   grid-column: 1 / -1;
-  background: var(--ctp-color-surface);
+  background: var(--cetp-color-surface);
   border-radius: 3px;
   margin: 0.15rem 0 0 0;
   max-height: 11rem;
@@ -687,10 +687,10 @@ button {
   gap: 0.75rem;
   margin: 0;
   padding: 0.3rem 0.6rem;
-  background: var(--ctp-color-surface);
-  border-bottom: 1px solid var(--ctp-color-border);
-  color: var(--ctp-color-muted);
-  font-size: var(--ctp-font-size-small);
+  background: var(--cetp-color-surface);
+  border-bottom: 1px solid var(--cetp-color-border);
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-small);
 }
 
 .releases {
@@ -713,10 +713,10 @@ button {
   color: inherit;
   text-align: left;
   padding: 0.25rem 0.6rem;
-  font-size: var(--ctp-font-size-small);
+  font-size: var(--cetp-font-size-small);
 
   &:hover {
-    background: var(--ctp-color-surface);
+    background: var(--cetp-color-surface);
   }
 
   // The release the row is reading: the pinned one, or the current one where nothing is pinned.
@@ -726,8 +726,8 @@ button {
   // marking is a tinted row throughout the picker, and nothing else marks a left edge.
   &.on,
   &.on:hover {
-    background: var(--ctp-color-tint);
-    color: var(--ctp-color-heading);
+    background: var(--cetp-color-tint);
+    color: var(--cetp-color-heading);
   }
 
   .declared {
@@ -738,11 +738,11 @@ button {
 
   .date,
   .tag {
-    color: var(--ctp-color-muted);
+    color: var(--cetp-color-muted);
   }
 
   .hash {
-    color: var(--ctp-color-muted);
+    color: var(--cetp-color-muted);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 }
@@ -759,11 +759,11 @@ button {
   text-align: left;
   // Room before the twist. At 0.2rem a group's label began three pixels from the panel edge.
   padding: 0.35rem 0.55rem;
-  font-size: var(--ctp-font-size);
+  font-size: var(--cetp-font-size);
 }
 
 .twist {
-  color: var(--ctp-color-muted);
+  color: var(--cetp-color-muted);
   width: 0.8em;
 }
 
@@ -774,18 +774,18 @@ button {
 }
 
 .title {
-  font-size: var(--ctp-font-size-lead);
+  font-size: var(--cetp-font-size-lead);
   font-weight: 500;
 
   &.obsolete {
-    color: var(--ctp-color-muted);
+    color: var(--cetp-color-muted);
   }
 }
 
 .who {
   margin-left: 0.4rem;
-  font-size: var(--ctp-font-size-small);
-  color: var(--ctp-color-heading);
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-heading);
 }
 
 // A "·"-prefixed note, standing after whatever it qualifies. Angular strips the whitespace between
@@ -796,7 +796,7 @@ button {
 }
 
 .dim {
-  color: var(--ctp-color-muted);
+  color: var(--cetp-color-muted);
 }
 
 // The compact group heading. Shorter than a row, but starting where one does: at 0.2rem its twist
@@ -853,7 +853,7 @@ button {
 }
 
 mark {
-  background: var(--ctp-color-tint);
+  background: var(--cetp-color-tint);
   color: inherit;
   padding: 0 1px;
 }
@@ -861,8 +861,8 @@ mark {
 .sub,
 .meta {
   display: block;
-  font-size: var(--ctp-font-size-small);
-  color: var(--ctp-color-muted);
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
   margin-top: 0.15rem;
 }
 
@@ -879,9 +879,9 @@ mark {
 // drew a thin grey line across every release that is not the latest, and across the header.
 .alias {
   display: inline-block;
-  border: 1px solid var(--ctp-color-border);
-  color: var(--ctp-color-muted);
-  font-size: var(--ctp-font-size-small);
+  border: 1px solid var(--cetp-color-border);
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-small);
   padding: 0.02rem 0.35rem;
   border-radius: 3px;
   margin-right: 0.35rem;
@@ -889,21 +889,21 @@ mark {
 
 .chip {
   display: inline-block;
-  background: var(--ctp-color-tint);
-  color: var(--ctp-color-heading);
-  font-size: var(--ctp-font-size-small);
+  background: var(--cetp-color-tint);
+  color: var(--cetp-color-heading);
+  font-size: var(--cetp-font-size-small);
   padding: 0.05rem 0.4rem;
   border-radius: 3px;
   margin-right: 0.35rem;
 
   &.warn {
     background: #fff3cd;
-    color: var(--ctp-color-warning);
+    color: var(--cetp-color-warning);
   }
 }
 
 .children {
-  background: var(--ctp-color-surface);
+  background: var(--cetp-color-surface);
   padding: 0.1rem 0.5rem 0.2rem 1.6rem;
 }
 
@@ -928,13 +928,13 @@ mark {
 // A pin naming an extraction a later one corrected. Marked rather than alarming: the pin resolves,
 // and an author may well have meant that exact reading.
 .stale {
-  color: var(--ctp-color-warning);
+  color: var(--cetp-color-warning);
   font-style: italic;
 }
 
 .opener {
-  color: var(--ctp-color-primary);
-  font-size: var(--ctp-font-size-small);
+  color: var(--cetp-color-primary);
+  font-size: var(--cetp-font-size-small);
   flex: 0 0 auto;
   padding-right: 0.35rem;
   // One glyph turned, rather than two swapped: ▸ and ▾ are a pixel apart in width, and the column
@@ -968,7 +968,7 @@ mark {
   // Room before the first glyph, matching the group head above it. At zero a child's tint and its
   // opening mark began hard against the panel edge.
   padding: 0.3rem 0.55rem;
-  border-bottom: 1px solid var(--ctp-color-border);
+  border-bottom: 1px solid var(--cetp-color-border);
 
   &:last-child {
     border-bottom: none;
@@ -978,14 +978,14 @@ mark {
 // Stepping back through releases. Muted until an author steps off latest, at which point the row is
 // carrying a decision and says so.
 .version {
-  font-size: var(--ctp-font-size-small);
-  color: var(--ctp-color-muted);
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
   text-align: right;
   white-space: nowrap;
 
   &.pinned {
-    background: var(--ctp-color-tint);
-    color: var(--ctp-color-heading);
+    background: var(--cetp-color-tint);
+    color: var(--cetp-color-heading);
     border-radius: 3px;
     padding: 0 0.25rem;
     font-weight: 500;
@@ -993,17 +993,17 @@ mark {
 }
 
 .notice {
-  background: var(--ctp-color-surface);
-  border-left: 3px solid var(--ctp-color-warning);
-  color: var(--ctp-color-muted);
-  font-size: var(--ctp-font-size-small);
+  background: var(--cetp-color-surface);
+  border-left: 3px solid var(--cetp-color-warning);
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-small);
   padding: 0.5rem 0.6rem;
   margin: 0.75rem 0 0;
 }
 
 .empty {
-  color: var(--ctp-color-muted);
-  font-size: var(--ctp-font-size-small);
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-small);
   padding: 1rem 0.2rem;
 }
 
@@ -1031,7 +1031,7 @@ mark {
 // Compact bordered rows and quiet column headings follow the Groups and Permissions dialogs.
 .constraint-set {
   padding: 8px 14px;
-  border-bottom: 1px solid var(--ctp-color-border);
+  border-bottom: 1px solid var(--cetp-color-border);
   max-height: 38vh;
   @include scrolls;
   h2 {
@@ -1046,7 +1046,7 @@ mark {
   }
   p {
     margin: 6px 0 12px;
-    color: var(--ctp-color-muted);
+    color: var(--cetp-color-muted);
   }
   p,
   label,
@@ -1058,23 +1058,23 @@ mark {
     margin: 0;
     padding: 4px 8px;
     cursor: pointer;
-    border: 1px solid var(--ctp-color-border);
+    border: 1px solid var(--cetp-color-border);
     border-radius: 3px;
     background: white;
-    color: var(--ctp-color-primary);
+    color: var(--cetp-color-primary);
   }
   button:disabled {
     opacity: 0.4;
     cursor: default;
   }
   button:hover:enabled {
-    background: var(--ctp-color-surface);
-    &.use { background: var(--ctp-color-primary); filter: brightness(0.95); }
+    background: var(--cetp-color-surface);
+    &.use { background: var(--cetp-color-primary); filter: brightness(0.95); }
   }
   input {
     width: 80px;
     padding: 5px;
-    border: 1px solid var(--ctp-color-border);
+    border: 1px solid var(--cetp-color-border);
   }
   select {
     padding: 6px;
@@ -1088,7 +1088,7 @@ mark {
     overflow-wrap: anywhere;
   }
   .use {
-    background: var(--ctp-color-primary);
+    background: var(--cetp-color-primary);
     color: white;
   }
 }
@@ -1210,8 +1210,8 @@ mark {
 }
 .saved-actions {
   margin-top: 6px;
-  font-size: var(--ctp-font-size-small);
-  color: var(--ctp-color-muted);
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
   summary { cursor: pointer; }
 }
 
@@ -1234,7 +1234,7 @@ mark {
     margin: 4px 0 0;
     line-height: 1.35;
   }
-  dt { font-weight: 400; color: var(--ctp-color-muted); }
+  dt { font-weight: 400; color: var(--cetp-color-muted); }
   dd { margin: 0; min-width: 0; }
 }
 
@@ -1245,14 +1245,14 @@ mark {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  background: var(--ctp-color-surface);
+  background: var(--cetp-color-surface);
   .detail { grid-column: 1; margin: 0; }
   .use {
     grid-column: 2;
     grid-row: 1;
     margin: 0 6px 0 0;
-    background: var(--ctp-color-primary);
-    color: var(--ctp-color-on-primary);
+    background: var(--cetp-color-primary);
+    color: var(--cetp-color-on-primary);
   }
   .use:disabled { opacity: 0.4; cursor: default; }
 }

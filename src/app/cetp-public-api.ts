@@ -38,7 +38,7 @@ import type { SelectedConstraint, SourceSelector } from './search/search-types';
  * own origin. Unset, the picker asks its own origin for `/search`, which is what
  * the development server's proxy answers and what no host page has.
  */
-export interface CedarTermPickerElement extends HTMLElement {
+export interface CedarEmbeddableTermPickerElement extends HTMLElement {
   query: string;
   /** Term mode only emits individual terms, for a field's default value. */
   selectionMode: 'constraint' | 'constraints' | 'term';
@@ -51,7 +51,7 @@ export interface CedarTermPickerElement extends HTMLElement {
    * The DOM overload first, and it is load-bearing rather than a courtesy.
    *
    * Naming this element in `HTMLElementTagNameMap` is what makes
-   * `document.querySelector('cedar-term-picker')` typed — and it is also what
+   * `document.querySelector('cedar-embeddable-term-picker')` typed — and it is also what
    * makes Angular resolve this interface as the host element type when it checks
    * the component's own host bindings. Without this overload the narrowest match
    * for `keydown` became the catch-all below, `$event` collapsed to `Event`, and
@@ -91,6 +91,6 @@ export interface CedarTermPickerElement extends HTMLElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'cedar-term-picker': CedarTermPickerElement;
+    'cedar-embeddable-term-picker': CedarEmbeddableTermPickerElement;
   }
 }

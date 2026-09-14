@@ -45,7 +45,7 @@ import {
 } from './search/search-types';
 
 /** The tag the host page uses, and the component's own selector. */
-export const TERM_PICKER_TAG = 'cedar-term-picker';
+export const CETP_TAG = 'cedar-embeddable-term-picker';
 
 /** How long the author stops typing before a search runs. */
 const DEBOUNCE_MS = 250;
@@ -119,14 +119,14 @@ export interface LabelGroup {
 }
 
 @Component({
-  selector: TERM_PICKER_TAG,
+  selector: CETP_TAG,
   imports: [FontRegistrar, NgTemplateOutlet],
-  templateUrl: './term-picker.html',
-  styleUrl: './term-picker.scss',
+  templateUrl: './cedar-embeddable-term-picker.html',
+  styleUrl: './cedar-embeddable-term-picker.scss',
   encapsulation: ViewEncapsulation.ShadowDom,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TermPicker {
+export class CedarEmbeddableTermPicker {
   private readonly client = inject(TerminologyClient);
 
   /** The query the picker opens on, so a host can seed it from the field's name. */
@@ -639,7 +639,7 @@ export class TermPicker {
       // A code is not a name. When the ontology gave one, lead with the name that actually matched
       // and keep the code beside it, so the row says what the author searched for.
       const matched = first.matchedLabels?.[0]?.label;
-      const coded = TermPicker.isCode(first.termLabel) && matched !== undefined;
+      const coded = CedarEmbeddableTermPicker.isCode(first.termLabel) && matched !== undefined;
       return {
         label: coded ? matched : first.termLabel,
         code: coded ? first.termLabel : undefined,
@@ -932,7 +932,7 @@ export class TermPicker {
     if (authority === undefined || authority === '') {
       return '';
     }
-    return TermPicker.AUTHORITY_NAMES[authority] ?? authority;
+    return CedarEmbeddableTermPicker.AUTHORITY_NAMES[authority] ?? authority;
   }
 
   private static readonly AUTHORITY_NAMES: Readonly<Record<string, string>> = {
@@ -952,7 +952,7 @@ export class TermPicker {
 
   /** What the row shows: the version stepped to, else the one that answered. */
   protected versionOf(acronym: string): string {
-    return TermPicker.nameOf(this.pinned().get(acronym) ?? this.sourceOf(acronym)?.version);
+    return CedarEmbeddableTermPicker.nameOf(this.pinned().get(acronym) ?? this.sourceOf(acronym)?.version);
   }
 
   /**
@@ -1099,11 +1099,11 @@ export class TermPicker {
    */
   /** The acronym around the query, so an ontology found by its acronym shows why. */
   protected splitAcronym(acronym: string): readonly [string, string, string] {
-    return TermPicker.split(acronym, this.text().trim());
+    return CedarEmbeddableTermPicker.split(acronym, this.text().trim());
   }
 
   protected splitName(acronym: string): readonly [string, string, string] {
-    return TermPicker.split(this.sourceName(acronym), this.text().trim());
+    return CedarEmbeddableTermPicker.split(this.sourceName(acronym), this.text().trim());
   }
 
   /** A string cut around the query: before, the match itself, after. */
@@ -1275,7 +1275,9 @@ export class TermPicker {
     if (twins.length < 2) {
       return '';
     }
-    return TermPicker.byParent(twins) ? `under ${TermPicker.parentOf(hit)}` : TermPicker.shortId(this.termIriOf(hit));
+    return CedarEmbeddableTermPicker.byParent(twins)
+      ? `under ${CedarEmbeddableTermPicker.parentOf(hit)}`
+      : CedarEmbeddableTermPicker.shortId(this.termIriOf(hit));
   }
 
   /**
@@ -1288,7 +1290,7 @@ export class TermPicker {
    */
   protected distinguishedById(hits: readonly Hit[], hit: Hit): boolean {
     const twins = hits.filter((other) => other.sourceAcronym === hit.sourceAcronym);
-    return twins.length > 1 && !TermPicker.byParent(twins);
+    return twins.length > 1 && !CedarEmbeddableTermPicker.byParent(twins);
   }
 
   /**
@@ -1299,7 +1301,7 @@ export class TermPicker {
    * used only where they tell every twin apart.
    */
   private static byParent(twins: readonly Hit[]): boolean {
-    const parents = twins.map((other) => TermPicker.parentOf(other));
+    const parents = twins.map((other) => CedarEmbeddableTermPicker.parentOf(other));
     return parents.every((parent) => parent !== '') && new Set(parents).size === parents.length;
   }
 
@@ -1354,7 +1356,7 @@ export class TermPicker {
     const fixed = this.effectiveSources().find((source) => source.sourceAcronym === acronym)?.version;
     const pinned =
       fixed && fixed !== 'latest' ? { ...this.sourceOf(acronym)?.version, id: fixed.id } : this.pinned().get(acronym);
-    const version = TermPicker.nameOf(pinned ?? this.sourceOf(acronym)?.version);
+    const version = CedarEmbeddableTermPicker.nameOf(pinned ?? this.sourceOf(acronym)?.version);
     // The date and the hash only where one was chosen: they are what a pinned constraint records
     // beside the declared version, and an unpinned one records none of the three.
     const of = {

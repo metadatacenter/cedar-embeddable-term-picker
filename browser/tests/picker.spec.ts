@@ -66,11 +66,11 @@ test('a tab does not claim nothing matched while it is still asking', async ({ p
     await route.fallback();
   });
   await openPicker(page);
-  await page.locator('cedar-term-picker input').fill('melanoma');
+  await page.locator('cedar-embeddable-term-picker input').fill('melanoma');
 
-  await expect(page.locator('cedar-term-picker .working')).toBeVisible();
-  await expect(page.locator('cedar-term-picker')).not.toContainText('No terms match');
-  await expect(page.locator('cedar-term-picker .rowhead').first()).toBeVisible();
+  await expect(page.locator('cedar-embeddable-term-picker .working')).toBeVisible();
+  await expect(page.locator('cedar-embeddable-term-picker')).not.toContainText('No terms match');
+  await expect(page.locator('cedar-embeddable-term-picker .rowhead').first()).toBeVisible();
 });
 
 test('a tab counts what the author will see, not what matched', async ({ page }) => {
@@ -79,8 +79,8 @@ test('a tab counts what the author will see, not what matched', async ({ page })
   await search(page, 'melanoma');
 
   // 2,552 labels, not 5,439 hits: the hit count saturates on every query worth typing.
-  await expect(page.locator('cedar-term-picker .tab').first()).toContainText('2,552');
-  await expect(page.locator('cedar-term-picker .tab').first()).not.toContainText('5,439');
+  await expect(page.locator('cedar-embeddable-term-picker .tab').first()).toContainText('2,552');
+  await expect(page.locator('cedar-embeddable-term-picker .tab').first()).not.toContainText('5,439');
 });
 
 test('identical labels fold into one row, counting the ontologies that offer it', async ({ page }) => {
@@ -97,14 +97,14 @@ test('identical labels fold into one row, counting the ontologies that offer it'
   await openPicker(page);
   await search(page, 'melanoma');
 
-  const rows = page.locator('cedar-term-picker .rowhead');
+  const rows = page.locator('cedar-embeddable-term-picker .rowhead');
   await expect(rows).toHaveCount(2);
   await expect(rows.first()).toContainText('in 2 ontologies');
 
   // The ontologies are inside, where an author can tell them apart and choose one.
   await rows.first().click();
-  await expect(page.locator('cedar-term-picker .child')).toHaveCount(2);
-  await expect(page.locator('cedar-term-picker .child').first()).toContainText('NCIT');
+  await expect(page.locator('cedar-embeddable-term-picker .child')).toHaveCount(2);
+  await expect(page.locator('cedar-embeddable-term-picker .child').first()).toContainText('NCIT');
 });
 
 test('rows of one ontology that share a parent are told apart by their identifiers', async ({ page }) => {
@@ -140,13 +140,13 @@ test('rows of one ontology that share a parent are told apart by their identifie
   }));
   await openPicker(page);
   await search(page, 'disease');
-  await page.locator('cedar-term-picker .rowhead').first().click();
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
 
   // Not the parent, which says the same thing three times, but the identifier, which is the whole
   // of what differs — and is how an OBO term is cited.
-  const rows = page.locator('cedar-term-picker .child .under');
+  const rows = page.locator('cedar-embeddable-term-picker .child .under');
   await expect(rows).toHaveText(['· DOID:4', '· MONDO:0000001', '· OGMS:0000031']);
-  await expect(page.locator('cedar-term-picker .child').first()).not.toContainText('disposition');
+  await expect(page.locator('cedar-embeddable-term-picker .child').first()).not.toContainText('disposition');
 });
 
 test('a row whose label is a bare code leads with the name that matched', async ({ page }) => {
@@ -155,7 +155,7 @@ test('a row whose label is a bare code leads with the name that matched', async 
   await search(page, 'melanoma');
 
   // OCHV labels a concept 6188 and keeps "HIV disease" as a synonym. 6188 is not a name.
-  const coded = page.locator('cedar-term-picker .rowhead', { hasText: '6188' });
+  const coded = page.locator('cedar-embeddable-term-picker .rowhead', { hasText: '6188' });
   await expect(coded).toContainText('HIV disease');
   await expect(coded.locator('.title')).toHaveText('HIV disease');
 });
@@ -164,16 +164,16 @@ test('branches fold across and within ontologies, and open onto their parents', 
   await stubSearch(page, () => MELANOMA);
   await openPicker(page);
   await search(page, 'melanoma');
-  await page.locator('cedar-term-picker .tab').nth(1).click();
+  await page.locator('cedar-embeddable-term-picker .tab').nth(1).click();
 
   // Three branches in two ontologies, folded to one row: RH-MESH places one concept twice.
-  const row = page.locator('cedar-term-picker .rowhead');
+  const row = page.locator('cedar-embeddable-term-picker .rowhead');
   await expect(row).toHaveCount(1);
   await expect(row).toContainText('in 2 ontologies');
   await expect(row).toContainText('3 branches in 2 ontologies');
 
   await row.click();
-  const children = page.locator('cedar-term-picker .child');
+  const children = page.locator('cedar-embeddable-term-picker .child');
   await expect(children).toHaveCount(3);
 
   // Two of them are RH-MESH placing one concept at two points in its own tree, so those two — and
@@ -190,7 +190,7 @@ test('branches fold across and within ontologies, and open onto their parents', 
     descendantCount: 13,
   }));
   await children.nth(0).click();
-  await expect(page.locator('cedar-term-picker .tree .node').first()).toContainText(
+  await expect(page.locator('cedar-embeddable-term-picker .tree .node').first()).toContainText(
     'Neuroendocrine Tumors',
   );
 });
@@ -199,11 +199,11 @@ test('an ontology row shows what the query matched, or nothing but its count', a
   await stubSearch(page, () => MELANOMA);
   await openPicker(page);
   await search(page, 'melanoma');
-  await page.locator('cedar-term-picker .tab').nth(2).click();
+  await page.locator('cedar-embeddable-term-picker .tab').nth(2).click();
 
   // A vocabulary named for the query says so by marking the part of the name that matched. NCIT is
   // here because its terms matched, and its count is the whole of the reason.
-  const rows = page.locator('cedar-term-picker .row.oneline');
+  const rows = page.locator('cedar-embeddable-term-picker .row.oneline');
   await expect(rows.filter({ hasText: 'MELO' }).locator('mark')).toHaveText('Melanoma');
   await expect(rows.filter({ hasText: 'NCIT' })).toContainText('950 terms');
   await expect(rows.filter({ hasText: 'NCIT' }).locator('mark')).toHaveCount(0);
@@ -217,12 +217,12 @@ test('every result row is one line', async ({ page }) => {
   // A branch row once set its descendant count at heading scale and stood three times as tall as
   // its neighbours. The invariant is one line each, not identical heights: a row carrying a chip is
   // legitimately a few pixels taller than one that does not.
-  const termRow = await page.locator('cedar-term-picker .rowhead').first().boundingBox();
-  await page.locator('cedar-term-picker .tab').nth(1).click();
-  await expect(page.locator('cedar-term-picker .rowhead')).toHaveCount(1);
-  const branchRow = await page.locator('cedar-term-picker .rowhead').boundingBox();
-  await page.locator('cedar-term-picker .tab').nth(2).click();
-  const ontologyRow = await page.locator('cedar-term-picker .row.oneline').first().boundingBox();
+  const termRow = await page.locator('cedar-embeddable-term-picker .rowhead').first().boundingBox();
+  await page.locator('cedar-embeddable-term-picker .tab').nth(1).click();
+  await expect(page.locator('cedar-embeddable-term-picker .rowhead')).toHaveCount(1);
+  const branchRow = await page.locator('cedar-embeddable-term-picker .rowhead').boundingBox();
+  await page.locator('cedar-embeddable-term-picker .tab').nth(2).click();
+  const ontologyRow = await page.locator('cedar-embeddable-term-picker .row.oneline').first().boundingBox();
 
   // One line is about 26px at CEDAR's 14px body; a row carrying buttons runs a few pixels taller.
   // Measured 2026-08-14: terms 26, branches 26, ontologies 31.
@@ -247,40 +247,40 @@ test('a host can re-point the contract, and nothing else', async ({ page }) => {
   }));
   await openPicker(page);
   await page.addStyleTag({
-    content: `cedar-term-picker {
-      --ctp-color-primary: rgb(128, 0, 128);
-      --ctp-color-text: rgb(17, 17, 17);
-      --ctp-font-size: 16px;
+    content: `cedar-embeddable-term-picker {
+      --cetp-color-primary: rgb(128, 0, 128);
+      --cetp-color-text: rgb(17, 17, 17);
+      --cetp-font-size: 16px;
     }`,
   });
   await search(page, 'melanoma');
 
   // Rules in the outer tree beat :host, so the component's values are defaults rather than a floor.
-  const picker = page.locator('cedar-term-picker');
+  const picker = page.locator('cedar-embeddable-term-picker');
   await expect(picker).toHaveCSS('color', 'rgb(17, 17, 17)');
   await expect(picker).toHaveCSS('font-size', '16px');
 
   // The brand reaches what carries it, and the tint is derived from it rather than left behind.
-  await expect(page.locator('cedar-term-picker .tab.active')).toHaveCSS(
+  await expect(page.locator('cedar-embeddable-term-picker .tab.active')).toHaveCSS(
     'border-bottom-color',
     'rgb(128, 0, 128)',
   );
   const chip = await page
-    .locator('cedar-term-picker .chip')
+    .locator('cedar-embeddable-term-picker .chip')
     .first()
     .evaluate((element) => getComputedStyle(element).backgroundColor);
   expect(chip).not.toBe('rgb(255, 255, 255)');
 
   // The type scale moves with the base rather than being pinned beside it.
   const small = await page
-    .locator('cedar-term-picker .badge')
+    .locator('cedar-embeddable-term-picker .badge')
     .first()
     .evaluate((element) => getComputedStyle(element).fontSize);
   expect(small).toBe('14px');
 
   // And what is not in the contract stays out of reach: a host cannot re-point the geometry.
-  await page.addStyleTag({ content: 'cedar-term-picker { --ctp-row-padding: 40px; }' });
-  const rowHeight = (await page.locator('cedar-term-picker .rowhead').first().boundingBox())!.height;
+  await page.addStyleTag({ content: 'cedar-embeddable-term-picker { --cetp-row-padding: 40px; }' });
+  const rowHeight = (await page.locator('cedar-embeddable-term-picker .rowhead').first().boundingBox())!.height;
   expect(rowHeight).toBeLessThan(40);
 });
 
@@ -291,12 +291,12 @@ test('escape leaves the picker', async ({ page }) => {
   await page.exposeFunction('recordCancel', () => cancelled.push(1));
   await page.evaluate(() =>
     document
-      .querySelector('cedar-term-picker')!
+      .querySelector('cedar-embeddable-term-picker')!
       .addEventListener('cancelled', () =>
         (window as unknown as { recordCancel: () => void }).recordCancel(),
       ),
   );
-  await page.locator('cedar-term-picker input[type=search]').press('Escape');
+  await page.locator('cedar-embeddable-term-picker input[type=search]').press('Escape');
   expect(cancelled).toHaveLength(1);
 });
 
@@ -306,8 +306,8 @@ test('a source that could not be searched is announced, not silently absent', as
   await search(page, 'melanoma');
 
   // Its absence would otherwise read as the ontology having no matches.
-  await expect(page.locator('cedar-term-picker .notice')).toContainText('GONE');
-  await expect(page.locator('cedar-term-picker .notice')).toContainText('sourceUnknown');
+  await expect(page.locator('cedar-embeddable-term-picker .notice')).toContainText('GONE');
+  await expect(page.locator('cedar-embeddable-term-picker .notice')).toContainText('sourceUnknown');
 });
 
 test('a long label folds from the middle, keeping both ends', async ({ page }) => {
@@ -321,7 +321,7 @@ test('a long label folds from the middle, keeping both ends', async ({ page }) =
   await openPicker(page);
   await search(page, 'melanoma');
 
-  const title = page.locator('cedar-term-picker .rowhead .title');
+  const title = page.locator('cedar-embeddable-term-picker .rowhead .title');
   // The axis codes at the end say what kind of thing it is; cutting the end throws them away.
   await expect(title).toContainText('Have you been diagnosed');
   await expect(title).toContainText(':Find:Pt:^Patient:Ord:PhenX');
@@ -336,19 +336,19 @@ test('the bar says what is selected, and nothing before anything is', async ({ p
 
   // Nothing marked, nothing claimed — but the space is held, or the first selection would grow the
   // bar and drop everything below it at the moment an author is reading a row.
-  const chosen = page.locator('cedar-term-picker .chosen');
+  const chosen = page.locator('cedar-embeddable-term-picker .chosen');
   await expect(chosen).not.toContainText('Selected');
-  const before = await page.locator('cedar-term-picker .tabs').boundingBox();
+  const before = await page.locator('cedar-embeddable-term-picker .tabs').boundingBox();
   // Nothing narrowed: one chip-shaped way in, and no reset for a state there is nothing to reset.
-  await expect(page.locator('cedar-term-picker .narrowing .adder')).toHaveText('narrow to…');
-  await expect(page.locator('cedar-term-picker .narrowing .quiet')).toHaveCount(0);
+  await expect(page.locator('cedar-embeddable-term-picker .narrowing .adder')).toHaveText('narrow to…');
+  await expect(page.locator('cedar-embeddable-term-picker .narrowing .quiet')).toHaveCount(0);
 
-  await page.locator('cedar-term-picker .tab').nth(2).click();
-  await page.locator('cedar-term-picker .row.pick').first().click();
+  await page.locator('cedar-embeddable-term-picker .tab').nth(2).click();
+  await page.locator('cedar-embeddable-term-picker .row.pick').first().click();
   // The heading names the kind, so a constraint on one term and a constraint on a whole ontology
   // are told apart without reading the phrasing under it.
   await expect(chosen.locator('.label')).toHaveText('Selected ontology');
-  const after = await page.locator('cedar-term-picker .tabs').boundingBox();
+  const after = await page.locator('cedar-embeddable-term-picker .tabs').boundingBox();
   expect(after!.y).toBe(before!.y);
   await expect(chosen).toContainText('Melanoma Ontology');
   // "latest", not the release latest happens to be: an unpinned constraint records no version and
@@ -360,21 +360,21 @@ test('the bar says what is selected, and nothing before anything is', async ({ p
   // A fold is remembered by its label, and the same label folds a term row and a branch row, so a
   // group can already be open when a tab is opened. Opening it again would close it.
   const pickFirstUnder = async () => {
-    const children = page.locator('cedar-term-picker .child');
+    const children = page.locator('cedar-embeddable-term-picker .child');
     if ((await children.count()) === 0) {
-      await page.locator('cedar-term-picker .rowhead').first().click();
+      await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
     }
     await children.first().click();
   };
 
   // The heading follows the tab, and a branch carries the size of what it brings with it.
-  await page.locator('cedar-term-picker .tab').nth(1).click();
+  await page.locator('cedar-embeddable-term-picker .tab').nth(1).click();
   await pickFirstUnder();
   await expect(chosen.locator('.label')).toHaveText('Selected branch');
   await expect(chosen).toContainText('descendants');
 
   // A term is one term: it has no size to state, only a name.
-  await page.locator('cedar-term-picker .tab').nth(0).click();
+  await page.locator('cedar-embeddable-term-picker .tab').nth(0).click();
   await pickFirstUnder();
   await expect(chosen.locator('.label')).toHaveText('Selected term');
   await expect(chosen).not.toContainText('descendants');
@@ -386,16 +386,16 @@ test('opening a fold selects the first row it opens onto', async ({ page }) => {
   await openPicker(page);
   await search(page, 'melanoma');
 
-  const chosen = page.locator('cedar-term-picker .chosen');
+  const chosen = page.locator('cedar-embeddable-term-picker .chosen');
   await expect(chosen).toBeEmpty();
-  await page.locator('cedar-term-picker .rowhead').first().click();
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
 
   // The first row is the answer an author opening a label is most likely to want, so the bar names
   // it without a second click. Selected, not marked: no panel, and so no hierarchy fetched.
-  const children = page.locator('cedar-term-picker .child');
+  const children = page.locator('cedar-embeddable-term-picker .child');
   await expect(children.first()).toHaveClass(/marked/);
   await expect(chosen).toContainText('NCIT');
-  await expect(page.locator('cedar-term-picker .detail')).toHaveCount(0);
+  await expect(page.locator('cedar-embeddable-term-picker .detail')).toHaveCount(0);
 });
 
 test('a term picked from the tree becomes what the tree is about, ancestors kept above', async ({ page }) => {
@@ -429,11 +429,11 @@ test('a term picked from the tree becomes what the tree is about, ancestors kept
   );
   await openPicker(page);
   await search(page, 'melanoma');
-  await page.locator('cedar-term-picker .rowhead').first().click();
-  await page.locator('cedar-term-picker .child', { hasText: 'NCIT' }).click();
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
+  await page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' }).click();
 
-  const chosen = page.locator('cedar-term-picker .chosen');
-  const tree = page.locator('cedar-term-picker .tree');
+  const chosen = page.locator('cedar-embeddable-term-picker .chosen');
+  const tree = page.locator('cedar-embeddable-term-picker .tree');
   await expect(chosen).toContainText('Melanoma');
   // The row the author searched into is the subject to begin with.
   await expect(tree.locator('.node.self')).toContainText('Melanoma');
@@ -505,19 +505,19 @@ test('a term selected in one release is looked for in the next, and falls back w
   });
   await openPicker(page);
   await search(page, 'melanoma');
-  await page.locator('cedar-term-picker .rowhead').first().click();
-  const ncit = page.locator('cedar-term-picker .child', { hasText: 'NCIT' });
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
+  const ncit = page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' });
   await ncit.click();
   await ncit.locator('button.of').click();
 
   // Step to the older release, where both children exist, and select the one that will vanish.
-  await page.locator('cedar-term-picker .release').nth(1).click();
-  const chosen = page.locator('cedar-term-picker .chosen');
-  await page.locator('cedar-term-picker .tree .node', { hasText: 'Gone Later' }).locator('.term').click();
+  await page.locator('cedar-embeddable-term-picker .release').nth(1).click();
+  const chosen = page.locator('cedar-embeddable-term-picker .chosen');
+  await page.locator('cedar-embeddable-term-picker .tree .node', { hasText: 'Gone Later' }).locator('.term').click();
   await expect(chosen).toContainText('Gone Later');
 
   // Back to the release that dropped it: the selection falls back to the row's own term.
-  await page.locator('cedar-term-picker .release').first().click();
+  await page.locator('cedar-embeddable-term-picker .release').first().click();
   await expect(chosen).toContainText('Melanoma');
   await expect(chosen).not.toContainText('Gone Later');
 });
@@ -547,24 +547,24 @@ test('narrowing changes what the rows hold, not how they are drawn', async ({ pa
   await search(page, 'disease');
 
   // Whatever the unnarrowed list is, it is folded rows with a twist apiece.
-  const rows = page.locator('cedar-term-picker .rowhead');
+  const rows = page.locator('cedar-embeddable-term-picker .rowhead');
   const before = await rows.count();
   expect(before).toBeGreaterThan(0);
 
-  await page.locator('cedar-term-picker .narrowing .adder').click();
-  await page.locator('cedar-term-picker .candidate', { hasText: 'DOID' }).click();
+  await page.locator('cedar-embeddable-term-picker .narrowing .adder').click();
+  await page.locator('cedar-embeddable-term-picker .candidate', { hasText: 'DOID' }).click();
   // No bulk reset while the panel is open: that is where one ontology is added or removed at a
   // time, and a reset beside the way out of it is a second exit doing something quite different.
-  await expect(page.locator('cedar-term-picker .narrowing .quiet')).toHaveCount(0);
-  await page.locator('cedar-term-picker .narrowing button', { hasText: 'done' }).click();
-  await expect(page.locator('cedar-term-picker .narrowing .quiet')).toHaveText('clear');
+  await expect(page.locator('cedar-embeddable-term-picker .narrowing .quiet')).toHaveCount(0);
+  await page.locator('cedar-embeddable-term-picker .narrowing button', { hasText: 'done' }).click();
+  await expect(page.locator('cedar-embeddable-term-picker .narrowing .quiet')).toHaveText('clear');
 
   // Narrowed, it is the same rows holding less — not a different presentation. A tree drawn here
   // instead meant the list an author was reading was replaced by another kind of thing.
-  await expect(page.locator('cedar-term-picker .narrowing')).toContainText('DOID');
+  await expect(page.locator('cedar-embeddable-term-picker .narrowing')).toContainText('DOID');
   await expect(rows).toHaveCount(3);
   await expect(rows.first()).toContainText('in 1 ontology');
-  await expect(page.locator('cedar-term-picker .tree.scoped')).toHaveCount(0);
+  await expect(page.locator('cedar-embeddable-term-picker .tree.scoped')).toHaveCount(0);
 });
 
 test('a node bigger than one read scrolls on rather than ending early', async ({ page }) => {
@@ -589,10 +589,10 @@ test('a node bigger than one read scrolls on rather than ending early', async ({
   });
   await openPicker(page);
   await search(page, 'melanoma');
-  await page.locator('cedar-term-picker .rowhead').first().click();
-  await page.locator('cedar-term-picker .child', { hasText: 'NCIT' }).click();
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
+  await page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' }).click();
 
-  const tree = page.locator('cedar-term-picker .detail .tree');
+  const tree = page.locator('cedar-embeddable-term-picker .detail .tree');
   // The term the panel is about is a row too; these assertions are about its children.
   const terms = tree.locator('.node:not(.self) .term');
   await expect(terms).toHaveCount(50);
@@ -629,13 +629,13 @@ test('a marked term shows what it is offering', async ({ page }) => {
   }));
   await openPicker(page);
   await search(page, 'melanoma');
-  await page.locator('cedar-term-picker .rowhead').first().click();
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
 
-  const ncit = page.locator('cedar-term-picker .child', { hasText: 'NCIT' });
-  await expect(page.locator('cedar-term-picker .detail')).toHaveCount(0);
+  const ncit = page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' });
+  await expect(page.locator('cedar-embeddable-term-picker .detail')).toHaveCount(0);
   await ncit.click();
 
-  const detail = page.locator('cedar-term-picker .detail');
+  const detail = page.locator('cedar-embeddable-term-picker .detail');
   // The chain above the term and what hangs below it, which is what tells one "Melanoma" from
   // another when the label alone cannot.
   const tree = detail.locator('.tree .node:not(.narrow)');
@@ -666,27 +666,27 @@ test('a marked term shows what it is offering', async ({ page }) => {
   await expect(detail).toHaveCount(0);
   // Collapsing a hierarchy is not unselecting a row: the row stays marked and the bar stays put.
   await expect(ncit).toHaveClass(/marked/);
-  await expect(page.locator('cedar-term-picker .chosen')).toContainText('Melanoma');
+  await expect(page.locator('cedar-embeddable-term-picker .chosen')).toContainText('Melanoma');
   await ncit.click();
   await expect(detail).toHaveCount(1);
 
   // One at a time: marking another row moves the panel with the mark.
-  await page.locator('cedar-term-picker .child', { hasText: 'DOID' }).click();
+  await page.locator('cedar-embeddable-term-picker .child', { hasText: 'DOID' }).click();
   await expect(detail.locator('.tree .node.self')).toContainText('Melanoma');
-  await expect(page.locator('cedar-term-picker .detail')).toHaveCount(1);
+  await expect(page.locator('cedar-embeddable-term-picker .detail')).toHaveCount(1);
 });
 
 test('a click marks a row and a second act chooses it', async ({ page }) => {
   await stubSearch(page, () => MELANOMA);
   await openPicker(page);
   await search(page, 'melanoma');
-  await page.locator('cedar-term-picker .tab').nth(2).click();
+  await page.locator('cedar-embeddable-term-picker .tab').nth(2).click();
 
   const chosen: unknown[] = [];
   await page.exposeFunction('recordChoice', (constraint: unknown) => chosen.push(constraint));
   await page.evaluate(() =>
     document
-      .querySelector('cedar-term-picker')!
+      .querySelector('cedar-embeddable-term-picker')!
       .addEventListener('selected', (event) =>
         (window as unknown as { recordChoice: (c: unknown) => void }).recordChoice(
           (event as CustomEvent).detail,
@@ -694,7 +694,7 @@ test('a click marks a row and a second act chooses it', async ({ page }) => {
       ),
   );
 
-  const rows = page.locator('cedar-term-picker .row.pick');
+  const rows = page.locator('cedar-embeddable-term-picker .row.pick');
   await rows.first().click();
   await expect(rows.first()).toHaveClass(/marked/);
   // A click is not a decision. Nothing has been emitted, and marking another row moves the mark.
@@ -715,7 +715,7 @@ test('a click marks a row and a second act chooses it', async ({ page }) => {
   expect(chosen).toHaveLength(1);
   await expect(rows.first()).toHaveClass(/marked/);
 
-  await page.locator('cedar-term-picker .use').first().click();
+  await page.locator('cedar-embeddable-term-picker .use').first().click();
   expect((chosen[1] as { sourceAcronym: string }).sourceAcronym).toBe('MELO');
 });
 
@@ -731,16 +731,16 @@ test('a version that is prose is elided, not laid out', async ({ page }) => {
   }));
   await openPicker(page);
   await search(page, 'sensor');
-  await page.locator('cedar-term-picker .tab').nth(2).click();
+  await page.locator('cedar-embeddable-term-picker .tab').nth(2).click();
 
-  const version = page.locator('cedar-term-picker .version');
+  const version = page.locator('cedar-embeddable-term-picker .version');
   await expect(version).toHaveAttribute('title', `Version ${prose}`);
   const shown = (await version.innerText()).trim();
   expect(shown.length).toBeLessThanOrEqual(20);
   expect(shown).toContain('…');
 
   // The row it sits in stays the height of an ordinary one.
-  const rows = page.locator('cedar-term-picker .row');
+  const rows = page.locator('cedar-embeddable-term-picker .row');
   const box = await rows.first().boundingBox();
   expect(box!.height).toBeLessThan(48);
 });
@@ -760,14 +760,14 @@ test('narrowing ranks by matching terms and survives being used', async ({ page 
   await openPicker(page);
   await search(page, 'melanoma');
 
-  await page.locator('cedar-term-picker .narrowing .adder').click();
-  const candidates = page.locator('cedar-term-picker .candidate');
+  await page.locator('cedar-embeddable-term-picker .narrowing .adder').click();
+  const candidates = page.locator('cedar-embeddable-term-picker .candidate');
   // Ranked by what each holds, not by its name: NCIT with 950 before BERO with 782.
   await expect(candidates.first()).toContainText('NCIT');
   await expect(candidates.first()).toContainText('950');
 
   await candidates.first().click();
-  await expect(page.locator('cedar-term-picker .chip.removable')).toContainText('NCIT');
+  await expect(page.locator('cedar-embeddable-term-picker .chip.removable')).toContainText('NCIT');
   // Choosing re-runs the search, which once cleared the list the author was choosing from.
   await expect(candidates).toHaveCount(2);
 
@@ -795,12 +795,12 @@ test('the list fills itself, asks for one type, and keeps the ontologies it lear
 
   // Scrolling asks for more, and a first page too short to scroll asks on its own — otherwise a
   // tab whose page one does not fill the box could never reach page two.
-  const arrived = page.locator('cedar-term-picker .rowhead', { hasText: 'Intraocular melanoma' });
+  const arrived = page.locator('cedar-embeddable-term-picker .rowhead', { hasText: 'Intraocular melanoma' });
   await expect(arrived).toBeVisible();
 
   // Appended once. The list keeps asking until a page comes back short, and a page appended to
   // itself would be the failure that hides.
-  expect(await page.locator('cedar-term-picker .rowhead').count()).toBe(3);
+  expect(await page.locator('cedar-embeddable-term-picker .rowhead').count()).toBe(3);
   expect(await arrived.count()).toBe(1);
 
   const asked = recorded.bodies.at(-1) as { types?: string[]; page?: number };
@@ -809,12 +809,12 @@ test('the list fills itself, asks for one type, and keeps the ontologies it lear
 
   // A row reads its ontology's name from the envelope, and page two names one page one did not.
   await arrived.click();
-  await expect(page.locator('cedar-term-picker .child').first()).toContainText('An Ontology From Page Two');
+  await expect(page.locator('cedar-embeddable-term-picker .child').first()).toContainText('An Ontology From Page Two');
 
   // A short page is the end of the list, and the list says so rather than asking again.
-  await expect(page.locator('cedar-term-picker .tail')).toContainText('no more matches');
+  await expect(page.locator('cedar-embeddable-term-picker .tail')).toContainText('no more matches');
   // And it never claimed to be reading more of a list that did not exist yet.
-  await expect(page.locator('cedar-term-picker .tail')).not.toContainText('reading more');
+  await expect(page.locator('cedar-embeddable-term-picker .tail')).not.toContainText('reading more');
 });
 
 test('the release count opens the whole history, and choosing from it pins', async ({ page }) => {
@@ -847,15 +847,15 @@ test('the release count opens the whole history, and choosing from it pins', asy
   }));
   await openPicker(page);
   await search(page, 'melanoma');
-  await page.locator('cedar-term-picker .tab').nth(1).click();
-  await expect(page.locator('cedar-term-picker .rowhead')).toHaveCount(1);
-  await page.locator('cedar-term-picker .rowhead').click();
+  await page.locator('cedar-embeddable-term-picker .tab').nth(1).click();
+  await expect(page.locator('cedar-embeddable-term-picker .rowhead')).toHaveCount(1);
+  await page.locator('cedar-embeddable-term-picker .rowhead').click();
 
   const chosen: unknown[] = [];
   await page.exposeFunction('recordChoice', (constraint: unknown) => chosen.push(constraint));
   await page.evaluate(() =>
     document
-      .querySelector('cedar-term-picker')!
+      .querySelector('cedar-embeddable-term-picker')!
       .addEventListener('selected', (event) =>
         (window as unknown as { recordChoice: (c: unknown) => void }).recordChoice(
           (event as CustomEvent).detail,
@@ -864,9 +864,9 @@ test('the release count opens the whole history, and choosing from it pins', asy
   );
 
   // Mark the row first: the panel belongs to a marked row, and the release list opens beside it.
-  await page.locator('cedar-term-picker .child', { hasText: 'NCIT' }).click();
-  await page.locator('cedar-term-picker button.of', { hasText: 'of 3' }).click();
-  const releases = page.locator('cedar-term-picker .release');
+  await page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' }).click();
+  await page.locator('cedar-embeddable-term-picker button.of', { hasText: 'of 3' }).click();
+  const releases = page.locator('cedar-embeddable-term-picker .release');
   await expect(releases).toHaveCount(3);
 
   // Each release says what identifies it to a person and what makes a pin reproducible.
@@ -884,30 +884,30 @@ test('the release count opens the whole history, and choosing from it pins', asy
   await releases.nth(1).click();
   await expect(releases.nth(1)).toHaveClass(/on/);
   // Choosing a release opens the row it belongs to, so the change has somewhere to show.
-  await expect(page.locator('cedar-term-picker .detail')).toHaveCount(1);
+  await expect(page.locator('cedar-embeddable-term-picker .detail')).toHaveCount(1);
 
   // And the release rows toggle it: the one already showing folds the hierarchy away, and a
   // different release always opens, since it has something new to show.
   await releases.nth(1).click();
-  await expect(page.locator('cedar-term-picker .detail')).toHaveCount(0);
+  await expect(page.locator('cedar-embeddable-term-picker .detail')).toHaveCount(0);
   await releases.nth(1).click();
-  await expect(page.locator('cedar-term-picker .detail')).toHaveCount(1);
+  await expect(page.locator('cedar-embeddable-term-picker .detail')).toHaveCount(1);
   // A pinned selection states all three of what it records: version, date and content hash.
-  const bar = page.locator('cedar-term-picker .chosen');
+  const bar = page.locator('cedar-embeddable-term-picker .chosen');
   await expect(bar).toContainText('26.06e');
   await expect(bar).toContainText('2026-06-03');
   await expect(bar).toContainText('hash-b-01234');
   // The tree is of a release, so stepping to another one reads it again rather than waiting for a
   // read that was never started.
   // Read again at the release chosen, rather than waiting on a read that was never started.
-  await expect(page.locator('cedar-term-picker .tree .node.self')).toContainText(
+  await expect(page.locator('cedar-embeddable-term-picker .tree .node.self')).toContainText(
     'Melanoma at hash-b-0123456789abcdef',
   );
   await expect(
-    page.locator('cedar-term-picker .child', { hasText: 'NCIT' }).locator('.version'),
+    page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' }).locator('.version'),
   ).toHaveText('26.06e');
 
-  const ncit = page.locator('cedar-term-picker .child', { hasText: 'NCIT' });
+  const ncit = page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' });
   await ncit.dblclick();
   expect((chosen[0] as { version?: { id: string } }).version?.id).toBe('hash-b-0123456789abcdef');
 
@@ -928,21 +928,21 @@ test('the bar says what the source means by the term, without changing size to s
   await openPicker(page);
   await search(page, 'melanoma');
 
-  const chosen = page.locator('cedar-term-picker .chosen');
-  const before = await page.locator('cedar-term-picker .tabs').boundingBox();
+  const chosen = page.locator('cedar-embeddable-term-picker .chosen');
+  const before = await page.locator('cedar-embeddable-term-picker .tabs').boundingBox();
 
-  const rows = page.locator('cedar-term-picker .row.pick, cedar-term-picker .child.pick');
-  await page.locator('cedar-term-picker .rowhead').first().click();
+  const rows = page.locator('cedar-embeddable-term-picker .row.pick, cedar-embeddable-term-picker .child.pick');
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
   await rows.filter({ hasText: 'DOID' }).first().click();
   await expect(chosen.locator('.meaning')).toContainText('abnormally proliferating cells');
   // And nowhere else: it was above the tree, where the panel's own scrolling put it out of sight.
-  await expect(page.locator('cedar-term-picker .detail .meaning')).toHaveCount(0);
+  await expect(page.locator('cedar-embeddable-term-picker .detail .meaning')).toHaveCount(0);
 
   // The line is held whether or not there is one to show. NCIT asserts no definition here, and a
   // line that came and went with the selection would move every row below it as an author clicked.
   await rows.filter({ hasText: 'NCIT' }).first().click();
   await expect(chosen.locator('.meaning')).toHaveText('');
-  const after = await page.locator('cedar-term-picker .tabs').boundingBox();
+  const after = await page.locator('cedar-embeddable-term-picker .tabs').boundingBox();
   expect(after!.y).toBe(before!.y);
 });
 
@@ -966,10 +966,10 @@ test('a term outside the pinned release says which release, not that the store i
   await openPicker(page);
   await search(page, 'melanoma');
 
-  await page.locator('cedar-term-picker .rowhead').first().click();
-  await page.locator('cedar-term-picker .child', { hasText: 'NCIT' }).click();
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
+  await page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' }).click();
 
-  const detail = page.locator('cedar-term-picker .detail');
+  const detail = page.locator('cedar-embeddable-term-picker .detail');
   await expect(detail).toContainText('does not contain');
   await expect(detail).toContainText('Another release of the same source may contain it');
   // The old sentence claimed something about the store that the store had not said.
@@ -982,10 +982,10 @@ test('a hierarchy that could not be read is reported as a failure, not as an ans
   await openPicker(page);
   await search(page, 'melanoma');
 
-  await page.locator('cedar-term-picker .rowhead').first().click();
-  await page.locator('cedar-term-picker .child', { hasText: 'NCIT' }).click();
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
+  await page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' }).click();
 
-  const detail = page.locator('cedar-term-picker .detail');
+  const detail = page.locator('cedar-embeddable-term-picker .detail');
   // Said as a failure: nothing was read, so nothing is known here about what the store holds.
   await expect(detail).toContainText('could not be read');
   await expect(detail).toContainText('the index is being rebuilt');
@@ -1010,10 +1010,10 @@ test('a capped list of children says how much of itself is on screen', async ({ 
   }));
   await openPicker(page);
   await search(page, 'melanoma');
-  await page.locator('cedar-term-picker .rowhead').first().click();
-  await page.locator('cedar-term-picker .child', { hasText: 'NCIT' }).click();
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
+  await page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' }).click();
 
-  await expect(page.locator('cedar-term-picker .tree .node.self')).toContainText('3 of 194');
+  await expect(page.locator('cedar-embeddable-term-picker .tree .node.self')).toContainText('3 of 194');
 });
 
 test('a term the pinned release does not hold cannot be recorded', async ({ page }) => {
@@ -1054,18 +1054,18 @@ test('a term the pinned release does not hold cannot be recorded', async ({ page
   await page.evaluate(() => {
     const host = window as unknown as { picks: number };
     host.picks = 0;
-    document.querySelector('cedar-term-picker')?.addEventListener('selected', () => (host.picks += 1));
+    document.querySelector('cedar-embeddable-term-picker')?.addEventListener('selected', () => (host.picks += 1));
   });
   await search(page, 'melanoma');
-  await page.locator('cedar-term-picker .rowhead').first().click();
-  const ncit = page.locator('cedar-term-picker .child', { hasText: 'NCIT' });
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
+  const ncit = page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' });
   await ncit.click();
   await ncit.locator('button.of').click();
 
   // Pin the release that does not hold it.
-  await page.locator('cedar-term-picker .release').nth(1).click();
+  await page.locator('cedar-embeddable-term-picker .release').nth(1).click();
 
-  const chosen = page.locator('cedar-term-picker .chosen');
+  const chosen = page.locator('cedar-embeddable-term-picker .chosen');
   // The selection stays on screen and keeps the release the author chose, and says why it is stuck.
   await expect(chosen).toContainText('Melanoma');
   await expect(chosen.locator('.blocked')).toContainText('does not contain');
@@ -1079,14 +1079,14 @@ test('authors a constraint set in compact tables and applies it as one event', a
   await stubSearch(page, () => MELANOMA);
   await stubHierarchy(page, () => null);
   await openPicker(page);
-  await page.locator('cedar-term-picker').evaluate((node) => {
+  await page.locator('cedar-embeddable-term-picker').evaluate((node) => {
     const picker = node as HTMLElement & { selectionMode: string; constraintSet: object };
     picker.selectionMode = 'constraints';
     picker.constraintSet = { constraints: [{ sourceType: 'ontology', ontologyId: 'DOID', ontologyName: 'Disease Ontology', uri: 'urn:doid', version: { id: 'sha256:original', declaredVersion: '2026-06' } }], actions: [] };
     picker.addEventListener('constraintsSelected', (event) => { (window as unknown as { applied: unknown }).applied = (event as CustomEvent).detail; });
   });
   await search(page, 'melanoma');
-  const picker = page.locator('cedar-term-picker');
+  const picker = page.locator('cedar-embeddable-term-picker');
   await picker.locator('.rowhead').first().click();
   await picker.locator('.child.pick').first().click();
   await expect(picker.locator('.chosen .hash')).toHaveAttribute('title', 'hash');

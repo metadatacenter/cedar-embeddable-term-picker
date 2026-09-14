@@ -10,7 +10,7 @@ import { ChangeDetectionStrategy, Component, ViewEncapsulation } from '@angular/
  * it. CEE arrived at the same arrangement for the same reason.
  */
 @Component({
-  selector: 'ctp-font-registrar',
+  selector: 'cetp-font-registrar',
   template: '',
   styleUrl: './font-registrar.scss',
   encapsulation: ViewEncapsulation.None,

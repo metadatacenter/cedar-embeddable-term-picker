@@ -1,13 +1,13 @@
 import { provideBrowserGlobalErrorListeners } from '@angular/core';
 import { createCustomElement } from '@angular/elements';
 import { createApplication } from '@angular/platform-browser';
-import { TERM_PICKER_TAG, TermPicker } from './app/term-picker';
+import { CETP_TAG, CedarEmbeddableTermPicker } from './app/cedar-embeddable-term-picker';
 
 /**
  * Register the picker as a custom element.
  *
  * `createApplication` rather than `bootstrapApplication`: nothing on the page is
- * bootstrapped by us. The host decides where and when a `<cedar-term-picker>` appears,
+ * bootstrapped by us. The host decides where and when a `<cedar-embeddable-term-picker>` appears,
  * and the application exists only to give the element an injector.
  *
  * The registration is guarded because `customElements.define` throws on a tag that is
@@ -16,10 +16,10 @@ import { TERM_PICKER_TAG, TermPicker } from './app/term-picker';
  */
 createApplication({ providers: [provideBrowserGlobalErrorListeners()] })
   .then((application) => {
-    if (customElements.get(TERM_PICKER_TAG)) {
-      console.warn(`<${TERM_PICKER_TAG}> is already defined; this bundle is not the one serving it.`);
+    if (customElements.get(CETP_TAG)) {
+      console.warn(`<${CETP_TAG}> is already defined; this bundle is not the one serving it.`);
       return;
     }
-    customElements.define(TERM_PICKER_TAG, createCustomElement(TermPicker, { injector: application.injector }));
+    customElements.define(CETP_TAG, createCustomElement(CedarEmbeddableTermPicker, { injector: application.injector }));
   })
   .catch((error: unknown) => console.error(error));

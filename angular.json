@@ -7,7 +7,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "cedar-term-picker": {
+    "cedar-embeddable-term-picker": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -16,7 +16,7 @@
       },
       "root": "",
       "sourceRoot": "src",
-      "prefix": "ctp",
+      "prefix": "cetp",
       "architect": {
         "build": {
           "builder": "@angular/build:application",
@@ -68,10 +68,10 @@
           },
           "configurations": {
             "production": {
-              "buildTarget": "cedar-term-picker:build:production"
+              "buildTarget": "cedar-embeddable-term-picker:build:production"
             },
             "development": {
-              "buildTarget": "cedar-term-picker:build:development"
+              "buildTarget": "cedar-embeddable-term-picker:build:development"
             }
           },
           "defaultConfiguration": "development"

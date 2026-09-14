@@ -1,5 +1,5 @@
 {
-  "name": "cedar-term-picker-browser",
+  "name": "cedar-embeddable-term-picker-browser",
   "version": "0.1.0",
   "private": true,
   "type": "module",

@@ -12,7 +12,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 
-const root = new URL('../dist/cedar-term-picker/browser/', import.meta.url).pathname;
+const root = new URL('../dist/cedar-embeddable-term-picker/browser/', import.meta.url).pathname;
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',

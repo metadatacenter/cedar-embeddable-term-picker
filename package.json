@@ -1,6 +1,6 @@
 {
-  "name": "cedar-term-picker",
-  "description": "A reusable Web Component for choosing what constrains a CEDAR field.",
+  "name": "cedar-embeddable-term-picker",
+  "description": "CEDAR Embeddable Term Picker (CETP), a reusable Web Component for choosing what constrains a CEDAR field.",
   "version": "0.1.0-dev.20260829.7cff9fb3",
   "engines": {
     "node": "^24.15.0"
@@ -57,10 +57,10 @@
   "license": "BSD-2-Clause",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/metadatacenter/cedar-term-picker.git"
+    "url": "git+https://github.com/metadatacenter/cedar-embeddable-term-picker.git"
   },
   "bugs": {
-    "url": "https://github.com/metadatacenter/cedar-term-picker/issues"
+    "url": "https://github.com/metadatacenter/cedar-embeddable-term-picker/issues"
   },
-  "homepage": "https://github.com/metadatacenter/cedar-term-picker#readme"
+  "homepage": "https://github.com/metadatacenter/cedar-embeddable-term-picker#readme"
 }

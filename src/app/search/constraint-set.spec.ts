@@ -1,7 +1,7 @@
 /**
  * What the published constraint contract forbids.
  *
- * `ControlledTermConfig` is re-exported from `term-picker-public-api.ts`, so its shape
+ * `ControlledTermConfig` is re-exported from `cetp-public-api.ts`, so its shape
  * is what an embedding page programs against. It was one interface with fifteen
  * optional fields, and a host had no way to learn from the compiler that a branch has
  * no `ontologyId` or that a term has no depth. Narrowing it into four variants is a

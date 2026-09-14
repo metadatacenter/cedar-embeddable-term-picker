@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { TermPicker } from './term-picker';
+import { CedarEmbeddableTermPicker } from './cedar-embeddable-term-picker';
 import { TAB_ORDER } from './search/search-types';
 import { TerminologyClient } from './search/terminology-client';
 import { SearchQuery, SearchResponse } from './search/search-types';
@@ -106,7 +106,7 @@ class StubClient {
   }
 }
 
-describe('TermPicker', () => {
+describe('CedarEmbeddableTermPicker', () => {
   let client: StubClient;
 
   beforeEach(() => {
@@ -124,7 +124,7 @@ describe('TermPicker', () => {
   }
 
   it('offers only terms and searches the fixed source when collecting a default', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('selectionMode', 'term');
     fixture.componentRef.setInput('sources', [{ sourceAcronym: 'NCIT' }]);
     fixture.componentRef.setInput('query', 'me');
@@ -138,7 +138,7 @@ describe('TermPicker', () => {
   });
 
   it('refuses vocabulary selections in term mode', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('selectionMode', 'term');
     await fixture.whenStable();
     const selected = vi.fn();
@@ -152,7 +152,7 @@ describe('TermPicker', () => {
   });
 
   it('names the four kinds a query answers', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     await fixture.whenStable();
     const tabs = [...shadow(fixture).querySelectorAll('.tab')].map(
       (tab) => (tab.textContent ?? '').trim().split(/\s+/)[0],
@@ -161,7 +161,7 @@ describe('TermPicker', () => {
   });
 
   it('collapses identical labels into one row, counting the ontologies that offer it', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -173,7 +173,7 @@ describe('TermPicker', () => {
   });
 
   it('shows the collapsed count on the terms tab, not the hit count', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -185,7 +185,7 @@ describe('TermPicker', () => {
   });
 
   it('reports a source it could not search rather than letting it look like no matches', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -233,7 +233,7 @@ describe('TermPicker', () => {
         },
       },
     };
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -256,7 +256,7 @@ describe('TermPicker', () => {
   });
 
   it('emits no version while the author stays on latest', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -278,7 +278,7 @@ describe('TermPicker', () => {
   });
 
   it('appends the next page of one tab, and keeps the sources it learns', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -346,7 +346,7 @@ describe('TermPicker', () => {
   });
 
   it('narrows every tab at once, and re-asks from page one', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -373,7 +373,7 @@ describe('TermPicker', () => {
   it('does not search the whole corpus for the characters typed on the way to a word', async () => {
     // The first few characters match most of the corpus, so they are the expensive ones and the
     // least likely to be what the author meant. Nothing is asked until the query is long enough.
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'ce');
     await fixture.whenStable();
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -386,7 +386,7 @@ describe('TermPicker', () => {
   it('searches a short query once it is narrowed to a source', async () => {
     // A scoped search reads one ontology, so the cost the floor exists for is not there. An author
     // hunting a two-letter code narrows first and types it freely.
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -404,7 +404,7 @@ describe('TermPicker', () => {
   it('does not let a page fetched for an older query land on a newer one', async () => {
     // The stub answers instantly, so the interleaving this guards against cannot arise by timing.
     // Drive it directly: ask for more, change the query underneath, and let the answer arrive.
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -424,7 +424,7 @@ describe('TermPicker', () => {
   });
 
   it("an aborted page fetch is not reported as the new query's failure", async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -449,7 +449,7 @@ describe('TermPicker', () => {
   });
 
   it('an aborted candidate load is swallowed rather than left to reject unhandled', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');
     await fixture.whenStable();
     await settle();
@@ -469,7 +469,7 @@ describe('TermPicker', () => {
   });
 
   it('tells the host when the author closes without choosing', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     await fixture.whenStable();
     let cancelled = 0;
     fixture.componentInstance.cancelled.subscribe(() => (cancelled += 1));
@@ -477,7 +477,7 @@ describe('TermPicker', () => {
     expect(cancelled).toBe(1);
   });
   it('assembles and applies a set while targeted changes preserve unrelated entries and actions', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     const action = {
       action: 'delete',
       termUri: 'urn:old',
@@ -546,7 +546,7 @@ describe('TermPicker', () => {
   });
 
   it('authors exclusions and term positions separately from constraint order', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     const seed = {
       constraints: [
         {
@@ -595,7 +595,7 @@ describe('TermPicker', () => {
   });
 
   it('searches distinct version pins of the same vocabulary without conflating them', async () => {
-    const fixture = TestBed.createComponent(TermPicker);
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     const sources = [
       { sourceAcronym: 'NCIT', version: { id: 'old' } },
       { sourceAcronym: 'NCIT', version: { id: 'new' } },

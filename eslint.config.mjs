@@ -50,11 +50,11 @@ export default tseslint.config(
         },
       ],
       // The component this repository exists to publish is a custom element, whose tag
-      // is `cedar-term-picker` by contract with the host page. Every other selector
-      // carries the `ctp` prefix angular.json declares.
+      // is `cedar-embeddable-term-picker` by contract with the host page. Every other selector
+      // carries the `cetp` prefix angular.json declares.
       '@angular-eslint/component-selector': [
         'error',
-        { type: 'element', prefix: ['ctp', 'cedar'], style: 'kebab-case' },
+        { type: 'element', prefix: ['cetp', 'cedar'], style: 'kebab-case' },
       ],
     },
   },

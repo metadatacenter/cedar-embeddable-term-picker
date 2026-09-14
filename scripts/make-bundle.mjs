@@ -1,5 +1,5 @@
 /**
- * Build `dist-bundle/cedar-term-picker.js` — the single file an embedder
+ * Build `dist-bundle/cedar-embeddable-term-picker.js` — the single file an embedder
  * downloads — and a manifest recording what went into it.
  *
  * The manifest exists so the size gate and the packaging step can check the copy
@@ -15,7 +15,7 @@ import { dirname, join, relative } from 'node:path';
 import { DEFAULT_DIST, ROOT, resolveBuildOutput } from './build-output.mjs';
 
 export const OUT_DIR = join(ROOT, 'dist-bundle');
-export const OUT = join(OUT_DIR, 'cedar-term-picker.js');
+export const OUT = join(OUT_DIR, 'cedar-embeddable-term-picker.js');
 export const MANIFEST = join(OUT_DIR, 'bundle-manifest.json');
 
 export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');

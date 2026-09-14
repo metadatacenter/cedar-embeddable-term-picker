@@ -11,7 +11,7 @@ import { packageMetadata } from './npm-package.mjs';
 test('a development snapshot goes to Nexus, under the CEDAR scope', () => {
   const metadata = packageMetadata({ version: '0.1.0-dev.20260829.abc1234', description: 'd' });
 
-  assert.equal(metadata.name, '@org.metadatacenter/cedar-term-picker');
+  assert.equal(metadata.name, '@org.metadatacenter/cedar-embeddable-term-picker');
   assert.equal(metadata.publishConfig.registry, 'https://nexus.bmir.stanford.edu/repository/npm-cedar/');
   assert.equal(metadata.publishConfig.tag, 'dev');
 });
@@ -19,12 +19,12 @@ test('a development snapshot goes to Nexus, under the CEDAR scope', () => {
 test('a release goes to the default registry, unscoped', () => {
   const metadata = packageMetadata({ version: '0.1.0', description: 'd' });
 
-  assert.equal(metadata.name, 'cedar-term-picker');
+  assert.equal(metadata.name, 'cedar-embeddable-term-picker');
   assert.equal(metadata.publishConfig, undefined);
 });
 
 test('a release candidate that is not a dev snapshot is still a release', () => {
-  assert.equal(packageMetadata({ version: '1.0.0-rc.1', description: 'd' }).name, 'cedar-term-picker');
+  assert.equal(packageMetadata({ version: '1.0.0-rc.1', description: 'd' }).name, 'cedar-embeddable-term-picker');
 });
 
 test('the package declares the licence the repository carries', () => {
@@ -34,7 +34,7 @@ test('the package declares the licence the repository carries', () => {
 test('the declaration is what a host imports types from', () => {
   const metadata = packageMetadata({ version: '0.1.0', description: 'd' });
 
-  assert.equal(metadata.types, 'cedar-term-picker.d.ts');
-  assert.ok(metadata.files.includes('cedar-term-picker.d.ts'));
+  assert.equal(metadata.types, 'cedar-embeddable-term-picker.d.ts');
+  assert.ok(metadata.files.includes('cedar-embeddable-term-picker.d.ts'));
   assert.ok(metadata.files.includes('license.txt'));
 });

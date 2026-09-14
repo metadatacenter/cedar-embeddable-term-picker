@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { ROOT } from './build-output.mjs';
 import { MANIFEST, OUT, sha256 } from './make-bundle.mjs';
 
-export const TYPES = join(ROOT, 'dist-types/term-picker-public-api.d.ts');
+export const TYPES = join(ROOT, 'dist-types/cetp-public-api.d.ts');
 /**
  * The one file the public API re-exports from, shipped beside it.
  *
@@ -20,7 +20,7 @@ export const TYPES = join(ROOT, 'dist-types/term-picker-public-api.d.ts');
  * package instead, and both files travel.
  */
 export const TYPES_SEARCH = join(ROOT, 'dist-types/search/search-types.d.ts');
-export const TARGET = join(ROOT, 'dist-npm/cedar-term-picker');
+export const TARGET = join(ROOT, 'dist-npm/cedar-embeddable-term-picker');
 
 export const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
 
@@ -40,18 +40,18 @@ const DEV_VERSION = /-dev\./;
 export function packageMetadata(rootPackage = readJson(join(ROOT, 'package.json'))) {
   const isDev = DEV_VERSION.test(rootPackage.version);
   return {
-    name: isDev ? '@org.metadatacenter/cedar-term-picker' : 'cedar-term-picker',
+    name: isDev ? '@org.metadatacenter/cedar-embeddable-term-picker' : 'cedar-embeddable-term-picker',
     version: rootPackage.version,
     description: rootPackage.description,
     // The bundle is a side-effecting script that registers a custom element and
     // exports nothing, so `main` is a courtesy and `types` is what a host imports
     // `CedConfig` from. The declaration also carries the `HTMLElementTagNameMap`
-    // entry that makes `document.querySelector('cedar-term-picker')` typed.
-    main: 'cedar-term-picker.js',
-    types: 'cedar-term-picker.d.ts',
+    // entry that makes `document.querySelector('cedar-embeddable-term-picker')` typed.
+    main: 'cedar-embeddable-term-picker.js',
+    types: 'cedar-embeddable-term-picker.d.ts',
     files: [
-      'cedar-term-picker.js',
-      'cedar-term-picker.d.ts',
+      'cedar-embeddable-term-picker.js',
+      'cedar-embeddable-term-picker.d.ts',
       'search/search-types.d.ts',
       'search/constraint-set.d.ts',
       'bundle-manifest.json',
@@ -63,12 +63,12 @@ export function packageMetadata(rootPackage = readJson(join(ROOT, 'package.json'
     // `latest`. A snapshot names Nexus here, so the destination cannot be lost by
     // forgetting a flag. The tag still has to be passed on the command line.
     ...(isDev ? { publishConfig: { registry: NEXUS_REGISTRY, tag: 'dev' } } : {}),
-    repository: { type: 'git', url: 'git+https://github.com/metadatacenter/cedar-term-picker.git' },
+    repository: { type: 'git', url: 'git+https://github.com/metadatacenter/cedar-embeddable-term-picker.git' },
     keywords: ['metadata', 'CEDAR', 'ontology', 'terminology', 'picker', 'Web Component'],
     author: 'Metadata Center',
     license: 'BSD-2-Clause',
-    bugs: { url: 'https://github.com/metadatacenter/cedar-term-picker/issues' },
-    homepage: 'https://github.com/metadatacenter/cedar-term-picker#readme',
+    bugs: { url: 'https://github.com/metadatacenter/cedar-embeddable-term-picker/issues' },
+    homepage: 'https://github.com/metadatacenter/cedar-embeddable-term-picker#readme',
   };
 }
 
@@ -92,8 +92,8 @@ export function assertSourceBundle() {
 export function expectedFiles() {
   const { bundle, manifest } = assertSourceBundle();
   return {
-    'cedar-term-picker.js': bundle,
-    'cedar-term-picker.d.ts': readFileSync(TYPES),
+    'cedar-embeddable-term-picker.js': bundle,
+    'cedar-embeddable-term-picker.d.ts': readFileSync(TYPES),
     'search/search-types.d.ts': readFileSync(TYPES_SEARCH),
     'search/constraint-set.d.ts': readFileSync(join(ROOT, 'dist-types/search/constraint-set.d.ts')),
     'bundle-manifest.json': Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`),

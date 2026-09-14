@@ -16,7 +16,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = fileURLToPath(new URL('..', import.meta.url));
-export const DEFAULT_DIST = join(ROOT, 'dist/cedar-term-picker');
+export const DEFAULT_DIST = join(ROOT, 'dist/cedar-embeddable-term-picker');
 
 /**
  * Load order matters: the polyfills install globals the entry expects.

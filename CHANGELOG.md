@@ -19,10 +19,10 @@ Nothing released yet.
 - `terminologyBaseUrl`, which is what makes the picker embeddable off the
   terminology server's own origin. Unset, it asks its own origin for `/search`,
   which the development server's proxy answers and no host page does.
-- The published type declarations, emitted from `term-picker-public-api.ts` and the
+- The published type declarations, emitted from `cetp-public-api.ts` and the
   one import-free file it re-exports, so every path a host's compiler follows is
   inside the package.
-- The Angular 22 project: a zoneless application registering `<cedar-term-picker>`
+- The Angular 22 project: a zoneless application registering `<cedar-embeddable-term-picker>`
   as a custom element in shadow DOM, with ESLint, Prettier, the Angular CLI's Vitest
   builder and a GitHub Actions gate.
 - A placeholder component carrying the element boundary and nothing else — a `query`

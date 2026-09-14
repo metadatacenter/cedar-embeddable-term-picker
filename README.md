@@ -1,6 +1,6 @@
-# CEDAR Term Picker
+# CEDAR Embeddable Term Picker (CETP)
 
-[![Test](https://github.com/metadatacenter/cedar-term-picker/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/metadatacenter/cedar-term-picker/actions/workflows/test.yml)
+[![Test](https://github.com/metadatacenter/cedar-embeddable-term-picker/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/metadatacenter/cedar-embeddable-term-picker/actions/workflows/test.yml)
 
 A reusable Web Component for choosing what constrains a CEDAR field: an
 ontology, a branch of one, an individual term, or a value set.
@@ -20,8 +20,12 @@ filled.
 
 It reads from the CEDAR terminology server, which serves ontologies, classes
 and value sets either from the versioned local store or from BioPortal. The
-component is published as a custom element, `<cedar-term-picker>`, rendered in
+component is published as a custom element, `<cedar-embeddable-term-picker>`, rendered in
 shadow DOM so a host page's stylesheet cannot reach inside it.
+
+The CETP repository and package will also house the CEDAR Embeddable Property
+Picker (CEPP), exposed as `<cedar-embeddable-property-picker>`, with a shared
+version and release cycle. CEPP is planned and is not included yet.
 
 ## Status
 
@@ -45,24 +49,24 @@ own.
 A host may set these ten custom properties on the element, and they are the whole surface:
 
 ```css
-cedar-term-picker {
-  --ctp-color-primary: #0f7686; /* buttons, the active tab, the focus ring */
-  --ctp-color-on-primary: #ffffff; /* text on the primary */
-  --ctp-color-heading: #0b3938; /* row titles and labels */
-  --ctp-color-text: rgba(0, 0, 0, 0.87);
-  --ctp-color-muted: #555555; /* counts, versions, everything supporting */
-  --ctp-color-surface: #f5f5f5; /* the panel behind expanded rows */
-  --ctp-color-border: #d7e0df;
-  --ctp-color-warning: #856404; /* obsolete terms, sources that were not searched */
-  --ctp-font-family: 'CEE Roboto', 'Helvetica Neue', sans-serif;
-  --ctp-font-size: 14px;
+cedar-embeddable-term-picker {
+  --cetp-color-primary: #0f7686; /* buttons, the active tab, the focus ring */
+  --cetp-color-on-primary: #ffffff; /* text on the primary */
+  --cetp-color-heading: #0b3938; /* row titles and labels */
+  --cetp-color-text: rgba(0, 0, 0, 0.87);
+  --cetp-color-muted: #555555; /* counts, versions, everything supporting */
+  --cetp-color-surface: #f5f5f5; /* the panel behind expanded rows */
+  --cetp-color-border: #d7e0df;
+  --cetp-color-warning: #856404; /* obsolete terms, sources that were not searched */
+  --cetp-font-family: 'CEE Roboto', 'Helvetica Neue', sans-serif;
+  --cetp-font-size: 14px;
 }
 ```
 
 Rules in a host page take precedence over the component's own, so these are defaults rather than a
-floor. Two values are derived and not settable: the type scale moves with `--ctp-font-size`, so a
+floor. Two values are derived and not settable: the type scale moves with `--cetp-font-size`, so a
 larger base reads as a larger component rather than a broken one, and the tint behind chips and
-pinned versions is mixed from `--ctp-color-primary`, so re-pointing the brand does not leave it
+pinned versions is mixed from `--cetp-color-primary`, so re-pointing the brand does not leave it
 behind.
 
 Nothing else is host API. Row geometry, control padding, the radius of a chip and the meaning of a
@@ -93,7 +97,7 @@ its `cancelled` event. Nothing on that page ships.
 
 | Command                    | What it does                                                                                   |
 | -------------------------- | ---------------------------------------------------------------------------------------------- |
-| `npm run build:production` | the custom-element bundle, into `dist/cedar-term-picker`                                       |
+| `npm run build:production` | the custom-element bundle, into `dist/cedar-embeddable-term-picker`                            |
 | `npm test`                 | unit tests, through the Angular CLI's Vitest builder                                           |
 | `npm run lint`             | ESLint over TypeScript and templates, Prettier included                                        |
 | `npm run typecheck`        | `tsc` over every file under `src/`                                                             |
@@ -119,17 +123,17 @@ npm run dist
 
 Builds the picker, flattens Angular's module output into one classic script with
 esbuild, holds it to its size ceiling, and stages
-`dist-npm/cedar-term-picker/` from those exact bytes. The staging step builds
+`dist-npm/cedar-embeddable-term-picker/` from those exact bytes. The staging step builds
 nothing of its own — it copies the file the size gate measured — and verifies the
 result byte for byte afterwards.
 
 A host loads the script with a plain `<script>` tag and then has
-`<cedar-term-picker>`. Properties configure its search and selection mode; two events report selection
+`<cedar-embeddable-term-picker>`. Properties configure its search and selection mode; two events report selection
 and cancellation:
 
 ```html
-<cedar-term-picker id="picker"></cedar-term-picker>
-<script src="cedar-term-picker.js"></script>
+<cedar-embeddable-term-picker id="picker"></cedar-embeddable-term-picker>
+<script src="cedar-embeddable-term-picker.js"></script>
 <script>
   const picker = document.getElementById('picker');
   picker.terminologyBaseUrl = 'https://terminology.metadatacenter.org/';

@@ -1,5 +1,5 @@
 /**
- * What `<cedar-term-picker>` emits, and what the designer stores for it.
+ * What `<cedar-embeddable-term-picker>` emits, and what the designer stores for it.
  *
  * The picker is a sibling web component rather than a dependency: a host page
  * loads both scripts and neither bundles the other. That is what two custom
@@ -12,7 +12,7 @@
  */
 
 /** The tag the host is expected to have registered. */
-export const TERM_PICKER_TAG = 'cedar-term-picker';
+export const CETP_TAG = 'cedar-embeddable-term-picker';
 
 /**
  * The snapshot an author pinned, where they pinned one.

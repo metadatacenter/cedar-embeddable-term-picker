@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>CEDAR Term Picker</title>
+    <title>CEDAR Embeddable Term Picker</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
@@ -26,9 +26,9 @@
       not part of what the bundle publishes.
     -->
     <h1>Development host</h1>
-    <cedar-term-picker query="disease" selection-mode="constraints"></cedar-term-picker>
+    <cedar-embeddable-term-picker query="disease" selection-mode="constraints"></cedar-embeddable-term-picker>
     <script>
-      const picker = document.querySelector('cedar-term-picker');
+      const picker = document.querySelector('cedar-embeddable-term-picker');
       picker.setAttribute('selection-mode', new URLSearchParams(location.search).get('mode') || 'constraints');
       picker.addEventListener('constraintsSelected', (event) => console.log('Applied field constraints', event.detail));
       picker.addEventListener('cancelled', () => {
