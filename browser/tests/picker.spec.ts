@@ -22,7 +22,12 @@ import {
 
 const MELANOMA = {
   sources: [
-    source('NCIT', { name: 'National Cancer Institute Thesaurus', versionCount: 3, declaredVersion: '26.07d', iri: 'http://ncit.example/ncit.owl' }),
+    source('NCIT', {
+      name: 'National Cancer Institute Thesaurus',
+      versionCount: 3,
+      declaredVersion: '26.07d',
+      iri: 'http://ncit.example/ncit.owl',
+    }),
     source('DOID', { name: 'Human Disease Ontology', versionCount: 15, declaredVersion: '2026-06-30' }),
     source('OCHV', { name: 'Ontology of Consumer Health Vocabulary', versionCount: 1 }),
     source('MELO', { name: 'Melanoma Ontology' }),
@@ -38,7 +43,8 @@ const MELANOMA = {
         }),
         classHit('DOID', 'melanoma', {
           descendantCount: 31,
-          definition: 'A cell type cancer that has_material_basis_in abnormally proliferating cells derived from melanocytes.',
+          definition:
+            'A cell type cancer that has_material_basis_in abnormally proliferating cells derived from melanocytes.',
         }),
         classHit('OCHV', '6188', { matched: { label: 'HIV disease', language: 'en' } }),
       ],
@@ -88,10 +94,10 @@ test('identical labels fold into one row, counting the ontologies that offer it'
     ...MELANOMA,
     results: {
       ...MELANOMA.results,
-      class: results(
-        [classHit('NCIT', 'Melanoma'), classHit('DOID', 'Melanoma'), classHit('OCHV', 'Distinct')],
-        { totalCount: 3, distinctLabelCount: 2 },
-      ),
+      class: results([classHit('NCIT', 'Melanoma'), classHit('DOID', 'Melanoma'), classHit('OCHV', 'Distinct')], {
+        totalCount: 3,
+        distinctLabelCount: 2,
+      }),
     },
   }));
   await openPicker(page);
@@ -190,9 +196,7 @@ test('branches fold across and within ontologies, and open onto their parents', 
     descendantCount: 13,
   }));
   await children.nth(0).click();
-  await expect(page.locator('cedar-embeddable-term-picker .tree .node').first()).toContainText(
-    'Neuroendocrine Tumors',
-  );
+  await expect(page.locator('cedar-embeddable-term-picker .tree .node').first()).toContainText('Neuroendocrine Tumors');
 });
 
 test('an ontology row shows what the query matched, or nothing but its count', async ({ page }) => {
@@ -292,9 +296,7 @@ test('escape leaves the picker', async ({ page }) => {
   await page.evaluate(() =>
     document
       .querySelector('cedar-embeddable-term-picker')!
-      .addEventListener('cancelled', () =>
-        (window as unknown as { recordCancel: () => void }).recordCancel(),
-      ),
+      .addEventListener('cancelled', () => (window as unknown as { recordCancel: () => void }).recordCancel()),
   );
   await page.locator('cedar-embeddable-term-picker input[type=search]').press('Escape');
   expect(cancelled).toHaveLength(1);
@@ -420,9 +422,7 @@ test('a term picked from the tree becomes what the tree is about, ancestors kept
           sourceAcronym: query.get('sourceAcronym'),
           termIri: query.get('termIri'),
           termLabel: 'Melanoma',
-          children: [
-            { termIri: amelanotic, termLabel: 'Amelanotic Melanoma', hasChildren: true, descendantCount: 4 },
-          ],
+          children: [{ termIri: amelanotic, termLabel: 'Amelanotic Melanoma', hasChildren: true, descendantCount: 4 }],
           childCount: 1,
           descendantCount: 321,
         },
@@ -539,7 +539,10 @@ test('narrowing changes what the rows hold, not how they are drawn', async ({ pa
   await stubSearch(page, (body) => {
     // The narrowing panel asks for its own ranking; without an answer there is nothing to narrow to.
     if (body.ontologyOrder === 'matches') {
-      return { sources: [source('DOID', { name: 'Human Disease Ontology' })], results: { ontology: results([ontologyHit('DOID', 3, true)]) } };
+      return {
+        sources: [source('DOID', { name: 'Human Disease Ontology' })],
+        results: { ontology: results([ontologyHit('DOID', 3, true)]) },
+      };
     }
     return body.sources?.length ? scoped : MELANOMA;
   });
@@ -623,7 +626,9 @@ test('a marked term shows what it is offering', async ({ page }) => {
       { termIri: 'http://ncit/Neoplasm', termLabel: 'Neoplasm' },
       { termIri: 'http://ncit/Melanocytic', termLabel: 'Melanocytic Neoplasm' },
     ],
-    children: [{ termIri: 'http://ncit/Amelanotic', termLabel: 'Amelanotic Melanoma', hasChildren: false, descendantCount: 0 }],
+    children: [
+      { termIri: 'http://ncit/Amelanotic', termLabel: 'Amelanotic Melanoma', hasChildren: false, descendantCount: 0 },
+    ],
     childCount: 4,
     descendantCount: 321,
   }));
@@ -639,12 +644,7 @@ test('a marked term shows what it is offering', async ({ page }) => {
   // The chain above the term and what hangs below it, which is what tells one "Melanoma" from
   // another when the label alone cannot.
   const tree = detail.locator('.tree .node:not(.narrow)');
-  await expect(tree).toHaveText([
-    /Neoplasm/,
-    /Melanocytic Neoplasm/,
-    /Melanoma/,
-    /Amelanotic Melanoma/,
-  ]);
+  await expect(tree).toHaveText([/Neoplasm/, /Melanocytic Neoplasm/, /Melanoma/, /Amelanotic Melanoma/]);
   await expect(detail.locator('.tree .node.self')).toContainText('Melanoma');
 
   // An ancestor opens where it stands, showing what else is beside the path rather than replacing
@@ -688,9 +688,7 @@ test('a click marks a row and a second act chooses it', async ({ page }) => {
     document
       .querySelector('cedar-embeddable-term-picker')!
       .addEventListener('selected', (event) =>
-        (window as unknown as { recordChoice: (c: unknown) => void }).recordChoice(
-          (event as CustomEvent).detail,
-        ),
+        (window as unknown as { recordChoice: (c: unknown) => void }).recordChoice((event as CustomEvent).detail),
       ),
   );
 
@@ -827,8 +825,16 @@ test('the release count opens the whole history, and choosing from it pins', asy
               versionCount: 3,
               declaredVersion: '26.07d',
               versions: [
-                { id: 'hash-c-0123456789abcdef', effectiveDate: '2026-07-01T00:00:00.000-07:00', declaredVersion: '26.07d' },
-                { id: 'hash-b-0123456789abcdef', effectiveDate: '2026-06-03T00:00:00.000-07:00', declaredVersion: '26.06e' },
+                {
+                  id: 'hash-c-0123456789abcdef',
+                  effectiveDate: '2026-07-01T00:00:00.000-07:00',
+                  declaredVersion: '26.07d',
+                },
+                {
+                  id: 'hash-b-0123456789abcdef',
+                  effectiveDate: '2026-06-03T00:00:00.000-07:00',
+                  declaredVersion: '26.06e',
+                },
                 { id: 'hash-a-0123456789abcdef', effectiveDate: '2026-05-06T00:00:00.000-07:00' },
               ],
             }),
@@ -857,9 +863,7 @@ test('the release count opens the whole history, and choosing from it pins', asy
     document
       .querySelector('cedar-embeddable-term-picker')!
       .addEventListener('selected', (event) =>
-        (window as unknown as { recordChoice: (c: unknown) => void }).recordChoice(
-          (event as CustomEvent).detail,
-        ),
+        (window as unknown as { recordChoice: (c: unknown) => void }).recordChoice((event as CustomEvent).detail),
       ),
   );
 
@@ -903,9 +907,9 @@ test('the release count opens the whole history, and choosing from it pins', asy
   await expect(page.locator('cedar-embeddable-term-picker .tree .node.self')).toContainText(
     'Melanoma at hash-b-0123456789abcdef',
   );
-  await expect(
-    page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' }).locator('.version'),
-  ).toHaveText('26.06e');
+  await expect(page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' }).locator('.version')).toHaveText(
+    '26.06e',
+  );
 
   const ncit = page.locator('cedar-embeddable-term-picker .child', { hasText: 'NCIT' });
   await ncit.dblclick();
@@ -918,7 +922,6 @@ test('the release count opens the whole history, and choosing from it pins', asy
   await ncit.dblclick();
   expect((chosen[1] as { version?: unknown }).version).toBeUndefined();
 });
-
 
 test('the bar says what the source means by the term, without changing size to say it', async ({ page }) => {
   // A definition is the evidence that settles a choice between terms of one name, so it belongs with
@@ -960,8 +963,9 @@ test('a term outside the pinned release says which release, not that the store i
   await stubSearch(page, () => MELANOMA);
   await stubHierarchy(page, () => ({
     status: 404,
-    message: 'Release 4d5f70524a48 of ICO does not contain http://purl.obolibrary.org/obo/MONDO_0000001. '
-      + 'Another release of the same source may contain it.',
+    message:
+      'Release 4d5f70524a48 of ICO does not contain http://purl.obolibrary.org/obo/MONDO_0000001. ' +
+      'Another release of the same source may contain it.',
   }));
   await openPicker(page);
   await search(page, 'melanoma');
@@ -1082,8 +1086,21 @@ test('authors a constraint set in compact tables and applies it as one event', a
   await page.locator('cedar-embeddable-term-picker').evaluate((node) => {
     const picker = node as HTMLElement & { selectionMode: string; constraintSet: object };
     picker.selectionMode = 'constraints';
-    picker.constraintSet = { constraints: [{ sourceType: 'ontology', ontologyId: 'DOID', ontologyName: 'Disease Ontology', uri: 'urn:doid', version: { id: 'sha256:original', declaredVersion: '2026-06' } }], actions: [] };
-    picker.addEventListener('constraintsSelected', (event) => { (window as unknown as { applied: unknown }).applied = (event as CustomEvent).detail; });
+    picker.constraintSet = {
+      constraints: [
+        {
+          sourceType: 'ontology',
+          ontologyId: 'DOID',
+          ontologyName: 'Disease Ontology',
+          uri: 'urn:doid',
+          version: { id: 'sha256:original', declaredVersion: '2026-06' },
+        },
+      ],
+      actions: [],
+    };
+    picker.addEventListener('constraintsSelected', (event) => {
+      (window as unknown as { applied: unknown }).applied = (event as CustomEvent).detail;
+    });
   });
   await search(page, 'melanoma');
   const picker = page.locator('cedar-embeddable-term-picker');
@@ -1102,10 +1119,68 @@ test('authors a constraint set in compact tables and applies it as one event', a
   await picker.getByRole('button', { name: 'Remove constraint 2', exact: true }).click();
   await expect(picker.locator('.constraint-table tbody tr')).toHaveCount(1);
   await picker.getByRole('button', { name: 'Done', exact: true }).click();
-  const applied = await page.evaluate(() => (window as unknown as { applied: { constraints: unknown[]; actions: { action: string }[] } }).applied);
+  const applied = await page.evaluate(
+    () => (window as unknown as { applied: { constraints: unknown[]; actions: { action: string }[] } }).applied,
+  );
   expect(applied.constraints).toHaveLength(1);
   expect(applied.actions).toEqual([]);
   await expect(picker.locator('.constraint-table summary')).toHaveCount(0);
   await expect(picker.getByRole('button', { name: /Replace constraint|Replace in table/ })).toHaveCount(0);
   await picker.screenshot({ path: '/tmp/ced-constraint-picker.png' });
+});
+
+test('two pickers keep their terminology endpoints separate', async ({ page }) => {
+  const requests: { query: string; path: string }[] = [];
+  await page.route('**/server-*/**', async (route) => {
+    const body = route.request().postDataJSON();
+    const path = new URL(route.request().url()).pathname;
+    requests.push({ query: body.query, path });
+    await route.fulfill({
+      json: path.includes('/properties/')
+        ? { total: 0, page: 1, pageSize: 25, items: [] }
+        : { query: body.query, sources: [], results: {} },
+    });
+  });
+  await openPicker(page);
+  await page.evaluate(() => {
+    document.querySelector('cedar-embeddable-term-picker')!.remove();
+    for (const id of ['a', 'b']) {
+      const picker = document.createElement('cedar-embeddable-term-picker') as HTMLElement & {
+        terminologyBaseUrl: string;
+      };
+      picker.id = id;
+      picker.terminologyBaseUrl = `${location.origin}/server-${id}/`;
+      picker.setAttribute('selection-mode', 'constraint');
+      document.body.append(picker);
+    }
+  });
+  await page.locator('#a input[type=search]').fill('melanoma');
+  await page.locator('#b input[type=search]').fill('carcinoma');
+  await expect.poll(() => requests.some((r) => r.query === 'melanoma')).toBe(true);
+  await expect.poll(() => requests.some((r) => r.query === 'carcinoma')).toBe(true);
+  expect(requests.filter((r) => r.query === 'melanoma').every((r) => r.path.startsWith('/server-a/'))).toBe(true);
+  expect(requests.filter((r) => r.query === 'carcinoma').every((r) => r.path.startsWith('/server-b/'))).toBe(true);
+});
+
+test('constraint table typography and actions follow the host styling contract', async ({ page }) => {
+  await openPicker(page);
+  await page.locator('cedar-embeddable-term-picker').evaluate((element) => {
+    const picker = element as HTMLElement & { selectionMode: string; constraintSet: object };
+    picker.selectionMode = 'constraints';
+    picker.constraintSet = {
+      constraints: [{ sourceType: 'ontology-term', sourceId: 'urn:test', sourceName: 'A term', ontologyId: 'TEST' }],
+      actions: [],
+    };
+    picker.style.setProperty('--cetp-font-size', '16px');
+    picker.style.setProperty('--cetp-color-primary', 'rgb(80, 20, 120)');
+    picker.style.setProperty('--cetp-color-on-primary', 'rgb(255, 255, 200)');
+  });
+  await expect(page.locator('.constraint-table td').first()).toHaveCSS('font-size', '16px');
+  await expect(page.locator('.constraint-kind')).toHaveCSS('font-size', '14px');
+  await expect(page.locator('.constraint-set h2')).toHaveCSS('font-size', '17px');
+  await expect(page.getByRole('button', { name: 'Done', exact: true })).toHaveCSS(
+    'background-color',
+    'rgb(80, 20, 120)',
+  );
+  await expect(page.getByRole('button', { name: 'Done', exact: true })).toHaveCSS('color', 'rgb(255, 255, 200)');
 });

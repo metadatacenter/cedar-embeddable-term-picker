@@ -1,53 +1,12 @@
+@use './shared/scrolls';
 // CEDAR's design values, from the package that holds them for every component that
 // draws CEDAR. `node_modules` is on the Sass load path for this — angular.json says
 // so — because Sass resolves no package path on its own.
 @use '@org.metadatacenter/cedar-design-tokens/tokens' as tokens;
 
-// A box that scrolls, and says so before it is scrolled.
-//
-// The standards properties are honoured by Firefox. Chrome and Safari on macOS draw an overlay
-// scrollbar instead, which is invisible until an author is already scrolling — exactly when the
-// hint is no longer needed, and why a release list of nineteen read as a list of seven. Giving the
-// scrollbar a style opts the element out of overlay behaviour, so the track is laid out from the
-// start and takes its width from the content rather than floating over it.
-@mixin scrolls {
-  overflow-y: auto;
-
-  // One engine each, because setting both silently disables the half that works here: Chrome from
-  // 121 ignores the `-webkit-` rules on any element that also sets `scrollbar-width` or
-  // `scrollbar-color`, and its `thin` is still an overlay bar. Measured, the track went from taking
-  // 0px of layout to 11px once these moved out of its way.
-  @supports not selector(::-webkit-scrollbar) {
-    scrollbar-width: thin;
-    scrollbar-color: var(--cetp-color-border) transparent;
-  }
-
-  &::-webkit-scrollbar {
-    width: 11px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    // Inset by a transparent border rather than by width, so the thumb is thin while the hit area
-    // stays the full track.
-    background: var(--cetp-color-border);
-    background-clip: content-box;
-    border: 3px solid transparent;
-    border-radius: 6px;
-  }
-
-  &:hover::-webkit-scrollbar-thumb {
-    background: var(--cetp-color-muted);
-    background-clip: content-box;
-  }
-}
-
 // The host contract.
 //
-// These nine custom properties are what an embedder may set, and the list is short on purpose. A
+// These ten custom properties are what an embedder may set, and the list is short on purpose. A
 // host page setting one of them wins: rules in the outer tree take precedence over `:host`, so the
 // values below are defaults rather than a floor.
 //
@@ -72,8 +31,8 @@
   // Derived, not settable. The type scale is CEDAR's — 14 for the body, 12 for what supports it,
   // 15 for what leads — and it moves with the base a host sets rather than being pinned beside it,
   // so `--cetp-font-size: 16px` reads as a larger component and not a broken one.
-  --cetp-font-size-small: calc(var(--cetp-font-size) - 2px);
-  --cetp-font-size-lead: calc(var(--cetp-font-size) + 1px);
+  --cetp-font-size-small: calc(var(--cetp-font-size) + #{tokens.$font-size-small - tokens.$font-size});
+  --cetp-font-size-lead: calc(var(--cetp-font-size) + #{tokens.$font-size-lead - tokens.$font-size});
 
   // Derived from the brand, so a host that re-points the primary colour gets a tint that matches it
   // rather than one left behind. A chip and a pinned version share this; the panel behind expanded
@@ -360,7 +319,7 @@ button {
   grid-template-columns: 1fr;
   gap: 0.15rem 0.5rem;
   max-height: 11rem;
-  @include scrolls;
+  @include scrolls.scrolls;
   margin-top: 0.4rem;
   padding: 0.35rem;
   background: var(--cetp-color-surface);
@@ -444,7 +403,7 @@ button {
   // thousand distinct labels; page numbers over a count that stops at a cap said "400+" and asked
   // an author to navigate a list nobody knows the length of.
   max-height: 60vh;
-  @include scrolls;
+  @include scrolls.scrolls;
 }
 
 // What the bottom of the list is doing: fetching, finished, or neither.
@@ -556,7 +515,7 @@ button {
   background: #fff;
   border: 1px solid var(--cetp-color-border);
   border-radius: 3px;
-  @include scrolls;
+  @include scrolls.scrolls;
 }
 
 .node {
@@ -674,7 +633,7 @@ button {
 
   // A visible track, rather than one that appears once an author is already scrolling. It is the
   // second thing saying the list is longer than the box, after the row cut off at the bottom edge.
-  @include scrolls;
+  @include scrolls.scrolls;
 }
 
 .releases-head {
@@ -1025,146 +984,16 @@ mark {
   margin: 0.5rem 0 0.25rem;
   padding: 0.25rem 0.75rem;
   font: inherit;
-  color: var(--cedar-on-accent, #fff);
-  background: var(--cedar-accent, #1f6feb);
+  color: var(--cetp-color-on-primary);
+  background: var(--cetp-color-primary);
   border: 1px solid transparent;
   border-radius: 4px;
   cursor: pointer;
 }
 
 .use:focus-visible {
-  outline: 2px solid var(--cedar-focus, #1f6feb);
+  outline: 2px solid var(--cetp-color-primary);
   outline-offset: 2px;
-}
-
-// Compact bordered rows and quiet column headings follow the Groups and Permissions dialogs.
-.constraint-set {
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--cetp-color-border);
-  max-height: 38vh;
-  @include scrolls;
-  h2 {
-    margin: 0;
-    font-size: 15px;
-    font-weight: 500;
-  }
-  h3 {
-    margin: 18px 0 6px;
-    font-size: 14px;
-    font-weight: 500;
-  }
-  p {
-    margin: 6px 0 12px;
-    color: var(--cetp-color-muted);
-  }
-  p,
-  label,
-  dd,
-  dt {
-    font-size: 13px;
-  }
-  button {
-    margin: 0;
-    padding: 4px 8px;
-    cursor: pointer;
-    border: 1px solid var(--cetp-color-border);
-    border-radius: 3px;
-    background: white;
-    color: var(--cetp-color-primary);
-  }
-  button:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  button:hover:enabled {
-    background: var(--cetp-color-surface);
-    &.use { background: var(--cetp-color-primary); filter: brightness(0.95); }
-  }
-  input {
-    width: 80px;
-    padding: 5px;
-    border: 1px solid var(--cetp-color-border);
-  }
-  select {
-    padding: 6px;
-    max-width: 100%;
-  }
-  dt {
-    font-weight: 500;
-  }
-  dd {
-    margin: 4px 0 10px;
-    overflow-wrap: anywhere;
-  }
-  .use {
-    background: var(--cetp-color-primary);
-    color: white;
-  }
-}
-.constraint-table {
-  width: 100%;
-  border: 1px solid #ccc;
-  border-collapse: collapse;
-  table-layout: fixed;
-  th {
-    padding: 4px 10px;
-    color: #666;
-    font-size: 12px;
-    font-weight: 600;
-    text-align: left;
-  }
-  th:first-child {
-    width: 48%;
-  }
-  th:last-child {
-    width: 40px;
-  }
-  td {
-    padding: 4px 10px;
-    border-top: 1px solid #ccc;
-    height: 28px;
-    font-size: 13px;
-    vertical-align: middle;
-    overflow-wrap: anywhere;
-  }
-  small {
-    display: inline;
-    color: #666;
-  }
-  summary {
-    cursor: pointer;
-  }
-  .constraint-row-actions {
-    white-space: nowrap;
-    text-align: right;
-    padding-left: 0;
-  }
-  .constraint-row-actions button {
-    border: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    width: 24px;
-    height: 22px;
-    margin: 0;
-    background: transparent;
-    color: #333;
-    line-height: 1;
-    &:hover:enabled { background: transparent; color: #000; }
-  }
-  .constraint-empty {
-    color: #666;
-    padding: 8px 10px;
-  }
-}
-.constraint-kind {
-  font-size: 11px;
-  color: #666;
-  background: #eef1f2;
-  border-radius: 3px;
-  padding: 2px 5px;
-  margin-right: 5px;
 }
 
 .sr-only {
@@ -1177,29 +1006,41 @@ mark {
 }
 
 // CEE's compact specification rows: inline controls, details only when present.
-.constraint-heading,
 .term-action-controls {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
 }
-.constraint-heading {
-  justify-content: space-between;
-  margin-bottom: 6px;
-  .use { margin: 0; }
+
+.term-action-controls {
+  margin-top: 6px;
 }
-.term-action-controls { margin-top: 6px; }
-.constraint-table + .constraint-table { margin-top: 6px; }
+
 .picker.set-mode {
   padding: 8px 14px;
-  .chosen.awaiting { display: none; }
-  .search { padding-right: 24px; }
-  .narrowing { margin-top: 6px; }
-  .tabs { margin-top: 4px; }
-  .working.idle { display: none; }
-  .tail:empty { display: none; }
-  .empty { margin: 0; padding: 10px 2px; }
+  .chosen.awaiting {
+    display: none;
+  }
+  .search {
+    padding-right: 24px;
+  }
+  .narrowing {
+    margin-top: 6px;
+  }
+  .tabs {
+    margin-top: 4px;
+  }
+  .working.idle {
+    display: none;
+  }
+  .tail:empty {
+    display: none;
+  }
+  .empty {
+    margin: 0;
+    padding: 10px 2px;
+  }
 }
 
 .picker.set-mode {
@@ -1207,21 +1048,33 @@ mark {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     gap: 2px 8px;
-    .label { grid-column: 1 / -1; }
-    .phrase, .about { padding: 0; }
-    .iri { grid-column: 1 / -1; height: auto; }
-    .meaning { display: none; }
+    .label {
+      grid-column: 1 / -1;
+    }
+    .phrase,
+    .about {
+      padding: 0;
+    }
+    .iri {
+      grid-column: 1 / -1;
+      height: auto;
+    }
+    .meaning {
+      display: none;
+    }
   }
-  .chosen.awaiting { display: none; }
-  .tree { max-height: 8rem; }
-  .detail { padding-bottom: 0; }
-  .use { margin: 4px 0; }
-}
-.saved-actions {
-  margin-top: 6px;
-  font-size: var(--cetp-font-size-small);
-  color: var(--cetp-color-muted);
-  summary { cursor: pointer; }
+  .chosen.awaiting {
+    display: none;
+  }
+  .tree {
+    max-height: 8rem;
+  }
+  .detail {
+    padding-bottom: 0;
+  }
+  .use {
+    margin: 4px 0;
+  }
 }
 
 .selection-heading {
@@ -1230,24 +1083,15 @@ mark {
   justify-content: space-between;
   gap: 8px;
   grid-column: 1 / -1;
-  button:disabled { opacity: 0.4; cursor: default; }
-}
-
-.constraint-table {
-  td { vertical-align: middle; }
-  tr:has(details[open]) td { vertical-align: top; }
-  dl {
-    display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
-    gap: 2px 10px;
-    margin: 4px 0 0;
-    line-height: 1.35;
+  button:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
-  dt { font-weight: 400; color: var(--cetp-color-muted); }
-  dd { margin: 0; min-width: 0; }
 }
 
-.selection-detail { display: contents; }
+.selection-detail {
+  display: contents;
+}
 .set-mode .selection-detail {
   display: grid;
   grid-column: 1 / -1;
@@ -1255,7 +1099,10 @@ mark {
   align-items: center;
   gap: 8px;
   background: var(--cetp-color-surface);
-  .detail { grid-column: 1; margin: 0; }
+  .detail {
+    grid-column: 1;
+    margin: 0;
+  }
   .use {
     grid-column: 2;
     grid-row: 1;
@@ -1263,39 +1110,43 @@ mark {
     background: var(--cetp-color-primary);
     color: var(--cetp-color-on-primary);
   }
-  .use:disabled { opacity: 0.4; cursor: default; }
+  .use:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
 }
 
-.constraint-kind.term-kind { font-style: italic; }
-
-.constraint-table-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 12px;
+.set-mode .selection-detail:has(.hierarchy-choice) {
+  display: block;
 }
-.constraint-table-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: stretch;
-  button { width: 100%; }
-  .use { margin: 0; }
-}
-
-.set-mode .selection-detail:has(.hierarchy-choice) { display: block; }
 .set-mode .hierarchy-choice {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  > div { min-width: 0; }
-  .tree { margin: 0; }
-  .use { grid-column: 2; grid-row: 1; margin: 0; }
+  > div {
+    min-width: 0;
+  }
+  .tree {
+    margin: 0;
+  }
+  .use {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+  }
 }
-.set-mode .chosen { padding-right: 0; }
+.set-mode .chosen {
+  padding-right: 0;
+}
 
 .selection-error {
-  color: #a12622;
+  color: tokens.$color-warn;
   padding: 8px 16px;
+}
+
+.scope-selector {
+  display: block;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--cetp-color-border);
 }

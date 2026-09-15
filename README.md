@@ -58,14 +58,16 @@ cedar-embeddable-term-picker {
   --cetp-color-muted: #555555; /* counts, versions, everything supporting */
   --cetp-color-surface: #f5f5f5; /* the panel behind expanded rows */
   --cetp-color-border: #d7e0df;
-  --cetp-color-warning: #856404; /* obsolete terms, sources that were not searched */
+  --cetp-color-warning: #b45309; /* obsolete terms, sources that were not searched */
   --cetp-font-family: 'CEE Roboto', 'Helvetica Neue', sans-serif;
   --cetp-font-size: 14px;
 }
 ```
 
 Rules in a host page take precedence over the component's own, so these are defaults rather than a
-floor. Two values are derived and not settable: the type scale moves with `--cetp-font-size`, so a
+floor. The constraint table uses this same contract. Each picker owns its terminology client, so multiple instances may use different server URLs.
+
+Two values are derived and not settable: the type scale moves with `--cetp-font-size`, so a
 larger base reads as a larger component rather than a broken one, and the tint behind chips and
 pinned versions is mixed from `--cetp-color-primary`, so re-pointing the brand does not leave it
 behind.

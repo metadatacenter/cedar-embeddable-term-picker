@@ -1,0 +1,219 @@
+@use '../shared/scrolls';
+
+:host {
+  display: block;
+}
+
+.constraint-set {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--cetp-color-border);
+  max-height: 38vh;
+  @include scrolls.scrolls;
+  h2 {
+    margin: 0;
+    font-size: var(--cetp-font-size-lead);
+    font-weight: 500;
+  }
+  h3 {
+    margin: 18px 0 6px;
+    font-size: var(--cetp-font-size);
+    font-weight: 500;
+  }
+  p {
+    margin: 6px 0 12px;
+    color: var(--cetp-color-muted);
+  }
+  p,
+  label,
+  dd,
+  dt {
+    font-size: var(--cetp-font-size);
+  }
+  button {
+    margin: 0;
+    padding: 4px 8px;
+    cursor: pointer;
+    border: 1px solid var(--cetp-color-border);
+    border-radius: 3px;
+    background: white;
+    color: var(--cetp-color-primary);
+  }
+  button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  button:hover:enabled {
+    background: var(--cetp-color-surface);
+    &.use {
+      background: var(--cetp-color-primary);
+      filter: brightness(0.95);
+    }
+  }
+  input {
+    width: 80px;
+    padding: 5px;
+    border: 1px solid var(--cetp-color-border);
+  }
+  select {
+    padding: 6px;
+    max-width: 100%;
+  }
+  dt {
+    font-weight: 500;
+  }
+  dd {
+    margin: 4px 0 10px;
+    overflow-wrap: anywhere;
+  }
+  .use {
+    background: var(--cetp-color-primary);
+    color: var(--cetp-color-on-primary);
+  }
+}
+
+.constraint-table {
+  width: 100%;
+  border: 1px solid var(--cetp-color-border);
+  border-collapse: collapse;
+  table-layout: fixed;
+  th {
+    padding: 4px 10px;
+    color: var(--cetp-color-muted);
+    font-size: var(--cetp-font-size-small);
+    font-weight: 600;
+    text-align: left;
+  }
+  th:first-child {
+    width: 48%;
+  }
+  th:last-child {
+    width: 40px;
+  }
+  td {
+    padding: 4px 10px;
+    border-top: 1px solid var(--cetp-color-border);
+    height: 28px;
+    font-size: var(--cetp-font-size);
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+  }
+  small {
+    font-size: var(--cetp-font-size-small);
+    display: inline;
+    color: var(--cetp-color-muted);
+  }
+  summary {
+    cursor: pointer;
+  }
+  .constraint-row-actions {
+    white-space: nowrap;
+    text-align: right;
+    padding-left: 0;
+  }
+  .constraint-row-actions button {
+    border: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: 24px;
+    height: 22px;
+    margin: 0;
+    background: transparent;
+    color: var(--cetp-color-text);
+    line-height: 1;
+    &:hover:enabled {
+      background: transparent;
+      color: #000;
+    }
+  }
+  .constraint-empty {
+    color: var(--cetp-color-muted);
+    padding: 8px 10px;
+  }
+}
+
+.constraint-kind {
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
+  background: var(--cetp-color-surface);
+  border-radius: 3px;
+  padding: 2px 5px;
+  margin-right: 5px;
+}
+
+.constraint-heading {
+  justify-content: space-between;
+  margin-bottom: 6px;
+  .use {
+    margin: 0;
+  }
+}
+
+.constraint-table + .constraint-table {
+  margin-top: 6px;
+}
+
+.saved-actions {
+  margin-top: 6px;
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
+  summary {
+    cursor: pointer;
+  }
+}
+
+.constraint-table {
+  td {
+    vertical-align: middle;
+  }
+  tr:has(details[open]) td {
+    vertical-align: top;
+  }
+  dl {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 2px 10px;
+    margin: 4px 0 0;
+    line-height: 1.35;
+  }
+  dt {
+    font-weight: 400;
+    color: var(--cetp-color-muted);
+  }
+  dd {
+    margin: 0;
+    min-width: 0;
+  }
+}
+
+.constraint-kind.term-kind {
+  font-style: italic;
+}
+
+.constraint-table-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.constraint-table-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: stretch;
+  button {
+    width: 100%;
+  }
+  .use {
+    margin: 0;
+  }
+}
+
+.constraint-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}

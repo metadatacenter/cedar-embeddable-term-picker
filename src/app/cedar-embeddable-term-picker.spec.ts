@@ -111,7 +111,9 @@ describe('CedarEmbeddableTermPicker', () => {
 
   beforeEach(() => {
     client = new StubClient();
-    TestBed.configureTestingModule({ providers: [{ provide: TerminologyClient, useValue: client }] });
+    TestBed.configureTestingModule({}).overrideComponent(CedarEmbeddableTermPicker, {
+      set: { providers: [{ provide: TerminologyClient, useValue: client }] },
+    });
   });
 
   function shadow(fixture: { nativeElement: { shadowRoot: ShadowRoot } }): ShadowRoot {

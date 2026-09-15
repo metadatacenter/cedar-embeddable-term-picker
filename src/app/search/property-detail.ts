@@ -65,6 +65,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
     </section>
   `,
   styles: `
+    @use '@org.metadatacenter/cedar-design-tokens/tokens' as tokens;
     :host {
       display: block;
       padding: 12px 20px;
@@ -83,11 +84,17 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
     p {
       margin: 8px 0;
     }
+    h3 {
+      font-size: var(--cetp-font-size-lead);
+    }
+    h4 {
+      font-size: var(--cetp-font-size);
+    }
     .iri {
       overflow-wrap: anywhere;
     }
     [role='alert'] {
-      color: #a12622;
+      color: tokens.$color-warn;
     }
     select {
       max-width: 100%;
