@@ -98,7 +98,7 @@
 
   .phrase,
   .about,
-  .release,
+  .selection-release,
   .meaning,
   .iri {
     margin: 0;
@@ -110,7 +110,8 @@
   // Every line starts at the same place. The acronym carries a left margin in a result row, where it
   // follows a label; here it opens the line, and the indent read as the source being a note on the
   // term above rather than half of the constraint.
-  .who {
+  .who,
+  .selection-release > .from {
     margin-left: 0;
   }
 
@@ -1056,7 +1057,7 @@ mark {
     .about {
       padding: 0;
     }
-    .release,
+    .selection-release,
     .iri {
       grid-column: 1 / -1;
       height: auto;
@@ -1144,7 +1145,8 @@ mark {
 
 .selection-error {
   color: tokens.$color-warn;
-  padding: 8px 16px;
+  margin: 0;
+  padding: 4px 16px;
 }
 
 .scope-selector {

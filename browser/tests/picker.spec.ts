@@ -381,9 +381,51 @@ test('the bar says what is selected, and nothing before anything is', async ({ p
   await expect(chosen.locator('.label')).toHaveText('Selected term');
   await expect(chosen.locator('.about .who')).toHaveText('National Cancer Institute Thesaurus (NCIT)');
   const sourceBox = await chosen.locator('.about').boundingBox();
-  const releaseBox = await chosen.locator('.release').boundingBox();
+  const releaseBox = await chosen.locator('.selection-release').boundingBox();
   expect(releaseBox!.y).toBeGreaterThanOrEqual(sourceBox!.y + sourceBox!.height);
   await expect(chosen).not.toContainText('descendants');
+});
+
+test('selected release details stay together on a separate line in the embedded table layout', async ({ page }) => {
+  await stubSearch(page, () => ({ ...MELANOMA,
+    sources: MELANOMA.sources.map((source) => ({ ...source, authority: 'bioportal' })),
+  }));
+  await stubHierarchy(page, () => null);
+  await openPicker(page);
+  await page.locator('cedar-embeddable-term-picker').evaluate((node) => {
+    (node as HTMLElement & { selectionMode: string }).selectionMode = 'constraints';
+  });
+  await search(page, 'melanoma');
+  await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
+  await page.locator('cedar-embeddable-term-picker .child').first().click();
+  const chosen = page.locator('cedar-embeddable-term-picker .chosen');
+  const release = chosen.locator('.selection-release');
+  await expect(release).toContainText('BioPortal');
+  await expect(release).toContainText('latest');
+  await expect(release).toHaveCSS('display', 'block');
+  await expect(release).toHaveCSS('padding-left', '0px');
+  const source = await chosen.locator('.about').boundingBox();
+  const row = await release.boundingBox();
+  expect(row!.y).toBeGreaterThanOrEqual(source!.y + source!.height);
+  const authority = await release.locator('.from').boundingBox();
+  const heading = await chosen.locator('.selection-heading').boundingBox();
+  for (const selector of ['.phrase', '.iri']) {
+    const line = await chosen.locator(selector).boundingBox();
+    expect(Math.abs(line!.x - heading!.x)).toBeLessThan(1);
+  }
+  expect(Math.abs(authority!.x - heading!.x)).toBeLessThan(1);
+  const version = await release.locator('.meta').last().boundingBox();
+  expect(Math.abs(authority!.y - version!.y)).toBeLessThan(2);
+  expect(version!.x - (authority!.x + authority!.width)).toBeLessThan(12);
+  const term = page.locator('cedar-embeddable-term-picker .child').first();
+  await term.dblclick();
+  await term.dblclick();
+  const warning = page.locator('cedar-embeddable-term-picker .selection-error');
+  await expect(warning).toHaveText('This selection is already in the table.');
+  await expect(warning).toHaveCSS('margin-top', '0px');
+  await expect(warning).toHaveCSS('margin-bottom', '0px');
+  await expect(warning).toHaveCSS('padding-top', '4px');
+  await expect(warning).toHaveCSS('padding-bottom', '4px');
 });
 
 test('opening a fold selects the first row it opens onto', async ({ page }) => {
