@@ -1,7 +1,7 @@
-// CEDAR's design values. The brand and type scale are copied from CEE; the neutrals are gathered
-// from what CEE renders — see the header of each file.
-@use '../cee-tokens' as tokens;
-@use '../cedar-neutrals' as neutrals;
+// CEDAR's design values, from the package that holds them for every component that
+// draws CEDAR. `node_modules` is on the Sass load path for this — angular.json says
+// so — because Sass resolves no package path on its own.
+@use '@org.metadatacenter/cedar-design-tokens/tokens' as tokens;
 
 // A box that scrolls, and says so before it is scrolled.
 //
@@ -58,16 +58,16 @@
 // ordinary. CEE reached the same rule from the other direction: its Material internals are not host
 // API. Adding a property here is a change to a public contract, not a tweak.
 :host {
-  --cetp-color-primary: #{tokens.$cee-color-primary};
-  --cetp-color-on-primary: #{tokens.$cee-color-on-primary};
-  --cetp-color-heading: #{tokens.$cee-color-component-title};
-  --cetp-color-text: #{neutrals.$cedar-text-primary};
-  --cetp-color-muted: #{neutrals.$cedar-text-muted};
-  --cetp-color-surface: #{neutrals.$cedar-surface-panel};
-  --cetp-color-border: #{neutrals.$cedar-border-rule};
-  --cetp-color-warning: #{tokens.$cee-color-warning};
-  --cetp-font-family: #{tokens.$cee-font-family};
-  --cetp-font-size: #{tokens.$cee-font-size};
+  --cetp-color-primary: #{tokens.$color-primary};
+  --cetp-color-on-primary: #{tokens.$color-on-primary};
+  --cetp-color-heading: #{tokens.$color-component-title};
+  --cetp-color-text: #{tokens.$text-primary};
+  --cetp-color-muted: #{tokens.$text-muted};
+  --cetp-color-surface: #{tokens.$surface-panel};
+  --cetp-color-border: #{tokens.$border-rule};
+  --cetp-color-warning: #{tokens.$color-warning};
+  --cetp-font-family: #{tokens.$font-family};
+  --cetp-font-size: #{tokens.$font-size};
 
   // Derived, not settable. The type scale is CEDAR's — 14 for the body, 12 for what supports it,
   // 15 for what leads — and it moves with the base a host sets rather than being pinned beside it,
