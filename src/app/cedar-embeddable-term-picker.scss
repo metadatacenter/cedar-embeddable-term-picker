@@ -900,6 +900,15 @@ mark {
     background: #fff3cd;
     color: var(--cetp-color-warning);
   }
+
+  // A chip that annotates the words immediately before it, rather than one of a strip of chips
+  // standing on its own. The tint is pale enough that its own left padding reads as a gap between
+  // the term and the annotation, so this one carries the least padding that still keeps its text
+  // off the edge.
+  &.attached {
+    padding-left: 0.2rem;
+    padding-right: 0.25rem;
+  }
 }
 
 .children {

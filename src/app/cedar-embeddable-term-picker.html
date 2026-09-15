@@ -366,11 +366,13 @@
           without re-reading the phrasing. It also retires the "Everything under" / "Every term in"
           prefixes the phrase used to carry, which said the same thing twice.
         -->
+      <!--
+          The heading names the selection and nothing else. Committing it is the row's own button,
+          beside the tree the term was picked in: two buttons reading "Select" a few lines apart
+          say the same thing twice, and the one up here is the further of the two from the term.
+        -->
       <div class="selection-heading">
         <span class="label">Selected {{ chosen.noun }}</span>
-        @if (tableMode()) { @if (picked(); as hit) {
-        <button type="button" [disabled]="!!selectionBlocked()" (click)="choose(hit)">Select</button>
-        } }
       </div>
       <p class="phrase">
         <strong [title]="chosen.what">{{ elide(chosen.what, 72, 20) }}</strong>
@@ -610,7 +612,7 @@
           } @if (group.hits[0].obsolete) {
           <span class="chip warn">obsolete</span>
           } @if (!group.code && group.hits[0].matchedLabels?.length) {
-          <span class="chip" [title]="group.hits[0].matchedLabels![0].label"
+          <span class="chip attached" [title]="group.hits[0].matchedLabels![0].label"
             >matched {{ elide(group.hits[0].matchedLabels![0].label, 64, 20) }}@if
             (group.hits[0].matchedLabels![0].language) { · {{ group.hits[0].matchedLabels![0].language }}}</span
           >

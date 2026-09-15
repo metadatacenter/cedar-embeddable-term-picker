@@ -3,7 +3,9 @@ import {
   Component,
   ElementRef,
   HostListener,
+  Injector,
   ViewEncapsulation,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -131,6 +133,8 @@ export interface LabelGroup {
 })
 export class CedarEmbeddableTermPicker {
   private readonly client = inject(TerminologyClient);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
 
   /** The query the picker opens on, so a host can seed it from the field's name. */
   readonly query = input('');
@@ -1520,6 +1524,29 @@ export class CedarEmbeddableTermPicker {
     // asked of one ancestor at a time and not of all of them at once.
     this.openNodes.update((nodes) => new Set(nodes).add(this.nodeKey(hit.sourceAcronym, iri)));
     this.nodes.update((held) => new Map(held).set(this.nodeKey(hit.sourceAcronym, iri), outcome.hierarchy));
+    afterNextRender(() => this.revealTreeTerm(), { injector: this.injector });
+  }
+
+  /**
+   * Scrolls the tree to the term it was read for.
+   *
+   * A term sits at the bottom of its own ancestry, and a deep one has more ancestors than the box
+   * has room for: MESH reaches "Mice" through eight steps, so the box opened full of Eukaryota,
+   * Animals, Chordata and the term itself was below the fold, in a tree that exists to show where
+   * the term sits. The box is scrolled rather than the row asked to scroll itself into view, which
+   * would also move the panel the tree is in and take the row the author came from off screen.
+   */
+  private revealTreeTerm(): void {
+    // The rows are in the shadow tree, and the host element's own `querySelector` does not reach
+    // into it: searching the host found nothing and scrolled nothing.
+    const root: ParentNode = this.host.nativeElement.shadowRoot ?? this.host.nativeElement;
+    const term = root.querySelector<HTMLElement>('.tree .node.self');
+    const tree = term?.closest<HTMLElement>('.tree');
+    if (!term || !tree) {
+      return;
+    }
+    const offset = term.getBoundingClientRect().top - tree.getBoundingClientRect().top;
+    tree.scrollTop = Math.max(0, tree.scrollTop + offset - (tree.clientHeight - term.offsetHeight) / 2);
   }
 
   private hierarchyOutcomeOf(hit: Hit): HierarchyOutcome | undefined {
