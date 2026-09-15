@@ -1,6 +1,11 @@
 import { hierarchyRows } from './search/hierarchy-rows';
 import { ConstraintTableComponent } from './search/constraint-table';
-import { constraintLabel, constraintUri, constraintAcronym } from './search/constraint-presentation';
+import {
+  constraintLabel,
+  constraintUri,
+  constraintAcronym,
+  constraintIdentity,
+} from './search/constraint-presentation';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -1856,6 +1861,10 @@ export class CedarEmbeddableTermPicker {
       sourceIri: source?.sourceIri,
     });
     const index = this.editing();
+    if (this.draft().constraints.some((c, i) => i !== index && constraintIdentity(c) === constraintIdentity(config))) {
+      this.selectionError.set('This selection is already in the table.');
+      return;
+    }
     this.draft.update((d) => ({
       ...d,
       constraints:

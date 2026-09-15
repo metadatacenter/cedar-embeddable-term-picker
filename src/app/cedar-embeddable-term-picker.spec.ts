@@ -618,6 +618,39 @@ describe('CedarEmbeddableTermPicker', () => {
     await settle();
     expect(client.lastQuery?.sources).toEqual([sources[1]]);
   });
+  it('rejects duplicate table additions and edits while retaining distinct sources and releases', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('selectionMode', 'constraints');
+    await fixture.whenStable();
+    const picker = fixture.componentInstance;
+    const term = {
+      type: 'class' as const,
+      sourceSystem: 'bioportal',
+      sourceAcronym: 'NCIT',
+      termIri: 'urn:dog',
+      termLabel: 'Dog',
+      obsolete: false,
+      termType: 'class' as const,
+      hasChildren: false,
+      descendantCount: 0,
+    };
+    picker['choose'](term);
+    picker['choose']({ ...term, termLabel: 'Another label' });
+    expect(picker['draft']().constraints).toHaveLength(1);
+    expect(picker['selectionError']()).toContain('already in the table');
+    picker['choose']({ ...term, sourceAcronym: 'BERO' });
+    expect(picker['draft']().constraints).toHaveLength(2);
+    picker['editing'].set(1);
+    picker['choose'](term);
+    expect(picker['draft']().constraints[1]).toMatchObject({ ontologyId: 'BERO' });
+    picker['editing'].set(0);
+    picker['choose'](term);
+    expect(picker['draft']().constraints).toHaveLength(2);
+    picker['pinned'].set(new Map([['NCIT', { id: 'another-release' }]]));
+    picker['choose'](term);
+    expect(picker['draft']().constraints).toHaveLength(3);
+  });
+
   it('restricts multiple enabled types and rejects a mixed selection beyond the shared limit until removal', async () => {
     const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('termTypes', ['ontology', 'property']);

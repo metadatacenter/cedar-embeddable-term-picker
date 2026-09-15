@@ -379,6 +379,10 @@ test('the bar says what is selected, and nothing before anything is', async ({ p
   await page.locator('cedar-embeddable-term-picker .tab').nth(0).click();
   await pickFirstUnder();
   await expect(chosen.locator('.label')).toHaveText('Selected term');
+  await expect(chosen.locator('.about .who')).toHaveText('National Cancer Institute Thesaurus (NCIT)');
+  const sourceBox = await chosen.locator('.about').boundingBox();
+  const releaseBox = await chosen.locator('.release').boundingBox();
+  expect(releaseBox!.y).toBeGreaterThanOrEqual(sourceBox!.y + sourceBox!.height);
   await expect(chosen).not.toContainText('descendants');
 });
 

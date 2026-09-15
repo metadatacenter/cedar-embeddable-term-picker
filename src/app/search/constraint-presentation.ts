@@ -67,3 +67,16 @@ export function constraintAcronym(c: ControlledTermConfig): string {
       return c.ontologyId || '';
   }
 }
+
+/** Semantic identity excludes labels and other display metadata. */
+export function constraintIdentity(c: ControlledTermConfig): string {
+  return JSON.stringify([
+    c.sourceType,
+    c.sourceSystem || 'bioportal',
+    constraintAcronym(c),
+    c.sourceType === 'ontology' ? c.ontologyId : constraintUri(c),
+    c.version?.id ?? null,
+    c.sourceType === 'ontology-branch' ? (c.searchDepth ?? 0) : null,
+    c.sourceType === 'ontology-term' ? (c.termType ?? 'OntologyClass') : null,
+  ]);
+}

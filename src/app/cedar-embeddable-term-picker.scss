@@ -98,6 +98,7 @@
 
   .phrase,
   .about,
+  .release,
   .meaning,
   .iri {
     margin: 0;
@@ -1055,6 +1056,7 @@ mark {
     .about {
       padding: 0;
     }
+    .release,
     .iri {
       grid-column: 1 / -1;
       height: auto;

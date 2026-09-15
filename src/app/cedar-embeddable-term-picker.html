@@ -309,9 +309,14 @@
           version does not print its date twice.
         -->
       <p class="about">
-        <span class="who">{{ chosen.acronym }}</span>
+        <span class="who">
+          @if (sourceNameIfDistinct(chosen.acronym); as name) { {{ name }} ({{ chosen.acronym }}) } @else {
+          {{ chosen.acronym }} }
+        </span>
+      </p>
+      <p class="release">
         @if (authorityOf(chosen.acronym); as from) {
-        <span class="meta inline dim from">· {{ from }}</span>
+        <span class="meta inline dim from">{{ from }}</span>
         }
         <span class="meta inline">
           @if (chosen.pinned) { @if (chosen.version) { · {{ elide(chosen.version, 20, 8) }} } @if (chosen.effectiveDate
@@ -358,6 +363,7 @@
       <span class="label">&nbsp;</span>
       <p class="phrase">&nbsp;</p>
       <p class="about">&nbsp;</p>
+      <p class="release">&nbsp;</p>
       <p class="iri">&nbsp;</p>
       <p class="meaning">&nbsp;</p>
       }
