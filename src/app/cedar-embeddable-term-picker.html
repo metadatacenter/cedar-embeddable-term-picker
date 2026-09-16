@@ -310,8 +310,8 @@
         -->
       <p class="about">
         <span class="who">
-          @if (sourceNameIfDistinct(chosen.acronym); as name) { {{ name }} ({{ chosen.acronym }}) } @else {
-          {{ chosen.acronym }} }
+          @if (sourceNameIfDistinct(chosen.acronym); as name) { {{ name }} ({{ chosen.acronym }}) } @else { {{
+          chosen.acronym }} }
         </span>
       </p>
       <p class="selection-release">
@@ -669,30 +669,55 @@
     <p class="empty">No vocabulary is named this, and none of them matched terms.</p>
     } } } @case ('property') { @if (response()?.errors?.property; as message) {
     <p role="alert" class="selection-error">{{ message }}</p>
-    } @for (hit of properties(); track keyOf(hit)) {
-    <div
-      class="row oneline pick"
-      tabindex="0"
-      role="option"
-      [attr.aria-selected]="isSelected(hit)"
-      [class.marked]="isSelected(hit)"
-      (click)="mark(hit)"
-      (keydown.enter)="mark(hit)"
-      (dblclick)="choose(hit)"
-    >
-      <span class="grow ellipsis"
-        ><span class="title">{{ hit.termLabel }}</span><span class="who">{{ hit.sourceAcronym }}</span></span
+    } @for (group of propertyGroups(); track group.label) {
+    <div class="row group" [class.open]="expanded() === group.label">
+      <button
+        type="button"
+        class="rowhead oneline"
+        [attr.aria-expanded]="expanded() === group.label"
+        (click)="toggle(group.label, group.hits)"
       >
-      <span class="meta inline">{{ hit.propertyKind }} property</span>
+        <span class="twist">{{ expanded() === group.label ? '▾' : '▸' }}</span>
+        <span class="grow ellipsis title">{{ group.label }}</span>
+        <span class="meta inline"
+          >in {{ group.hits.length }} {{ group.hits.length === 1 ? 'ontology' : 'ontologies' }}</span
+        >
+      </button>
+      @if (expanded() === group.label) {
+      <div class="children">
+        @for (hit of group.hits; track keyOf(hit)) {
+        <div
+          class="child oneline pick"
+          tabindex="0"
+          role="option"
+          [attr.aria-label]="hit.termLabel + ' in ' + hit.sourceAcronym"
+          [attr.aria-selected]="isSelected(hit)"
+          [attr.aria-expanded]="isMarked(hit)"
+          [class.marked]="isSelected(hit)"
+          (click)="mark(hit)"
+          (keydown.enter)="mark(hit)"
+          (dblclick)="choose(hit)"
+        >
+          <span class="grow ellipsis">
+            <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
+            <span class="who">{{ hit.sourceAcronym }}</span>
+            @if (sourceNameIfDistinct(hit.sourceAcronym); as name) { <span class="dim">· {{ name }}</span> } @if
+            (authorityOf(hit.sourceAcronym); as from) { <span class="meta inline dim from">· {{ from }}</span> }
+          </span>
+          <span class="meta inline">{{ hit.propertyKind }} property</span>
+        </div>
+        @if (isMarked(hit)) {
+        <cetp-property-detail
+          [hit]="hit"
+          [allowVersions]="!effectiveSources().length"
+          (focused)="picked.set($event)"
+          (chosen)="choose($event)"
+        />
+        } }
+      </div>
+      }
     </div>
-    @if (isMarked(hit)) {
-    <cetp-property-detail
-      [hit]="hit"
-      [allowVersions]="!effectiveSources().length"
-      (focused)="picked.set($event)"
-      (chosen)="choose($event)"
-    />
-    } } @empty { @if (!searching()) { @if (!response()?.errors?.property) {
+    } @empty { @if (!searching()) { @if (!response()?.errors?.property) {
     <p class="empty">No properties match.</p>
     } } } } @case ('valueSet') { @for (hit of valueSets(); track hit.termBaseIri) {
     <div

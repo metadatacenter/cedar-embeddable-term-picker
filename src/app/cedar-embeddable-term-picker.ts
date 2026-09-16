@@ -677,6 +677,16 @@ export class CedarEmbeddableTermPicker {
   protected readonly properties = computed(() =>
     this.hitsOf('property').filter((hit): hit is PropertyHit => hit.type === 'property'),
   );
+  protected readonly propertyGroups = computed(() => {
+    const groups = new Map<string, PropertyHit[]>();
+    for (const hit of this.properties()) {
+      const key = hit.termLabel.toLocaleLowerCase();
+      const group = groups.get(key);
+      if (group) group.push(hit);
+      else groups.set(key, [hit]);
+    }
+    return [...groups.values()].map((hits) => ({ label: hits[0].termLabel, hits }));
+  });
 
   protected readonly valueSets = computed(() => this.hitsOf('valueSet').filter(isValueSetHit));
 
