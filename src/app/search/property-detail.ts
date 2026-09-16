@@ -9,7 +9,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
     <section aria-label="Property details">
       @if (allowVersions() && versions().length) {
         <div class="release-toolbar">
-          <span>{{ releaseLabel() }}</span>
+          <span>Release {{ releaseLabel() }}</span>
           <button
             type="button"
             class="release-toggle"
@@ -96,7 +96,9 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
     @use '@org.metadatacenter/cedar-design-tokens/tokens' as tokens;
     :host {
       display: block;
-      padding: 4px 8px;
+      grid-column: 1 / -1;
+      min-width: 0;
+      padding: 6px 8px;
     }
     button {
       font: inherit;
@@ -107,11 +109,12 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
     }
     .release-toolbar {
       display: flex;
-      justify-content: flex-end;
+      justify-content: flex-start;
       align-items: center;
       gap: 8px;
       font-size: var(--cetp-font-size-small);
       color: var(--cetp-color-muted);
+      margin-bottom: 4px;
     }
     .release-toggle {
       border: 0;
@@ -147,7 +150,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
     }
     .tree {
       list-style: none;
-      margin: 4px 0;
+      margin: 0;
       padding: 4px 6px;
       max-height: 14rem;
       overflow: auto;
