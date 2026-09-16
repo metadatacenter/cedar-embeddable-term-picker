@@ -315,34 +315,30 @@
         </span>
       </p>
       <p class="selection-release">
-        @if (authorityOf(chosen.acronym); as from) {
-        <span class="meta inline dim from">{{ from }}</span>
+        @if (authorityOf(chosen.acronym); as from) { <span class="release-part meta inline dim from">{{ from }}</span> } @if
+        (chosen.pinned) { @if (chosen.version) {
+        <span class="release-part meta inline">{{ elide(chosen.version, 20, 8) }}</span> } @if (chosen.effectiveDate &&
+        chosen.effectiveDate !== chosen.version) {
+        <span class="release-part meta inline">{{ chosen.effectiveDate }}</span> } @if (!chosen.version &&
+        !chosen.effectiveDate) { <em class="release-part meta inline">pinned</em> } @if (chosen.id) {
+        <span class="release-part meta inline"
+          ><code class="hash" [title]="chosen.id">{{ shortHash(chosen.id) }}</code></span
+        >
+        } @if (chosen.superseded) {
+        <span
+          class="release-part meta inline stale"
+          title="A later reading of these same source bytes exists. This pin still resolves."
+          >superseded</span
+        >
+        } } @else {
+        <em class="release-part meta inline">latest</em>
+        @if (sourceOf(chosen.acronym)?.version?.id; as hash) {
+        <span class="release-part meta inline"><code class="hash" [title]="hash">{{ shortHash(hash) }}</code></span> } }
+        @if (chosen.descendants) {
+        <span class="release-part meta inline"
+          >{{ chosen.descendants.toLocaleString() }} {{ chosen.descendants === 1 ? 'descendant' : 'descendants' }}</span
+        >
         }
-        <span class="meta inline">
-          @if (chosen.pinned) { @if (chosen.version) { · {{ elide(chosen.version, 20, 8) }} } @if (chosen.effectiveDate
-          && chosen.effectiveDate !== chosen.version) { · {{ chosen.effectiveDate }} } @if (chosen.id) { ·
-          <code class="hash" [title]="chosen.id">{{ shortHash(chosen.id) }}</code>
-          }
-          <!--
-                A release the store has since re-read. The pin still resolves and is left alone —
-                a published template has to keep meaning what it meant — so this says what it is
-                rather than moving the author off it.
-              -->
-          @if (chosen.superseded) { ·
-          <span class="stale" title="A later reading of these same source bytes exists. This pin still resolves."
-            >superseded</span
-          >
-          } } @else { · <em>latest</em> @if (sourceOf(chosen.acronym)?.version?.id; as hash) { ·
-          <code class="hash" [title]="hash">{{ shortHash(hash) }}</code> } }
-          <!--
-              How much a branch or a value set brings with it — the size of the constraint, which a
-              term and a whole ontology have no need of. On this line rather than beside the name,
-              because the name is the one part long enough to be elided and the bar holds a fixed
-              two lines.
-            -->
-          @if (chosen.descendants) { · {{ chosen.descendants.toLocaleString() }} {{ chosen.descendants === 1 ?
-          'descendant' : 'descendants' }} }
-        </span>
       </p>
       <!--
           What addresses the term, under the release that holds it. The label is what an author

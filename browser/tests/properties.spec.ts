@@ -78,6 +78,8 @@ test('property-only table enforces the maximum and browses parents at the select
   await picker.getByRole('button', { name: /part of.*in 1 ontology/ }).click();
   await picker.getByRole('option', { name: 'part of in RO' }).click();
   await expect(picker.getByRole('button', { name: 'related to', exact: true })).toBeVisible();
+  await expect(picker.locator('.selection-release')).toContainText('pinned');
+  expect((await picker.locator('.selection-release').innerText()).trim()).not.toMatch(/^·/);
   await picker.getByRole('button', { name: 'Select', exact: true }).click();
   await expect(picker.locator('.constraint-table tbody tr')).toHaveCount(1);
   await picker.getByRole('button', { name: 'related to', exact: true }).click();

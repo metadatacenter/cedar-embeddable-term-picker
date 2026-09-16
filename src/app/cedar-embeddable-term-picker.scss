@@ -1154,3 +1154,9 @@ mark {
   padding: 8px 14px;
   border-bottom: 1px solid var(--cetp-color-border);
 }
+
+.selection-release > .release-part + .release-part::before {
+  content: ' · ';
+  white-space: pre;
+  font-style: normal;
+}

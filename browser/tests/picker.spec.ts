@@ -414,7 +414,7 @@ test('selected release details stay together on a separate line in the embedded 
     expect(Math.abs(line!.x - heading!.x)).toBeLessThan(1);
   }
   expect(Math.abs(authority!.x - heading!.x)).toBeLessThan(1);
-  const version = await release.locator('.meta').last().boundingBox();
+  const version = await release.locator('em.release-part').boundingBox();
   expect(Math.abs(authority!.y - version!.y)).toBeLessThan(2);
   expect(version!.x - (authority!.x + authority!.width)).toBeLessThan(12);
   const term = page.locator('cedar-embeddable-term-picker .child').first();
