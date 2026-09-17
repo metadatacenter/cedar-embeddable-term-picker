@@ -9,6 +9,12 @@
  * Baseline on 2026-08-29: 395,685 raw and 201,618 gzip-9 bytes, at Angular 22.
  * The limits leave headroom deliberately. Raising one is a decision to be taken
  * on evidence and recorded here, not a step in making a build pass.
+ *
+ * `angular.json`'s `initial` budget gates the same bytes: Angular sums main.js and
+ * polyfills.js, which is exactly what make-bundle.mjs concatenates. It therefore carries
+ * RAW_LIMIT below as its `maximumError` and no warning band, so the two cannot disagree
+ * about the same artifact. Move both together, or neither. Angular cannot gate the gzip
+ * figure, which stays this script's alone.
  */
 import { gzipSync } from 'node:zlib';
 import { readFileSync } from 'node:fs';
