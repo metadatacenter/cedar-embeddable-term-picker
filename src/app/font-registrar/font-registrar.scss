@@ -1,5 +1,7 @@
 // Font faces only, and deliberately no selectors: this stylesheet is not
 // encapsulated, so anything with a selector would reach the host page.
-@use '../../styles-Roboto-300';
-@use '../../styles-Roboto-400';
-@use '../../styles-Roboto-500';
+//
+// The faces come from the shared design tokens, as the designer's do. Three local copies
+// stood here and had already drifted from them, and subsetting the weights is one decision
+// for every component rather than one per repository.
+@use '@org.metadatacenter/cedar-design-tokens/fonts';

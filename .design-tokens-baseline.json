@@ -127,13 +127,6 @@
       "value": "0.1rem 0.5rem 0.2rem 1.6rem",
       "count": 1
     },
-    "23bae3c7ef8869d26e68": {
-      "file": "src/styles-Roboto-500.scss",
-      "rule": "typography",
-      "property": "font-family",
-      "value": "'CEE Roboto'",
-      "count": 7
-    },
     "25ef285c777211cb1f9a": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "spacing",
@@ -169,13 +162,6 @@
       "value": "8px 14px",
       "count": 1
     },
-    "35e76fc7a466569876fe": {
-      "file": "src/styles-Roboto-400.scss",
-      "rule": "typography",
-      "property": "font-weight",
-      "value": "400",
-      "count": 7
-    },
     "390936e9f622de250c79": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "spacing",
@@ -196,13 +182,6 @@
       "property": "gap",
       "value": "2px 8px",
       "count": 1
-    },
-    "4a30a8d6986698be74bd": {
-      "file": "src/styles-Roboto-300.scss",
-      "rule": "typography",
-      "property": "font-weight",
-      "value": "300",
-      "count": 7
     },
     "4c2396241f7268d785ba": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
@@ -358,13 +337,6 @@
       "value": "0.4rem 0.6rem",
       "count": 1
     },
-    "7bbcf00761e8fdd14b76": {
-      "file": "src/styles-Roboto-400.scss",
-      "rule": "typography",
-      "property": "font-family",
-      "value": "'CEE Roboto'",
-      "count": 7
-    },
     "83992c809d6398e30c2d": {
       "file": "src/app/shared/_scrolls.scss",
       "rule": "geometry",
@@ -406,13 +378,6 @@
       "property": "gap",
       "value": "0.75rem",
       "count": 3
-    },
-    "88640fd79c2edabadfcc": {
-      "file": "src/styles-Roboto-500.scss",
-      "rule": "typography",
-      "property": "font-weight",
-      "value": "500",
-      "count": 7
     },
     "88d1aba8217809e5bc4f": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
@@ -644,13 +609,6 @@
       "property": "gap",
       "value": "6px",
       "count": 1
-    },
-    "beb4754b26f07d6f477f": {
-      "file": "src/styles-Roboto-300.scss",
-      "rule": "typography",
-      "property": "font-family",
-      "value": "'CEE Roboto'",
-      "count": 7
     },
     "bf7c55e53f92f7366af2": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
