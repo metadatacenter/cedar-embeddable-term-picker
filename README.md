@@ -196,7 +196,10 @@ passed at publish time: a version carrying `-dev.` names the CEDAR Nexus under
 `@org.metadatacenter`, anything else is a release for public npmjs, unscoped. A
 snapshot therefore cannot reach npmjs by forgetting a flag.
 
-Nothing has been published on either channel yet.
+Development snapshots are published to CEDAR Nexus as
+`@org.metadatacenter/cedar-embeddable-term-picker`; the split Designer host pins
+an exact version. There is no public npmjs release yet. Browser tests accept
+`PORT` to avoid colliding with a running local demo.
 
 ## Browser Support
 

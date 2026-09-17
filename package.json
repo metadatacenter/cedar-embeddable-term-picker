@@ -1,7 +1,7 @@
 {
   "name": "cedar-embeddable-term-picker",
   "description": "CEDAR Embeddable Term Picker (CETP), a reusable Web Component for choosing what constrains a CEDAR field.",
-  "version": "0.1.0-dev.20260829.7cff9fb3",
+  "version": "0.1.0-dev.20260915.0ec47d9c",
   "engines": {
     "node": "^24.15.0"
   },

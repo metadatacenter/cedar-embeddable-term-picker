@@ -13,6 +13,8 @@ import { defineConfig, devices } from '@playwright/test';
  * suite is hermetic and says what the component does with an answer rather than whether the server
  * gave a good one.
  */
+const port = Number(process.env.PORT ?? 4599);
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -20,13 +22,13 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'line' : 'list',
   use: {
-    baseURL: 'http://localhost:4599',
+    baseURL: `http://localhost:${port}`,
     trace: 'on-first-retry',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'node serve.mjs',
-    url: 'http://localhost:4599',
+    url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
   },
