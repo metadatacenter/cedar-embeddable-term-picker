@@ -139,7 +139,7 @@
     height: 1.5em;
 
     code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
       color: var(--cetp-color-muted);
     }
 
@@ -177,7 +177,7 @@
 
   strong {
     color: var(--cetp-color-heading);
-    font-weight: 500;
+    font-weight: var(--cedar-font-weight-medium, 500);
   }
 }
 
@@ -342,7 +342,7 @@ button {
 
   &.on {
     background: var(--cetp-color-tint);
-    font-weight: 500;
+    font-weight: var(--cedar-font-weight-medium, 500);
   }
 
   .meta.inline {
@@ -370,7 +370,7 @@ button {
   &.active {
     color: var(--cetp-color-heading);
     border-bottom-color: var(--cetp-color-primary);
-    font-weight: 500;
+    font-weight: var(--cedar-font-weight-medium, 500);
   }
 }
 
@@ -533,7 +533,7 @@ button {
 
   &.self > .term {
     color: var(--cetp-color-heading);
-    font-weight: 500;
+    font-weight: var(--cedar-font-weight-medium, 500);
   }
 
   // The term the bar is describing. The tint alone: a bar down its edge is the mark a row and a
@@ -618,7 +618,7 @@ button {
 
   // The IRI is the value a template records, so it is shown whole and set apart from the prose.
   .iri {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
     color: var(--cetp-color-heading);
   }
 }
@@ -704,7 +704,7 @@ button {
 
   .hash {
     color: var(--cetp-color-muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
   }
 }
 
@@ -736,7 +736,7 @@ button {
 
 .title {
   font-size: var(--cetp-font-size-lead);
-  font-weight: 500;
+  font-weight: var(--cedar-font-weight-medium, 500);
 
   &.obsolete {
     color: var(--cetp-color-muted);
@@ -958,7 +958,7 @@ mark {
     color: var(--cetp-color-heading);
     border-radius: 3px;
     padding: 0 0.25rem;
-    font-weight: 500;
+    font-weight: var(--cedar-font-weight-medium, 500);
   }
 }
 
@@ -1159,4 +1159,8 @@ mark {
   content: ' · ';
   white-space: pre;
   font-style: normal;
+}
+
+.phrase strong {
+  font-weight: var(--cedar-font-weight-medium, 500);
 }

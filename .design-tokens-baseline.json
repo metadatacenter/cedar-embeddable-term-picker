@@ -134,25 +134,11 @@
       "value": "0.2rem 0.6rem",
       "count": 1
     },
-    "280c501b377f679e8336": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "typography",
-      "property": "font-weight",
-      "value": "500",
-      "count": 6
-    },
     "2a5e64cadd14f0a757c5": {
       "file": "src/app/search/constraint-table.scss",
       "rule": "spacing",
       "property": "margin",
       "value": "4px 0 10px",
-      "count": 1
-    },
-    "2e290cdfedaccdfb9b21": {
-      "file": "src/app/search/constraint-table.scss",
-      "rule": "typography",
-      "property": "font-weight",
-      "value": "400",
       "count": 1
     },
     "2eb46f9f4072c3702b08": {
@@ -344,13 +330,6 @@
       "value": "6px",
       "count": 1
     },
-    "84c3a208e18e88a80f1e": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "typography",
-      "property": "font-family",
-      "value": "ui-monospace, SFMono-Regular, Menlo, monospace",
-      "count": 3
-    },
     "8606a63b42bc9dc2addf": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "spacing",
@@ -364,13 +343,6 @@
       "property": "padding",
       "value": "0.05rem 0.4rem",
       "count": 1
-    },
-    "8737b782d3317bdfc05a": {
-      "file": "src/app/search/constraint-table.scss",
-      "rule": "typography",
-      "property": "font-weight",
-      "value": "500",
-      "count": 3
     },
     "88597f495f937796436f": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
@@ -650,13 +622,6 @@
       "rule": "color",
       "property": "background",
       "value": "white",
-      "count": 1
-    },
-    "c5c4e56767b8316a7291": {
-      "file": "src/app/search/constraint-table.scss",
-      "rule": "typography",
-      "property": "font-weight",
-      "value": "600",
       "count": 1
     },
     "c7a72e1c65269ce6cb66": {
