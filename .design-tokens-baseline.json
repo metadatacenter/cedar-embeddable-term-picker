@@ -29,13 +29,6 @@
       "value": "0.35rem",
       "count": 2
     },
-    "0aa3171a2c596e53ea65": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "geometry",
-      "property": "border-radius",
-      "value": "3px",
-      "count": 12
-    },
     "0dfbcff0e66b113dbc87": {
       "file": "src/app/search/constraint-table.scss",
       "rule": "spacing",
@@ -204,13 +197,6 @@
       "value": "1rem 0.2rem",
       "count": 1
     },
-    "546c8aada7e3ea664d94": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "typography",
-      "property": "letter-spacing",
-      "value": "0.04em",
-      "count": 1
-    },
     "54bd59dbfad767ff8517": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "spacing",
@@ -259,13 +245,6 @@
       "property": "padding",
       "value": "0.25rem 0.75rem",
       "count": 1
-    },
-    "6b2b6f07c43f3971b0c7": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "geometry",
-      "property": "border-radius",
-      "value": "2px",
-      "count": 3
     },
     "6b4c97094c33e7844342": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
@@ -428,13 +407,6 @@
       "value": "0 0.45rem",
       "count": 1
     },
-    "9f1e6b966e2598603515": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "geometry",
-      "property": "height",
-      "value": "28px",
-      "count": 1
-    },
     "a0d14e217d8c9ba748be": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "spacing",
@@ -489,13 +461,6 @@
       "rule": "spacing",
       "property": "margin-bottom",
       "value": "6px",
-      "count": 1
-    },
-    "b0ce03645fe104cc2f6a": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "color",
-      "property": "background",
-      "value": "#fff3cd",
       "count": 1
     },
     "b10a755544943789fb6e": {
@@ -652,13 +617,6 @@
       "value": "0 0.25rem",
       "count": 1
     },
-    "d80a202ae7c83c6249d7": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "spacing",
-      "property": "padding",
-      "value": "0.5rem",
-      "count": 1
-    },
     "d9f8d2a00c0ddcee4d1f": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "spacing",
@@ -701,25 +659,11 @@
       "value": "0.25rem 0.55rem",
       "count": 1
     },
-    "df155d9225ebe1ac4068": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "geometry",
-      "property": "border-radius",
-      "value": "4px",
-      "count": 2
-    },
     "e0319a65565f0fb68b7e": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "spacing",
       "property": "padding",
       "value": "0.35rem",
-      "count": 1
-    },
-    "e3f1b6a866508fffc31f": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "spacing",
-      "property": "padding",
-      "value": "0.75rem",
       "count": 1
     },
     "e51f3d3366cf924d879b": {
@@ -791,13 +735,6 @@
       "property": "padding",
       "value": "0.35rem 0.55rem",
       "count": 1
-    },
-    "fdc2edb7a904f6bbc26e": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "color",
-      "property": "background",
-      "value": "#fff",
-      "count": 3
     }
   },
   "exceptions": {}

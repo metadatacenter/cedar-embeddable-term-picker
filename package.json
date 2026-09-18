@@ -24,7 +24,8 @@
     "package:npm": "npm run types:public && node scripts/stage-npm-package.mjs && npm run check:npm-package",
     "check:npm-package": "node scripts/check-npm-package.mjs",
     "test:packaging": "node --test scripts/npm-package.test.mjs",
-    "dist": "npm run build:production && npm run bundle && npm run check:size && npm run package:npm"
+    "dist": "npm run build:production && npm run bundle && npm run check:size && npm run package:npm",
+    "test:visual": "bash browser/run-visual.sh"
   },
   "dependencies": {
     "@angular/common": "^22.1.6",
