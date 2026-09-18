@@ -1,3 +1,4 @@
+@use '@org.metadatacenter/cedar-design-tokens/controls';
 @use './shared/scrolls';
 // CEDAR's design values, from the package that holds them for every component that
 // draws CEDAR. `node_modules` is on the Sass load path for this — angular.json says
@@ -197,8 +198,7 @@ input {
   min-width: 0;
 
   &:focus {
-    outline: 2px solid var(--cetp-color-primary);
-    outline-offset: 1px;
+    @include controls.focus-ring(var(--cetp-color-primary));
   }
 }
 
@@ -208,8 +208,7 @@ input {
 button:focus-visible,
 [tabindex]:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--cetp-color-primary);
-  outline-offset: 1px;
+  @include controls.focus-ring(var(--cetp-color-primary));
 }
 
 button {

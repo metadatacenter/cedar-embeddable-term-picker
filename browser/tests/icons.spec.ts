@@ -26,3 +26,16 @@ test('picker controls use decorative SVGs and leave readable space for result la
     }
   }
 });
+
+
+test('keyboard focus uses shared geometry and preserves the host color', async ({ page }) => {
+  await openPicker(page);
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.evaluate(element => (element as HTMLElement).style.setProperty('--cetp-color-primary', '#663399'));
+  const close = picker.getByRole('button', { name: 'Close without choosing' });
+  await page.keyboard.press('Tab');
+  await close.focus();
+  await expect(close).toHaveCSS('outline-width', '2px');
+  await expect(close).toHaveCSS('outline-offset', '2px');
+  await expect(close).toHaveCSS('outline-color', 'rgb(102, 51, 153)');
+});
