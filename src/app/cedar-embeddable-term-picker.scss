@@ -544,7 +544,7 @@ button {
   }
 
   > .twist {
-    flex: 0 0 1.1em;
+    flex: 0 0 tokens.$icon-size-small;
     background: transparent;
     border: none;
     border-radius: 2px;
@@ -725,7 +725,7 @@ button {
 
 .twist {
   color: var(--cetp-color-muted);
-  width: 0.8em;
+  width: tokens.$icon-size-small;
 }
 
 .grow {
@@ -907,8 +907,7 @@ mark {
   font-size: var(--cetp-font-size-small);
   flex: 0 0 auto;
   padding-right: 0.35rem;
-  // One glyph turned, rather than two swapped: ▸ and ▾ are a pixel apart in width, and the column
-  // stepped sideways as a row opened.
+  // Rotate the same square shared icon without shifting the text column.
   display: inline-block;
   transition: transform 0.12s ease;
 

@@ -1,3 +1,4 @@
+import { Icon } from './icon';
 import { hierarchyRows } from './search/hierarchy-rows';
 import { ConstraintTableComponent } from './search/constraint-table';
 import {
@@ -133,7 +134,7 @@ export interface LabelGroup {
 
 @Component({
   selector: CETP_TAG,
-  imports: [FontRegistrar, NgTemplateOutlet, PropertyDetailComponent, ConstraintTableComponent],
+  imports: [Icon, FontRegistrar, NgTemplateOutlet, PropertyDetailComponent, ConstraintTableComponent],
   providers: [TerminologyClient],
   templateUrl: './cedar-embeddable-term-picker.html',
   styleUrl: './cedar-embeddable-term-picker.scss',

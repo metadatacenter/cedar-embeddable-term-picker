@@ -48,7 +48,9 @@
     [title]="'Show all ' + count + ' releases of ' + acronym"
     (click)="openHistory(acronym); $event.stopPropagation()"
   >
-    of {{ count }}<span class="caret">{{ isHistoryOpen(acronym) ? '▴' : '▾' }}</span>
+    of {{ count }}<span class="caret"
+      ><cetp-icon size="small" [name]="isHistoryOpen(acronym) ? 'chevron-up' : 'chevron-down'"
+    /></span>
   </button>
   } @else {
   <span class="of"></span>
@@ -62,7 +64,9 @@
     the row's own state rather than acting on its own, because the row is already the control — a
     second button here would be a second way to do one thing.
   -->
-  <span class="opener" [class.open]="isMarked(hit)" aria-hidden="true">▸</span>
+  <span class="opener" [class.open]="isMarked(hit)" aria-hidden="true"
+    ><cetp-icon size="small" name="chevron-right"
+  /></span>
 </ng-template>
 
 <ng-template #detail let-hit>
@@ -107,7 +111,7 @@
                 [title]="(row.open ? 'Collapse ' : 'Expand ') + row.label"
                 (click)="toggleNode(row.acronym, row.iri)"
               >
-                {{ row.open ? '▾' : '▸' }}
+                <cetp-icon size="small" [name]="row.open ? 'chevron-down' : 'chevron-right'" />
               </button>
               } @else {
               <span class="twist"></span>
@@ -315,8 +319,8 @@
         </span>
       </p>
       <p class="selection-release">
-        @if (authorityOf(chosen.acronym); as from) { <span class="release-part meta inline dim from">{{ from }}</span> } @if
-        (chosen.pinned) { @if (chosen.version) {
+        @if (authorityOf(chosen.acronym); as from) { <span class="release-part meta inline dim from">{{ from }}</span> }
+        @if (chosen.pinned) { @if (chosen.version) {
         <span class="release-part meta inline">{{ elide(chosen.version, 20, 8) }}</span> } @if (chosen.effectiveDate &&
         chosen.effectiveDate !== chosen.version) {
         <span class="release-part meta inline">{{ chosen.effectiveDate }}</span> } @if (!chosen.version &&
@@ -377,7 +381,7 @@
       aria-label="Close without choosing"
       (click)="onCancel()"
     >
-      ✕
+      <cetp-icon name="close" />
     </button>
     }
   </header>
@@ -395,7 +399,7 @@
     <span class="meta inline">Searching only</span>
     @for (acronym of narrowedTo(); track acronym) {
     <button type="button" class="chip removable" (click)="toggleNarrowing(acronym)">
-      {{ acronym }} <span class="x">×</span>
+      {{ acronym }} <span class="x"><cetp-icon name="close" /></span>
     </button>
     }
     <!--
@@ -515,7 +519,9 @@
         [attr.aria-expanded]="expanded() === group.label"
         (click)="toggle(group.label, group.hits)"
       >
-        <span class="twist">{{ expanded() === group.label ? '▾' : '▸' }}</span>
+        <span class="twist"
+          ><cetp-icon size="small" [name]="expanded() === group.label ? 'chevron-down' : 'chevron-right'"
+        /></span>
         <span class="grow ellipsis">
           <span class="title" [class.obsolete]="group.hits[0].obsolete" [title]="group.label"
             >{{ elide(group.label) }}</span
@@ -581,7 +587,9 @@
     } } } @case ('branch') { @for (group of branchGroups(); track group.label) {
     <div class="row group">
       <button type="button" class="rowhead oneline" (click)="toggle(group.label, group.hits)">
-        <span class="twist">{{ expanded() === group.label ? '▾' : '▸' }}</span>
+        <span class="twist"
+          ><cetp-icon size="small" [name]="expanded() === group.label ? 'chevron-down' : 'chevron-right'"
+        /></span>
         <span class="grow ellipsis">
           <span class="title" [title]="group.label">{{ elide(group.label) }}</span>
         </span>
@@ -673,7 +681,9 @@
         [attr.aria-expanded]="expanded() === group.label"
         (click)="toggle(group.label, group.hits)"
       >
-        <span class="twist">{{ expanded() === group.label ? '▾' : '▸' }}</span>
+        <span class="twist"
+          ><cetp-icon size="small" [name]="expanded() === group.label ? 'chevron-down' : 'chevron-right'"
+        /></span>
         <span class="grow ellipsis title">{{ group.label }}</span>
         <span class="meta inline"
           >in {{ group.hits.length }} {{ group.hits.length === 1 ? 'ontology' : 'ontologies' }}</span
