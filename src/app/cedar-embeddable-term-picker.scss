@@ -1,3 +1,4 @@
+@use '@org.metadatacenter/cedar-design-tokens/motion';
 @use '@org.metadatacenter/cedar-design-tokens/controls';
 @use './shared/scrolls';
 // CEDAR's design values, from the package that holds them for every component that
@@ -908,7 +909,7 @@ mark {
   padding-right: 0.35rem;
   // Rotate the same square shared icon without shifting the text column.
   display: inline-block;
-  transition: transform 0.12s ease;
+  transition: transform tokens.$motion-duration-fast tokens.$motion-ease-standard;
 
   &.open {
     transform: rotate(90deg);
@@ -1162,3 +1163,5 @@ mark {
 .phrase strong {
   font-weight: var(--cedar-font-weight-medium, 500);
 }
+
+@include motion.reduced-motion;
