@@ -25,7 +25,7 @@
   --cetp-color-muted: #{tokens.$text-muted};
   --cetp-color-surface: #{tokens.$surface-panel};
   --cetp-color-border: #{tokens.$border-rule};
-  --cetp-color-warning: #{tokens.$color-warning};
+  --cetp-color-warning: #{tokens.$status-warning-text};
   --cetp-font-family: #{tokens.$font-family};
   --cetp-font-size: #{tokens.$font-size};
 
@@ -38,7 +38,7 @@
   // Derived from the brand, so a host that re-points the primary colour gets a tint that matches it
   // rather than one left behind. A chip and a pinned version share this; the panel behind expanded
   // rows is the neutral surface, and the two have to stay distinguishable.
-  --cetp-color-tint: color-mix(in srgb, var(--cetp-color-primary) 12%, white);
+  --cetp-color-tint: color-mix(in srgb, var(--cetp-color-primary) #{tokens.$selection-tint-percentage}, #{tokens.$surface-raised});
 
   display: block;
   box-sizing: border-box;

@@ -309,13 +309,6 @@
       "value": "0.35rem 0.2rem",
       "count": 1
     },
-    "79fbf8ea895c65df865e": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "color",
-      "property": "--cetp-color-tint",
-      "value": "color-mix(in srgb, var(--cetp-color-primary) 12%, white)",
-      "count": 1
-    },
     "7a00616d60bc67e6d88c": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "spacing",
