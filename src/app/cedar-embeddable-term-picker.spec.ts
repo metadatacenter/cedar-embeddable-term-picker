@@ -1,0 +1,731 @@
+import { vi } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { CedarEmbeddableTermPicker } from './cedar-embeddable-term-picker';
+import { TAB_ORDER } from './search/search-types';
+import { TerminologyClient } from './search/terminology-client';
+import { SearchQuery, SearchResponse } from './search/search-types';
+
+/** A client that answers from a fixture, so these specs need no server. */
+class StubClient {
+  lastQuery: SearchQuery | null = null;
+  /** Recorded rather than ignored: the picker sets this from its input on every change. */
+  baseUrl: string | null = null;
+
+  setBaseUrl(baseUrl: string | null): void {
+    this.baseUrl = baseUrl;
+  }
+
+  response: SearchResponse = {
+    query: 'melanoma',
+    sources: [
+      {
+        sourceSystem: 'bioportal',
+        sourceAcronym: 'NCIT',
+        sourceName: 'National Cancer Institute Thesaurus',
+        served: 'local',
+        pinnable: true,
+        version: { id: 'hash', declaredVersion: '26.07d' },
+      },
+      { sourceSystem: 'bioportal', sourceAcronym: 'DOID', served: 'local', pinnable: true },
+      {
+        sourceSystem: 'agroportal',
+        sourceAcronym: 'GONE',
+        served: 'unavailable',
+        pinnable: false,
+        reason: 'sourceUnknown',
+      },
+    ],
+    results: {
+      class: {
+        totalCount: 5439,
+        countCapped: false,
+        distinctLabelCount: 2552,
+        distinctLabelCountCapped: false,
+        page: 1,
+        pageSize: 25,
+        collection: [
+          {
+            type: 'class',
+            sourceSystem: 'bioportal',
+            sourceAcronym: 'NCIT',
+            termIri: 'http://ncit/Melanoma',
+            termType: 'class',
+            termLabel: 'Melanoma',
+            obsolete: false,
+            hasChildren: true,
+            descendantCount: 321,
+          },
+          {
+            type: 'class',
+            sourceSystem: 'bioportal',
+            sourceAcronym: 'DOID',
+            termIri: 'http://doid/melanoma',
+            termType: 'class',
+            termLabel: 'melanoma',
+            obsolete: false,
+            hasChildren: true,
+            descendantCount: 31,
+          },
+        ],
+      },
+    },
+  };
+
+  /** Set to hold the next answer open, so a test can drive an interleaving the clock cannot. */
+  hold: { promise: Promise<void>; release: () => void } | null = null;
+
+  /** Holds every answer from now until the returned function is called. */
+  holdAnswers(): () => void {
+    let release!: () => void;
+    const promise = new Promise<void>((resolve) => (release = resolve));
+    this.hold = { promise, release };
+    return () => {
+      this.hold = null;
+      release();
+    };
+  }
+
+  async search(query: SearchQuery, signal?: AbortSignal): Promise<SearchResponse> {
+    this.lastQuery = query;
+    if (this.hold) {
+      // A held answer honors its abort signal the way fetch does, so a spec can drive the
+      // interleaving where a request dies while it is still in the air.
+      await Promise.race([
+        this.hold.promise,
+        new Promise<never>((_resolve, reject) => {
+          const abort = () => reject(new DOMException('The user aborted a request.', 'AbortError'));
+          if (signal?.aborted) {
+            abort();
+          } else {
+            signal?.addEventListener('abort', abort, { once: true });
+          }
+        }),
+      ]);
+    }
+    return this.response;
+  }
+}
+
+describe('CedarEmbeddableTermPicker', () => {
+  let client: StubClient;
+
+  beforeEach(() => {
+    client = new StubClient();
+    TestBed.configureTestingModule({}).overrideComponent(CedarEmbeddableTermPicker, {
+      set: { providers: [{ provide: TerminologyClient, useValue: client }] },
+    });
+  });
+
+  function shadow(fixture: { nativeElement: { shadowRoot: ShadowRoot } }): ShadowRoot {
+    return fixture.nativeElement.shadowRoot;
+  }
+
+  async function settle(): Promise<void> {
+    // The search is debounced, so a spec has to wait the debounce out rather than the microtask.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+
+  it('offers only terms and searches the fixed source when collecting a default', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('selectionMode', 'term');
+    fixture.componentRef.setInput('sources', [{ sourceAcronym: 'NCIT' }]);
+    fixture.componentRef.setInput('query', 'me');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+    expect(shadow(fixture).querySelectorAll('.tab')).toHaveLength(1);
+    expect(client.lastQuery?.types).toEqual(['class']);
+    expect(client.lastQuery?.sources).toEqual([{ sourceAcronym: 'NCIT' }]);
+    expect(shadow(fixture).querySelector('.narrowing')?.textContent).toContain('NCIT');
+  });
+
+  it('refuses vocabulary selections in term mode', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('selectionMode', 'term');
+    await fixture.whenStable();
+    const selected = vi.fn();
+    fixture.componentInstance.selected.subscribe(selected);
+    // Exercise the final guard, including a stale row from a previous selection mode.
+    const picker = fixture.componentInstance as unknown as { choose(hit: unknown): void };
+    picker.choose({ type: 'ontology', sourceAcronym: 'NCIT' });
+    expect(selected).not.toHaveBeenCalled();
+    picker.choose({ type: 'class', sourceAcronym: 'NCIT', termIri: 'urn:term', termLabel: 'Term' });
+    expect(selected).toHaveBeenCalledOnce();
+  });
+
+  it('names the five kinds a query answers', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    await fixture.whenStable();
+    const tabs = [...shadow(fixture).querySelectorAll('.tab')].map(
+      (tab) => (tab.textContent ?? '').trim().split(/\s+/)[0],
+    );
+    expect(tabs).toEqual(TAB_ORDER.map((kind) => (kind === 'valueSet' ? 'value' : tabsLabel(kind))));
+  });
+
+  it('collapses identical labels into one row, counting the ontologies that offer it', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    const rows = [...shadow(fixture).querySelectorAll('.rowhead')];
+    expect(rows.length).toBe(1);
+    expect(rows[0].textContent).toContain('2 ontologies');
+  });
+
+  it('shows the collapsed count on the terms tab, not the hit count', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    const terms = shadow(fixture).querySelector('.tab');
+    expect(terms?.textContent).toContain('2,552');
+    expect(terms?.textContent).not.toContain('5,439');
+  });
+
+  it('reports a source it could not search rather than letting it look like no matches', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    const notice = shadow(fixture).querySelector('.notice');
+    expect(notice?.textContent).toContain('GONE');
+    expect(notice?.textContent).toContain('sourceUnknown');
+  });
+
+  it('offers the release count only where there is more than one release', async () => {
+    client.response = {
+      ...client.response,
+      sources: [
+        { ...client.response.sources[0], versionCount: 3 },
+        { ...client.response.sources[1], versionCount: 1 },
+        client.response.sources[2],
+      ],
+      results: {
+        branch: {
+          totalCount: 2,
+          countCapped: false,
+          page: 1,
+          pageSize: 25,
+          collection: [
+            {
+              type: 'branch',
+              sourceSystem: 'bioportal',
+              sourceAcronym: 'NCIT',
+              termBaseIri: 'http://ncit/Melanoma',
+              termBaseLabel: 'Melanoma',
+              descendantCount: 321,
+              obsolete: false,
+            },
+            {
+              type: 'branch',
+              sourceSystem: 'bioportal',
+              sourceAcronym: 'DOID',
+              termBaseIri: 'http://doid/melanoma',
+              termBaseLabel: 'melanoma',
+              descendantCount: 31,
+              obsolete: false,
+            },
+          ],
+        },
+      },
+    };
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    shadow(fixture).querySelectorAll<HTMLButtonElement>('.tab')[1].click();
+    await fixture.whenStable();
+
+    // Both branches carry the same label, so they fold into one row and the ontologies sit inside it.
+    const rows = shadow(fixture).querySelectorAll('.rowhead');
+    expect(rows.length).toBe(1);
+    expect(rows[0].textContent).toContain('2 ontologies');
+
+    rows[0].dispatchEvent(new Event('click'));
+    await fixture.whenStable();
+
+    // One release is nothing to open, so that row shows its version and no way in.
+    expect(shadow(fixture).querySelectorAll('button.of').length).toBe(1);
+    expect(shadow(fixture).querySelectorAll('.version').length).toBe(2);
+  });
+
+  it('emits no version while the author stays on latest', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('selectionMode', 'constraint');
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    let emitted: unknown = null;
+    fixture.componentInstance.selected.subscribe((constraint) => (emitted = constraint));
+    shadow(fixture).querySelector<HTMLButtonElement>('.rowhead')?.click();
+    await fixture.whenStable();
+    // A row is chosen by confirming it, not by a single click, so this is the double click.
+    shadow(fixture)
+      .querySelector<HTMLElement>('.child.pick')
+      ?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+    // Freeze-on-publish resolves an unpinned constraint at publish time, so latest keeps meaning
+    // latest until then. Writing today's version instead would silently pin it.
+    expect(emitted).not.toBeNull();
+    expect((emitted as { version?: unknown }).version).toBeUndefined();
+  });
+
+  it('appends the next page of one tab, and keeps the sources it learns', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    // Page two names an ontology page one never did; a row reads its name from the envelope, so the
+    // blocks have to accumulate rather than be replaced.
+    client.response = {
+      ...client.response,
+      sources: [
+        {
+          sourceSystem: 'bioportal',
+          sourceAcronym: 'LATER',
+          sourceName: 'An Ontology From Page Two',
+          served: 'local',
+          pinnable: true,
+        },
+      ],
+      results: {
+        class: {
+          totalCount: 5439,
+          countCapped: false,
+          distinctLabelCount: 2552,
+          distinctLabelCountCapped: false,
+          page: 2,
+          pageSize: 25,
+          collection: [
+            {
+              type: 'class',
+              sourceSystem: 'bioportal',
+              sourceAcronym: 'LATER',
+              termIri: 'http://later/melanoma',
+              termType: 'class',
+              termLabel: 'Intraocular melanoma',
+              obsolete: false,
+              hasChildren: false,
+              descendantCount: 0,
+            },
+          ],
+        },
+      },
+    };
+
+    // Scrolling the list to its end is what asks for more, so this is that scroll.
+    const list = shadow(fixture).querySelector<HTMLElement>('.results')!;
+    Object.defineProperty(list, 'scrollHeight', { value: 1000, configurable: true });
+    Object.defineProperty(list, 'clientHeight', { value: 400, configurable: true });
+    list.scrollTop = 600;
+    list.dispatchEvent(new Event('scroll'));
+    await fixture.whenStable();
+    await fixture.whenStable();
+
+    // Only the terms were asked for.
+    expect(client.lastQuery?.types).toEqual(['class']);
+    expect(client.lastQuery?.page).toBe(2);
+
+    // The page arrived under the rows already there rather than replacing them.
+    const rows = shadow(fixture).querySelectorAll('.rowhead');
+    expect(rows.length).toBeGreaterThan(1);
+    expect(rows[rows.length - 1].textContent).toContain('Intraocular melanoma');
+
+    shadow(fixture).querySelectorAll<HTMLButtonElement>('.rowhead')[rows.length - 1].click();
+    await fixture.whenStable();
+    expect(shadow(fixture).querySelector('.child')?.textContent).toContain('An Ontology From Page Two');
+  });
+
+  it('narrows every tab at once, and re-asks from page one', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    fixture.componentInstance['toggleNarrowing']('NCIT');
+    await settle();
+    await fixture.whenStable();
+
+    // One filter, carried on the request rather than applied to the rows that came back.
+    expect(client.lastQuery?.sources).toEqual([{ sourceAcronym: 'NCIT' }]);
+    expect(client.lastQuery?.page).toBeUndefined();
+    expect(shadow(fixture).querySelector('.narrowing')?.textContent).toContain('NCIT');
+
+    fixture.componentInstance['clearNarrowing']();
+    await settle();
+    await fixture.whenStable();
+    expect(client.lastQuery?.sources).toBeUndefined();
+    // The bar stays — it carries the way back in — but the chips go with the filter.
+    expect(shadow(fixture).querySelectorAll('.chip.removable').length).toBe(0);
+    expect(shadow(fixture).querySelector('.narrowing')?.textContent).toContain('every ontology');
+  });
+
+  it('does not search the whole corpus for the characters typed on the way to a word', async () => {
+    // The first few characters match most of the corpus, so they are the expensive ones and the
+    // least likely to be what the author meant. Nothing is asked until the query is long enough.
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'ce');
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await fixture.whenStable();
+
+    expect(client.lastQuery).toBeNull();
+    expect(shadow(fixture).querySelector('.notice')?.textContent).toContain('at least 3 characters');
+  });
+
+  it('searches a short query once it is narrowed to a source', async () => {
+    // A scoped search reads one ontology, so the cost the floor exists for is not there. An author
+    // hunting a two-letter code narrows first and types it freely.
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    fixture.componentInstance['toggleNarrowing']('NCIT');
+    fixture.componentRef.setInput('query', 'ce');
+    await settle();
+    await fixture.whenStable();
+
+    expect(client.lastQuery?.query).toBe('ce');
+    expect(client.lastQuery?.sources).toEqual([{ sourceAcronym: 'NCIT' }]);
+  });
+
+  it('does not let a page fetched for an older query land on a newer one', async () => {
+    // The stub answers instantly, so the interleaving this guards against cannot arise by timing.
+    // Drive it directly: ask for more, change the query underneath, and let the answer arrive.
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    const release = client.holdAnswers();
+    const pending = fixture.componentInstance['loadMore']('class');
+    // The author types on while page two is still in the air.
+    fixture.componentRef.setInput('query', 'carcinoma');
+    release();
+    await pending;
+    await fixture.whenStable();
+
+    // Page two was fetched for melanoma and the box now says carcinoma, so it must not be appended:
+    // the page counter is what the append advances, and the stub's fixed answer hides a row count.
+    expect(fixture.componentInstance['pageOf']('class')).toBe(1);
+  });
+
+  it("an aborted page fetch is not reported as the new query's failure", async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    const release = client.holdAnswers();
+    const pending = fixture.componentInstance['loadMore']('class');
+    // The author types on and the debounce elapses, so the new search aborts the page in the air.
+    fixture.componentRef.setInput('query', 'carcinoma');
+    await settle();
+    await pending;
+
+    // The rejection was the abort, not an error of the query on screen — and the new search set
+    // `searching` for itself, so the dead page must not blank it mid-search.
+    expect(fixture.componentInstance['error']()).toBeNull();
+    expect(fixture.componentInstance['searching']()).toBe(true);
+
+    release();
+    await fixture.whenStable();
+    expect(fixture.componentInstance['error']()).toBeNull();
+    expect(fixture.componentInstance['pageOf']('class')).toBe(1);
+  });
+
+  it('an aborted candidate load is swallowed rather than left to reject unhandled', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    const release = client.holdAnswers();
+    // Rejecting would make this await throw, which is exactly what an author's template handler
+    // cannot do anything with.
+    const pending = fixture.componentInstance['openNarrowing']();
+    fixture.componentRef.setInput('query', 'carcinoma');
+    await settle();
+    await pending;
+
+    release();
+    await fixture.whenStable();
+    expect(fixture.componentInstance['error']()).toBeNull();
+  });
+
+  it('tells the host when the author closes without choosing', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    await fixture.whenStable();
+    let cancelled = 0;
+    fixture.componentInstance.cancelled.subscribe(() => (cancelled += 1));
+    [...shadow(fixture).querySelectorAll<HTMLButtonElement>('button')]
+      .find((button) => button.textContent?.trim() === 'Cancel')
+      ?.click();
+    expect(cancelled).toBe(1);
+  });
+  it('assembles and applies a set while targeted changes preserve unrelated entries and actions', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    const action = {
+      action: 'delete',
+      termUri: 'urn:old',
+      sourceUri: 'urn:branch',
+      source: 'DOID',
+      type: 'OntologyClass' as const,
+    };
+    const seed = {
+      constraints: [
+        {
+          sourceType: 'ontology' as const,
+          ontologyId: 'DOID',
+          ontologyName: 'Disease',
+          uri: 'urn:doid',
+          version: { id: 'old' },
+        },
+      ],
+      actions: [action],
+    };
+    fixture.componentRef.setInput('selectionMode', 'constraints');
+    fixture.componentRef.setInput('constraintSet', seed);
+    await fixture.whenStable();
+    const emitted = vi.fn();
+    const single = vi.fn();
+    fixture.componentInstance.constraintsSelected.subscribe(emitted);
+    fixture.componentInstance.selected.subscribe(single);
+    const picker = fixture.componentInstance as unknown as {
+      choose(hit: unknown): void;
+      editConstraint(i: number): void;
+      removeConstraint(i: number): void;
+      moveConstraint(i: number, offset: number): void;
+      applyConstraints(): void;
+      draft(): typeof seed;
+    };
+    picker.choose({ type: 'ontology', sourceAcronym: 'NCIT', sourceSystem: 'bioportal' });
+    picker.choose({
+      type: 'branch',
+      sourceAcronym: 'NCIT',
+      sourceSystem: 'bioportal',
+      termBaseIri: 'urn:root',
+      termBaseLabel: 'Root',
+    });
+    expect(picker.draft().constraints).toHaveLength(3);
+    picker.moveConstraint(1, -1);
+    expect(picker.draft().constraints[1]).toEqual(seed.constraints[0]);
+    picker.moveConstraint(0, 1);
+    expect(picker.draft().constraints[0]).toEqual(seed.constraints[0]);
+    picker.editConstraint(1);
+    picker.choose({
+      type: 'valueSet',
+      sourceAcronym: 'VS',
+      sourceSystem: 'bioportal',
+      termBaseIri: 'urn:vs',
+      termBaseLabel: 'Set',
+    });
+    expect(picker.draft().constraints[0]).toEqual(seed.constraints[0]);
+    picker.moveConstraint(2, -1);
+    picker.removeConstraint(2);
+    expect(picker.draft().constraints).toHaveLength(2);
+    expect(picker.draft().actions).toEqual([action]);
+    expect(seed.constraints).toHaveLength(1);
+    expect(single).not.toHaveBeenCalled();
+    expect(emitted).not.toHaveBeenCalled();
+    picker.applyConstraints();
+    expect(emitted).toHaveBeenCalledWith(picker.draft());
+  });
+
+  it('authors exclusions and term positions separately from constraint order', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    const seed = {
+      constraints: [
+        {
+          sourceType: 'ontology-branch' as const,
+          sourceId: 'NCIT',
+          branchRootId: 'urn:root',
+          branchRootName: 'Root',
+          searchDepth: 0,
+        },
+      ],
+      actions: [],
+    };
+    fixture.componentRef.setInput('selectionMode', 'constraints');
+    fixture.componentRef.setInput('constraintSet', seed);
+    await fixture.whenStable();
+    const picker = fixture.componentInstance as unknown as {
+      choose(hit: unknown): void;
+      actionMode: { set(value: string): void };
+      actionPosition: { set(value: number): void };
+      updateAction(i: number, changes: object): void;
+      removeAction(i: number): void;
+      draft(): { constraints: unknown[]; actions: unknown[] };
+    };
+    const term = {
+      type: 'class',
+      sourceSystem: 'bioportal',
+      sourceAcronym: 'NCIT',
+      termIri: 'urn:term',
+      termLabel: 'Term',
+    };
+    picker.actionMode.set('delete');
+    picker.choose(term);
+    picker.actionMode.set('move');
+    picker.actionPosition.set(0);
+    picker.choose({ ...term, termIri: 'urn:another' });
+    expect(picker.draft().actions).toEqual([
+      { action: 'delete', termUri: 'urn:term', sourceUri: 'urn:root', source: 'NCIT', type: 'OntologyClass' },
+      { action: 'move', termUri: 'urn:another', sourceUri: 'urn:root', source: 'NCIT', type: 'OntologyClass', to: 0 },
+    ]);
+    picker.updateAction(1, { to: 4 });
+    picker.removeAction(0);
+    expect(picker.draft().actions).toEqual([
+      { action: 'move', termUri: 'urn:another', sourceUri: 'urn:root', source: 'NCIT', type: 'OntologyClass', to: 4 },
+    ]);
+    expect(picker.draft().constraints).toEqual(seed.constraints);
+  });
+
+  it('searches distinct version pins of the same vocabulary without conflating them', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    const sources = [
+      { sourceAcronym: 'NCIT', version: { id: 'old' } },
+      { sourceAcronym: 'NCIT', version: { id: 'new' } },
+    ];
+    fixture.componentRef.setInput('selectionMode', 'term');
+    fixture.componentRef.setInput('sources', sources);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    expect(client.lastQuery?.sources).toEqual([sources[0]]);
+    const select = shadow(fixture).querySelector('select')!;
+    select.value = '1';
+    select.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    await settle();
+    expect(client.lastQuery?.sources).toEqual([sources[1]]);
+  });
+  it('rejects duplicate table additions and edits while retaining distinct sources and releases', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('selectionMode', 'constraints');
+    await fixture.whenStable();
+    const picker = fixture.componentInstance;
+    const term = {
+      type: 'class' as const,
+      sourceSystem: 'bioportal',
+      sourceAcronym: 'NCIT',
+      termIri: 'urn:dog',
+      termLabel: 'Dog',
+      obsolete: false,
+      termType: 'class' as const,
+      hasChildren: false,
+      descendantCount: 0,
+    };
+    picker['choose'](term);
+    picker['choose']({ ...term, termLabel: 'Another label' });
+    expect(picker['draft']().constraints).toHaveLength(1);
+    expect(picker['selectionError']()).toContain('already in the table');
+    picker['choose']({ ...term, sourceAcronym: 'BERO' });
+    expect(picker['draft']().constraints).toHaveLength(2);
+    picker['editing'].set(1);
+    picker['choose'](term);
+    expect(picker['draft']().constraints[1]).toMatchObject({ ontologyId: 'BERO' });
+    picker['editing'].set(0);
+    picker['choose'](term);
+    expect(picker['draft']().constraints).toHaveLength(2);
+    picker['pinned'].set(new Map([['NCIT', { id: 'another-release' }]]));
+    picker['choose'](term);
+    expect(picker['draft']().constraints).toHaveLength(3);
+  });
+
+  it('restricts multiple enabled types and rejects a mixed selection beyond the shared limit until removal', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('termTypes', ['ontology', 'property']);
+    fixture.componentRef.setInput('maximumTerms', 2);
+    await fixture.whenStable();
+    const picker = fixture.componentInstance;
+    expect([...shadow(fixture).querySelectorAll('.tab')].map((tab) => tab.textContent?.trim())).toEqual([
+      'ontologies',
+      'properties',
+    ]);
+    const ontology = { type: 'ontology' as const, sourceAcronym: 'RO', sourceSystem: 'bioportal' };
+    const property = {
+      type: 'property' as const,
+      sourceAcronym: 'RO',
+      sourceSystem: 'bioportal',
+      termIri: 'urn:part',
+      termLabel: 'part of',
+      propertyKind: 'object' as const,
+      versionId: 'release-one',
+      obsolete: false,
+      hasChildren: true,
+    };
+    picker['choose'](ontology);
+    picker['choose'](property);
+    picker['choose']({ ...ontology, sourceAcronym: 'OBI' });
+    fixture.detectChanges();
+    expect(picker['draft']().constraints).toHaveLength(2);
+    expect(shadow(fixture).textContent).toContain('Remove an entry from the table');
+    expect(picker['draft']().constraints[1]).toMatchObject({
+      sourceType: 'ontology-property',
+      propertyKind: 'object',
+      version: { id: 'release-one' },
+    });
+    picker['removeConstraint'](0);
+    picker['choose']({ ...ontology, sourceAcronym: 'OBI' });
+    expect(picker['draft']().constraints).toHaveLength(2);
+    expect(picker['selectionError']()).toBeNull();
+    fixture.componentRef.setInput('termTypes', ['property']);
+    await fixture.whenStable();
+    picker['removeConstraint'](1);
+    picker['choose'](ontology);
+    expect(picker['draft']().constraints).toHaveLength(1);
+    expect(picker['activeTab']()).toBe('property');
+  });
+
+  it('defaults to an unlimited table and retains over-limit initial entries for the author to remove', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    await fixture.whenStable();
+    const picker = fixture.componentInstance;
+    for (let i = 0; i < 30; i++)
+      picker['choose']({ type: 'ontology', sourceAcronym: `O${i}`, sourceSystem: 'bioportal' });
+    expect(picker['draft']().constraints).toHaveLength(30);
+    const applied = vi.fn();
+    picker.constraintsSelected.subscribe(applied);
+    fixture.componentRef.setInput('maximumTerms', 1);
+    await fixture.whenStable();
+    picker['applyConstraints']();
+    expect(applied).not.toHaveBeenCalled();
+    expect(picker['draft']().constraints).toHaveLength(30);
+    fixture.componentRef.setInput('maximumTerms', undefined);
+    await fixture.whenStable();
+    picker['applyConstraints']();
+    expect(applied).toHaveBeenCalledOnce();
+    fixture.componentRef.setInput('termTypes', []);
+    await fixture.whenStable();
+    expect(picker['tabs']()).toEqual([]);
+  });
+});
+
+function tabsLabel(kind: string): string {
+  return kind === 'property'
+    ? 'properties'
+    : kind === 'class'
+      ? 'terms'
+      : kind === 'branch'
+        ? 'branches'
+        : 'ontologies';
+}

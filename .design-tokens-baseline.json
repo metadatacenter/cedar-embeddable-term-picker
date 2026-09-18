@@ -1,0 +1,825 @@
+{
+  "schema": 1,
+  "findings": {
+    "02ac44e5ee5cfdc2d4f0": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.1rem 0 0.2rem",
+      "count": 2
+    },
+    "05531533e511bddb9881": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "geometry",
+      "property": "min-height",
+      "value": "1.6rem",
+      "count": 1
+    },
+    "06af161c824740d2e5cc": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "0 0 0.35rem 0",
+      "count": 1
+    },
+    "06d1fdcc1351d17bb43d": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "0.35rem",
+      "count": 2
+    },
+    "0aa3171a2c596e53ea65": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "geometry",
+      "property": "border-radius",
+      "value": "3px",
+      "count": 12
+    },
+    "0dfbcff0e66b113dbc87": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "margin-top",
+      "value": "6px",
+      "count": 2
+    },
+    "0e68526cdd9ee5275d25": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin-top",
+      "value": "6px",
+      "count": 2
+    },
+    "0fa9c3ae18397a9b5c57": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "8px 14px",
+      "count": 2
+    },
+    "10adef74ed2e843b3f32": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "color",
+      "property": "color",
+      "value": "#000",
+      "count": 1
+    },
+    "11cf0230d187f21c531f": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "4px 10px",
+      "count": 2
+    },
+    "12050208396cb6d03c86": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "0 6px 0 0",
+      "count": 1
+    },
+    "157ed7193ab62b67fd21": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "8px 10px",
+      "count": 1
+    },
+    "18ea07ea5e51386f5ec1": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "4px 0 0",
+      "count": 1
+    },
+    "1bc53b3eee6a33e0e65e": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "6px",
+      "count": 1
+    },
+    "1c7b8cbae90b96dd02a8": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "6px",
+      "count": 1
+    },
+    "1f2b203910a096e92695": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "0.5rem 0 0.15rem",
+      "count": 1
+    },
+    "1fcb551fd6387a7108bd": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.45rem 0 0",
+      "count": 1
+    },
+    "21d2f077daa20c553691": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.1rem 0.5rem 0.2rem 1.6rem",
+      "count": 1
+    },
+    "25ef285c777211cb1f9a": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.2rem 0.6rem",
+      "count": 1
+    },
+    "2a5e64cadd14f0a757c5": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "4px 0 10px",
+      "count": 1
+    },
+    "2eb46f9f4072c3702b08": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "8px 14px",
+      "count": 1
+    },
+    "390936e9f622de250c79": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin-right",
+      "value": "0.35rem",
+      "count": 2
+    },
+    "39d908fb7a8db82b36c2": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding-right",
+      "value": "0.25rem",
+      "count": 1
+    },
+    "4586bc1c917c43373420": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "2px 8px",
+      "count": 1
+    },
+    "4c2396241f7268d785ba": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "geometry",
+      "property": "height",
+      "value": "1.5em",
+      "count": 2
+    },
+    "4d53eabc631eb7450ffc": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.2rem 0.4rem",
+      "count": 1
+    },
+    "4d90c3125a7027731c0d": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding-right",
+      "value": "24px",
+      "count": 1
+    },
+    "4f76b3fbdbb4e209808e": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin-left",
+      "value": "0.35rem",
+      "count": 1
+    },
+    "50158c65cd3fe829393f": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.1rem 0.45rem",
+      "count": 2
+    },
+    "515b5b254464d934c0a2": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "1rem 0.2rem",
+      "count": 1
+    },
+    "546c8aada7e3ea664d94": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "typography",
+      "property": "letter-spacing",
+      "value": "0.04em",
+      "count": 1
+    },
+    "54bd59dbfad767ff8517": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.25rem 0.35rem",
+      "count": 1
+    },
+    "5888a7807af292de9536": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "12px",
+      "count": 1
+    },
+    "5b31cacd6d392adba728": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "typography",
+      "property": "line-height",
+      "value": "1.5",
+      "count": 2
+    },
+    "60f3b64e97f7fa25756e": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "4px 16px",
+      "count": 1
+    },
+    "64a0d4ab0a1f743f920c": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin-top",
+      "value": "0.6rem",
+      "count": 1
+    },
+    "66d0753b1d8f7de7c606": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.25rem 0.6rem",
+      "count": 1
+    },
+    "6959987db787e11e6ced": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.25rem 0.75rem",
+      "count": 1
+    },
+    "6b2b6f07c43f3971b0c7": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "geometry",
+      "property": "border-radius",
+      "value": "2px",
+      "count": 3
+    },
+    "6b4c97094c33e7844342": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.1rem 0.2rem",
+      "count": 1
+    },
+    "6d08693a8b12ba2df8e7": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "4px 8px",
+      "count": 1
+    },
+    "727e3d8203bc81a97a3c": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.4rem 0.2rem 0",
+      "count": 1
+    },
+    "757afb79f4caa06491aa": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "column-gap",
+      "value": "0.75rem",
+      "count": 2
+    },
+    "78d6c262eccb3e7ab7cd": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.35rem 0.2rem",
+      "count": 1
+    },
+    "79fbf8ea895c65df865e": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "color",
+      "property": "--cetp-color-tint",
+      "value": "color-mix(in srgb, var(--cetp-color-primary) 12%, white)",
+      "count": 1
+    },
+    "7a00616d60bc67e6d88c": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.4rem 0.6rem",
+      "count": 1
+    },
+    "83992c809d6398e30c2d": {
+      "file": "src/app/shared/_scrolls.scss",
+      "rule": "geometry",
+      "property": "border-radius",
+      "value": "6px",
+      "count": 1
+    },
+    "8606a63b42bc9dc2addf": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.2rem 0.3rem",
+      "count": 1
+    },
+    "86a98d3abcb51082ccc4": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.05rem 0.4rem",
+      "count": 1
+    },
+    "88597f495f937796436f": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "0.75rem",
+      "count": 3
+    },
+    "88d1aba8217809e5bc4f": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0 0.2rem",
+      "count": 1
+    },
+    "89b7e362c9e43f24dd67": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0 1px",
+      "count": 1
+    },
+    "8be2556c36f43d04f86e": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin-top",
+      "value": "0.4rem",
+      "count": 2
+    },
+    "8c12a5811a4bbb0c38f9": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "8px",
+      "count": 3
+    },
+    "91c05f39fa07d69d4e23": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "typography",
+      "property": "font-size",
+      "value": "1.5em",
+      "count": 1
+    },
+    "923f3d299d0ac2624b1b": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding-bottom",
+      "value": "0.15rem",
+      "count": 1
+    },
+    "930a7e371e021ac8afb5": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "0.15rem 0.5rem",
+      "count": 1
+    },
+    "95aa8c21d13244a5c51d": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0 0.15rem",
+      "count": 1
+    },
+    "95d04d7cc52404f61f1d": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "0.5rem",
+      "count": 2
+    },
+    "98fa5ae2f0d2c5e2930c": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding-right",
+      "value": "1.6rem",
+      "count": 1
+    },
+    "9bacf5c6cc5a69730a0a": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding-right",
+      "value": "0.35rem",
+      "count": 1
+    },
+    "9c6d5fcb0941e9f38ece": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "geometry",
+      "property": "height",
+      "value": "1px",
+      "count": 1
+    },
+    "9cfa0cf8a4b53d83116a": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0 0.45rem",
+      "count": 1
+    },
+    "9f1e6b966e2598603515": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "geometry",
+      "property": "height",
+      "value": "28px",
+      "count": 1
+    },
+    "a0d14e217d8c9ba748be": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin-top",
+      "value": "0.15rem",
+      "count": 1
+    },
+    "a201799ce9feb7bbb0e7": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.35rem 0.2rem 0",
+      "count": 1
+    },
+    "a34ac5bfc7b22d275021": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "typography",
+      "property": "font-size",
+      "value": "0.85em",
+      "count": 1
+    },
+    "a5178009d7f3abe6a714": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding-left",
+      "value": "0.2rem",
+      "count": 1
+    },
+    "a6031c000393660bbf44": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "typography",
+      "property": "line-height",
+      "value": "1.35",
+      "count": 1
+    },
+    "aacdbd7677c5ac399866": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "0 0 0.2rem",
+      "count": 1
+    },
+    "abf1ac20e1f5873a736d": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.3rem 0.55rem",
+      "count": 1
+    },
+    "af5a4a404c04e1cbb3ab": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "margin-bottom",
+      "value": "6px",
+      "count": 1
+    },
+    "b0ce03645fe104cc2f6a": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "color",
+      "property": "background",
+      "value": "#fff3cd",
+      "count": 1
+    },
+    "b10a755544943789fb6e": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin-top",
+      "value": "0.75rem",
+      "count": 1
+    },
+    "b238d9ca4f9de82ffd63": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "typography",
+      "property": "line-height",
+      "value": "1.4",
+      "count": 1
+    },
+    "b31a54afbd044a791ba5": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "margin-right",
+      "value": "5px",
+      "count": 1
+    },
+    "b352957729e12e05798a": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "10px 2px",
+      "count": 1
+    },
+    "b5398bec04df894af32c": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "geometry",
+      "property": "height",
+      "value": "28px",
+      "count": 1
+    },
+    "b553f4cbfc8e72c491fa": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "2px 5px",
+      "count": 1
+    },
+    "b5f0ea510beb30da0f95": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "typography",
+      "property": "line-height",
+      "value": "1",
+      "count": 2
+    },
+    "b6992994f831aae02f02": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "0.4rem",
+      "count": 1
+    },
+    "b8917179da819cf5f1a2": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.5rem 0.6rem",
+      "count": 1
+    },
+    "b9eb8254d4d0701795ba": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "6px",
+      "count": 1
+    },
+    "bf7c55e53f92f7366af2": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.3rem 0.6rem",
+      "count": 1
+    },
+    "bf9dc9152cc2dc908770": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "0.6rem",
+      "count": 1
+    },
+    "bfb78724aba1dd3301c6": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "0.2rem",
+      "count": 1
+    },
+    "c21be31bd6f5fa1cb0f1": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "geometry",
+      "property": "height",
+      "value": "22px",
+      "count": 1
+    },
+    "c273d8348921c20afdf5": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "4px 0",
+      "count": 1
+    },
+    "c291c7bbb8945e7ad9b8": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "color",
+      "property": "background",
+      "value": "white",
+      "count": 1
+    },
+    "c7a72e1c65269ce6cb66": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "0.25rem",
+      "count": 3
+    },
+    "c99beaadf70a4495817b": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin-left",
+      "value": "0.4rem",
+      "count": 1
+    },
+    "cf4366ae5022a62fe57d": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "typography",
+      "property": "line-height",
+      "value": "1",
+      "count": 1
+    },
+    "d1507d7ba8b5255a1b84": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "5px",
+      "count": 1
+    },
+    "d274fee96ab6eb64e16d": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0 0.4rem",
+      "count": 1
+    },
+    "d33f82732b68a22ea61e": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin-left",
+      "value": "0.25rem",
+      "count": 1
+    },
+    "d6af8fbf3b4a6e813526": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0 0.25rem",
+      "count": 1
+    },
+    "d80a202ae7c83c6249d7": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.5rem",
+      "count": 1
+    },
+    "d9f8d2a00c0ddcee4d1f": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "0.15rem 0.75rem",
+      "count": 1
+    },
+    "da6c5c0e467341994555": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "18px 0 6px",
+      "count": 1
+    },
+    "db7891cdbeea2b31db06": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "0.15rem 0 0 0",
+      "count": 1
+    },
+    "dce4b2a07614a3ba80cb": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding-bottom",
+      "value": "0.35rem",
+      "count": 1
+    },
+    "dda64fb98579916100ff": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "4px",
+      "count": 1
+    },
+    "ddc6998846b1e39469ba": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.25rem 0.55rem",
+      "count": 1
+    },
+    "df155d9225ebe1ac4068": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "geometry",
+      "property": "border-radius",
+      "value": "4px",
+      "count": 2
+    },
+    "e0319a65565f0fb68b7e": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.35rem",
+      "count": 1
+    },
+    "e3f1b6a866508fffc31f": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.75rem",
+      "count": 1
+    },
+    "e51f3d3366cf924d879b": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "0.5rem 0 0.25rem",
+      "count": 1
+    },
+    "e8ba295a0f18ffbc09c8": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "geometry",
+      "property": "border-radius",
+      "value": "3px",
+      "count": 2
+    },
+    "e979346948a4f77ad3ab": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin-left",
+      "value": "0.15rem",
+      "count": 1
+    },
+    "eaa9698298049a9288e2": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin-top",
+      "value": "4px",
+      "count": 1
+    },
+    "eaaac79d391e1cdc8c1e": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "gap",
+      "value": "2px 10px",
+      "count": 1
+    },
+    "f99e6796bf3ae6cc3914": {
+      "file": "src/app/search/constraint-table.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "6px 0 12px",
+      "count": 1
+    },
+    "faaf4ff635b5cca3b999": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0 0.6rem 0.3rem",
+      "count": 1
+    },
+    "fafe8996d573ee5a7c5d": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.02rem 0.35rem",
+      "count": 1
+    },
+    "fb580203ddc869a921e6": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "margin",
+      "value": "0.75rem 0 0",
+      "count": 1
+    },
+    "fd97710f66cf6a914b8d": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "spacing",
+      "property": "padding",
+      "value": "0.35rem 0.55rem",
+      "count": 1
+    },
+    "fdc2edb7a904f6bbc26e": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "color",
+      "property": "background",
+      "value": "#fff",
+      "count": 3
+    }
+  },
+  "exceptions": {}
+}

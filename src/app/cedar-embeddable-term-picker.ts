@@ -1,0 +1,1901 @@
+import { hierarchyRows } from './search/hierarchy-rows';
+import { ConstraintTableComponent } from './search/constraint-table';
+import {
+  constraintLabel,
+  constraintUri,
+  constraintAcronym,
+  constraintIdentity,
+} from './search/constraint-presentation';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  DestroyRef,
+  HostListener,
+  Injector,
+  ViewEncapsulation,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  input,
+  linkedSignal,
+  output,
+  signal,
+  viewChild,
+  untracked,
+} from '@angular/core';
+import { ControlledTermSet, ControlledTermConfig, ControlledTermAction } from './search/constraint-set';
+import { toControlledTermConfig } from './search/picked-constraint';
+import { PropertyDetailComponent } from './search/property-detail';
+import { NgTemplateOutlet } from '@angular/common';
+import { FontRegistrar } from './font-registrar/font-registrar';
+import { HierarchyOutcome, TerminologyClient } from './search/terminology-client';
+import {
+  PropertyHit,
+  BranchHit,
+  ClassHit,
+  Hierarchy,
+  Hit,
+  MatchedLabel,
+  OntologyHit,
+  SearchKind,
+  SearchResponse,
+  Selection,
+  SourceSelector,
+  SourceBlock,
+  TAB_LABELS,
+  TAB_ORDER,
+  TermRef,
+  TreeRow,
+  SelectedConstraint,
+  ValueSetHit,
+  VersionInfo,
+  isBranchHit,
+  isClassHit,
+  isOntologyHit,
+  isValueSetHit,
+} from './search/search-types';
+
+/** The tag the host page uses, and the component's own selector. */
+export const CETP_TAG = 'cedar-embeddable-term-picker';
+
+/** How long the author stops typing before a search runs. */
+const DEBOUNCE_MS = 250;
+
+/**
+ * The shortest query the whole corpus is searched for, and how long one below it waits before the
+ * rule is mentioned.
+ *
+ * Not a validation rule but a cost: a corpus-wide search ranks every name it matched, and the first
+ * few characters match most of them. Measured 2026-08-26 against the served corpus, typing towards
+ * "cellular" costs 4,200 ms at "ce" and 2,512 at "cel", then falls to 539 at "cellu" and stays
+ * there. The expense is concentrated in exactly the characters an author passes through on the way
+ * to what they meant, so the query is not sent until they have arrived.
+ *
+ * Narrowing to a source lifts it. A scoped search reads only that ontology and answers in tens of
+ * milliseconds, so an author looking for a two-letter code narrows first and types it freely.
+ *
+ * The wait exists so the rule is explained to someone who stopped, not to someone still typing:
+ * rest below the floor and it is said, type on and it is never mentioned.
+ */
+const MIN_CORPUS_QUERY = 3;
+const SHORT_QUERY_MS = 900;
+
+/** Labels per page for the folding tabs, rows per page for the rest. */
+const PAGE_SIZE = 25;
+
+/** How many ontologies the narrowing panel will hold, and how many it asks for at a time. */
+const NARROWING_LIMIT = 1000;
+const NARROWING_PAGE = 200;
+
+/** How many of a term's other names a panel shows before saying how many are left. */
+const NAME_LIMIT = 8;
+
+/**
+ * One label, and the ontologies that offer it.
+ *
+ * A query for a common term returns the same string from a hundred ontologies, so the flat list is
+ * one word repeated. The author's question at that point is which ontology, and collapsing asks it
+ * directly. The count is exact rather than a property of the page: the terms results are paged by
+ * distinct label and carry every hit of the labels on the page, so a fold here sees the whole group.
+ */
+/**
+ * One branch label, and every place the corpus offers it.
+ *
+ * Folded across ontologies as well as within one, so "melanoma" is a row rather than a hundred.
+ * A position is an ontology plus a parent: a hundred ontologies each name melanoma, and RH-MESH
+ * names it four times over at different points in its tree, so the count of positions and the count
+ * of ontologies are not the same number and the row says both when they differ.
+ */
+export interface BranchGroup {
+  readonly label: string;
+  readonly ontologyCount: number;
+  readonly hits: readonly BranchHit[];
+}
+
+/** Later pages and side queries name sources the first response did not, so blocks accumulate. */
+function mergeSources(current: readonly SourceBlock[], incoming: readonly SourceBlock[]): readonly SourceBlock[] {
+  const merged = new Map(current.map((source) => [source.sourceAcronym, source]));
+  for (const source of incoming) {
+    merged.set(source.sourceAcronym, source);
+  }
+  return [...merged.values()];
+}
+
+export interface LabelGroup {
+  /** What the row is titled: the term's label, or the name that matched when the label is a code. */
+  readonly label: string;
+  /** The label the ontology gave, when it is a code and the title came from a matched name. */
+  readonly code?: string;
+  readonly hits: readonly ClassHit[];
+}
+
+@Component({
+  selector: CETP_TAG,
+  imports: [FontRegistrar, NgTemplateOutlet, PropertyDetailComponent, ConstraintTableComponent],
+  providers: [TerminologyClient],
+  templateUrl: './cedar-embeddable-term-picker.html',
+  styleUrl: './cedar-embeddable-term-picker.scss',
+  encapsulation: ViewEncapsulation.ShadowDom,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class CedarEmbeddableTermPicker {
+  private readonly client = inject(TerminologyClient);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
+
+  /** The query the picker opens on, so a host can seed it from the field's name. */
+  readonly query = input('');
+
+  /** A default is one term; constraint authoring also offers branches and vocabularies. */
+  readonly selectionMode = input<'constraint' | 'constraints' | 'term'>('constraints');
+  /** Any subset of the five selectable kinds; omitted enables all. */
+  readonly termTypes = input<readonly SearchKind[] | undefined>();
+  /** Maximum number of selected table entries; omitted means unlimited. */
+  readonly maximumTerms = input<number | undefined>();
+  protected readonly selectionError = signal<string | null>(null);
+  protected readonly tableMode = computed(
+    () => this.termTypes() !== undefined || this.maximumTerms() !== undefined || this.selectionMode() === 'constraints',
+  );
+  protected readonly configurationError = computed(() => {
+    const max = this.maximumTerms();
+    if (max !== undefined && (!Number.isSafeInteger(max) || max < 1))
+      return 'maximumTerms must be a positive whole number, or omitted for no limit.';
+    const types = this.termTypes();
+    if (types !== undefined && (!Array.isArray(types) || types.some((type) => !TAB_ORDER.includes(type))))
+      return 'termTypes must be an array of class, branch, ontology, valueSet or property.';
+    return null;
+  });
+
+  /** Editable draft; applying emits the whole set and cancellation changes nothing. */
+  readonly constraintSet = input<ControlledTermSet>({ constraints: [], actions: [] });
+  readonly constraintsSelected = output<ControlledTermSet>();
+  readonly constraintsChanged = output<void>();
+  protected readonly draft = linkedSignal(() => structuredClone(this.constraintSet()));
+  protected readonly editing = signal<number | null>(null);
+  protected readonly actionMode = signal<'delete' | 'move' | null>(null);
+  protected readonly actionPosition = signal(0);
+
+  protected numberOf(event: Event): number {
+    const value = (event.target as HTMLInputElement | HTMLSelectElement).value;
+    return value.trim() === '' ? Number.NaN : Number(value);
+  }
+
+  protected readonly constraintLabel = constraintLabel;
+  protected readonly constraintUri = constraintUri;
+  protected readonly constraintAcronym = constraintAcronym;
+
+  protected editConstraint(index: number): void {
+    this.editing.set(index);
+    this.actionMode.set(null);
+    this.text.set(this.constraintLabel(this.draft().constraints[index]));
+  }
+
+  /**
+   * The depth of one branch constraint, which is the only field a row edits.
+   *
+   * It used to take a `Partial<ControlledTermConfig>` and merge it, which said the row
+   * could change anything on any kind of constraint — a `Partial` of a bag being the
+   * broadest type there is. Depth belongs to a branch and nothing else, so the
+   * signature says so and the merge cannot reach another variant.
+   */
+  protected updateBranchDepth(index: number, searchDepth: number): void {
+    if (!Number.isInteger(searchDepth) || searchDepth < 0) return;
+    this.draft.update((d) => ({
+      ...d,
+      constraints: d.constraints.map((c, i) =>
+        i === index && c.sourceType === 'ontology-branch' ? { ...c, searchDepth } : c,
+      ),
+    }));
+  }
+
+  protected removeConstraint(index: number): void {
+    this.selectionError.set(null);
+    this.draft.update((d) => ({ ...d, constraints: d.constraints.filter((_, i) => i !== index) }));
+    this.editing.set(null);
+    this.actionMode.set(null);
+    this.actionConstraint.set(0);
+  }
+
+  protected adjacentConstraint(index: number, offset: number): number {
+    const constraints = this.draft().constraints;
+    for (let target = index + offset; target >= 0 && target < constraints.length; target += offset) {
+      if (constraints[target].sourceType === constraints[index].sourceType) return target;
+    }
+    return -1;
+  }
+
+  protected moveConstraint(index: number, offset: number): void {
+    const target = this.adjacentConstraint(index, offset);
+    if (target < 0) return;
+    this.draft.update((d) => {
+      const constraints = [...d.constraints];
+      [constraints[index], constraints[target]] = [constraints[target], constraints[index]];
+      return { ...d, constraints };
+    });
+    this.editing.set(null);
+    this.actionMode.set(null);
+  }
+
+  protected updateAction(index: number, changes: Partial<ControlledTermAction>): void {
+    if (changes.to !== undefined && (!Number.isInteger(changes.to) || changes.to < 0)) return;
+    this.draft.update((d) => ({ ...d, actions: d.actions.map((a, i) => (i === index ? { ...a, ...changes } : a)) }));
+  }
+
+  protected removeAction(index: number): void {
+    this.draft.update((d) => ({ ...d, actions: d.actions.filter((_, i) => i !== index) }));
+  }
+
+  protected applyConstraints(): void {
+    if (this.configurationError()) return;
+    const maximum = this.maximumTerms();
+    if (maximum !== undefined && this.draft().constraints.length > maximum) {
+      this.selectionError.set(`Select at most ${maximum} terms. Remove entries from the table before continuing.`);
+      return;
+    }
+    this.constraintsSelected.emit(structuredClone(this.draft()));
+  }
+
+  /** Optional fixed search scope supplied by a host's field constraint. */
+  readonly sources = input<readonly SourceSelector[]>([]);
+
+  protected readonly scopeIndex = linkedSignal(() => {
+    this.sources();
+    return 0;
+  });
+  protected readonly actionConstraint = signal(0);
+  protected readonly effectiveSources = computed<readonly SourceSelector[]>(() => {
+    if (this.actionMode()) {
+      const c = this.draft().constraints[this.actionConstraint()];
+      if (!c) return [];
+      const source = c.sourceType === 'ontology-branch' ? c.sourceId : c.ontologyId;
+      return source
+        ? [
+            {
+              sourceAcronym: source.split('/').filter(Boolean).at(-1)!,
+              sourceSystem: c.sourceSystem,
+              ...(c.version ? { version: { id: c.version.id } } : {}),
+            },
+          ]
+        : [];
+    }
+    const sources = this.sources();
+    // The search response groups by acronym, so two releases of one source must
+    // be browsed separately to keep the hierarchy and selected term unambiguous.
+    return sources.length > 1 ? [sources[this.scopeIndex()] ?? sources[0]] : sources;
+  });
+
+  /**
+   * Where the terminology server is, for a host that is not on its origin.
+   *
+   * Unset, the picker asks its own origin for `/search`, which is what the
+   * development server's proxy answers. A page embedding the picker has no such
+   * proxy, so it names the base and the picker hangs its own path off it.
+   */
+  readonly terminologyBaseUrl = input<string | null>(null);
+
+  /** The constraint the author chose, in the shape the template will store. */
+  readonly selected = output<SelectedConstraint>();
+
+  /** Emitted when the author closes the picker without choosing anything. */
+  readonly cancelled = output<void>();
+
+  /** Escape leaves the picker, which a modal host will expect and an inline one does no harm by. */
+  @HostListener('keydown', ['$event'])
+  protected onKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      this.cancelled.emit();
+    }
+  }
+
+  protected readonly text = linkedSignal(() => this.query());
+  protected readonly activeTab = signal<SearchKind>('class');
+  protected readonly response = signal<SearchResponse | null>(null);
+  protected readonly error = signal<string | null>(null);
+  protected readonly searching = signal(false);
+
+  /**
+   * Whether a page is being appended, as against a search being run.
+   *
+   * Its own signal because the two read differently at the bottom of the list: appending is "more
+   * of what you are looking at", and a first search has nothing yet to be more of. The tab strip
+   * says a search is running; this says the list is growing.
+   */
+  protected readonly loadingMore = signal(false);
+  protected readonly expanded = signal<string | null>(null);
+
+  /**
+   * The row an author has clicked.
+   *
+   * Choosing a constraint is two acts rather than one: a click marks a row, a second confirms it.
+   * A single click that emitted would make every mis-aimed click a decision, and the rows are one
+   * line tall and adjacent.
+   */
+  protected readonly marked = signal<Hit | null>(null);
+
+  /**
+   * What would go on the field, which is not always the row whose panel is open.
+   *
+   * Marking a row picks it and opens its panel; clicking a term inside that panel's tree picks the
+   * term without closing the panel it was found in. Two signals rather than one, because the panel
+   * belongs to a row and the choice belongs to whatever was last pointed at.
+   */
+  protected readonly picked = signal<Hit | null>(null);
+
+  /**
+   * Which page each tab is showing.
+   *
+   * Per tab rather than one for the picker: the tabs count different things and an author reading
+   * page three of the terms has not asked to be on page three of the ontologies. Paging fetches
+   * that one type rather than repeating the search, which is also why a later page's sources have
+   * to be merged into the envelope — a row on page three names an ontology page one never did.
+   */
+  protected readonly pages = signal<Readonly<Partial<Record<SearchKind, number>>>>({});
+
+  /** Tabs whose last page came back short, which is the only signal that a list has ended. */
+  private readonly exhausted = signal<Readonly<Partial<Record<SearchKind, boolean>>>>({});
+
+  /** The scrolling list, which the top-up measures against its own box. */
+  private readonly list = viewChild<ElementRef<HTMLElement>>('list');
+
+  /**
+   * The ontologies the search is narrowed to, in the order the author added them.
+   *
+   * One filter for every tab rather than one per tab: an author who has decided the field belongs
+   * to NCIT has decided it for the terms and the branches alike. Narrowing does not change the kind
+   * of search — the server keeps the same index, matching and paging — so the results an author was
+   * reading do not shift underneath them, they only get shorter.
+   */
+  protected readonly narrowedTo = signal<readonly string[]>([]);
+
+  /** The narrowing panel's candidates, ranked by matching terms rather than by name. */
+  protected readonly candidates = signal<readonly OntologyHit[]>([]);
+
+  /** What the narrowing panel's list is being narrowed to, by acronym or by name. */
+  protected readonly narrowingFilter = signal('');
+
+  /**
+   * The candidates an author can see, once they have typed.
+   *
+   * Filtered here rather than asked of the server, because the panel already holds every ontology
+   * the query reaches: the counts beside them are of that query, and re-asking for the typed text
+   * would replace them with counts of something else. So the box finds a row in a list rather than
+   * running a second search.
+   */
+  protected readonly visibleCandidates = computed<readonly OntologyHit[]>(() => {
+    const wanted = this.narrowingFilter().trim().toLocaleLowerCase();
+    if (wanted === '') {
+      return this.candidates();
+    }
+    return this.candidates().filter((candidate) => {
+      const name = this.sourceName(candidate.sourceAcronym);
+      return candidate.sourceAcronym.toLocaleLowerCase().includes(wanted) || name.toLocaleLowerCase().includes(wanted);
+    });
+  });
+  protected readonly choosingNarrowing = signal(false);
+
+  /**
+   * The version an author has stepped an ontology to, keyed by acronym.
+   *
+   * Absent means latest, and absent is what a constraint records: freeze-on-publish resolves an
+   * unpinned constraint at publish time, so latest keeps meaning latest until the template is
+   * published. An entry appears only when the author steps off latest, which is the difference
+   * between accepting the default and choosing today's version.
+   */
+  private readonly pinned = signal<ReadonlyMap<string, VersionInfo>>(new Map());
+
+  /** Version histories, fetched once per ontology when a row first steps. */
+  private readonly histories = signal<ReadonlyMap<string, readonly VersionInfo[]>>(new Map());
+
+  /**
+   * Where each marked term sits, once read, or why there is no tree.
+   *
+   * The outcome rather than the tree: a term absent from the pinned release and a request that
+   * failed are different things to tell an author, and both used to be one held null.
+   */
+  private readonly hierarchies = signal<ReadonlyMap<string, HierarchyOutcome>>(new Map());
+
+  /** What each opened node of a tree holds, read as it opens. */
+  private readonly nodes = signal<ReadonlyMap<string, Hierarchy | null>>(new Map());
+
+  /** Which nodes of the tree are open. Keyed by source and IRI, so two trees cannot collide. */
+  private readonly openNodes = signal<ReadonlySet<string>>(new Set());
+
+  /** The ontology whose release history is open beneath its row. One at a time. */
+  protected readonly historyFor = signal<string | null>(null);
+
+  protected readonly tabs = computed<readonly SearchKind[]>(() =>
+    this.actionMode()
+      ? ['class']
+      : this.termTypes() === undefined
+        ? this.selectionMode() === 'term'
+          ? ['class']
+          : this.selectionMode() === 'constraint'
+            ? TAB_ORDER.filter((type) => type !== 'property')
+            : TAB_ORDER
+        : TAB_ORDER.filter((type) => this.termTypes()?.includes(type)),
+  );
+  protected readonly tabLabels = TAB_LABELS;
+
+  private debounce?: ReturnType<typeof setTimeout>;
+  private inFlight?: AbortController;
+
+  private readonly observedHashes = signal(new Map<string, string>());
+
+  private hashKey(system: string, acronym: string): string {
+    return `${this.terminologyBaseUrl()}|${system}|${acronym}`;
+  }
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(this.debounce);
+      this.inFlight?.abort();
+      for (const request of this.nodeInFlight.values()) request.abort();
+    });
+    effect(() => {
+      const sources = this.response()?.sources ?? [];
+      this.observedHashes.update((previous) => {
+        const next = new Map(previous);
+        for (const source of sources) {
+          if (source.version?.id) next.set(this.hashKey(source.sourceSystem, source.sourceAcronym), source.version.id);
+        }
+        return next;
+      });
+    });
+    effect(() => {
+      this.draft();
+      this.constraintsChanged.emit();
+    });
+    effect(() => {
+      this.effectiveSources();
+      this.inFlight?.abort();
+      this.response.set(null);
+      this.picked.set(null);
+      this.marked.set(null);
+      this.expanded.set(null);
+    });
+
+    // A host that names a terminology server does so before the first search, and
+    // may change it; either way the client follows the input rather than reading
+    // it once at construction.
+    effect(() => this.client.setBaseUrl(this.terminologyBaseUrl()));
+
+    effect(() => {
+      const tabs = this.tabs();
+      if (!tabs.includes(untracked(() => this.activeTab()))) this.activeTab.set(tabs[0] ?? 'class');
+      const query = this.text().trim();
+      const sources = this.effectiveSources();
+      const belowFloor =
+        query.length > 0 && query.length < MIN_CORPUS_QUERY && this.narrowedTo().length === 0 && sources.length === 0;
+      clearTimeout(this.debounce);
+      this.debounce = setTimeout(
+        () => (belowFloor ? this.declineCorpusWide() : void this.run(query)),
+        belowFloor ? SHORT_QUERY_MS : DEBOUNCE_MS,
+      );
+    });
+  }
+
+  /**
+   * Says why nothing was searched, without asking.
+   *
+   * The server would refuse a one-character corpus-wide search and explain itself, but it allows
+   * two, and this declines at three. Answering here rather than being told keeps one rule with one
+   * wording, and spares the request that was only ever going to be expensive or refused.
+   */
+  private declineCorpusWide(): void {
+    this.inFlight?.abort();
+    this.response.set(null);
+    this.searching.set(false);
+    this.error.set(
+      `A corpus-wide search needs at least ${MIN_CORPUS_QUERY} characters. ` +
+        'Narrow to an ontology to search it with fewer.',
+    );
+  }
+
+  /**
+   * The signal of the query being answered, so a request made alongside the search dies with it.
+   *
+   * Not a new controller: a page or a candidate list is fetched *for* the current query, and
+   * starting its own would cancel the search it was asked beside. Cancelling is the search's job,
+   * and it does it whenever the query changes.
+   */
+  private alongside(): AbortSignal | undefined {
+    return this.inFlight?.signal;
+  }
+
+  /** Whether the query a request was made for is still the one on screen. */
+  private stale(query: string): boolean {
+    return this.text().trim() !== query;
+  }
+
+  private async run(query: string, keepCandidates = false): Promise<void> {
+    // Cancel rather than let a slower earlier query land on top of a faster later one.
+    this.inFlight?.abort();
+    if (query.length === 0 || this.configurationError() || !this.tabs().length) {
+      this.response.set(null);
+      this.error.set(null);
+      this.searching.set(false);
+      return;
+    }
+    const controller = new AbortController();
+    this.inFlight = controller;
+    this.searching.set(true);
+    // Whatever the last query was told, this one has not been told anything yet. Left standing, a
+    // refusal sat under "searching…" as though it were this query's answer.
+    this.error.set(null);
+    try {
+      const response = await this.client.search(
+        {
+          query,
+          pageSize: PAGE_SIZE,
+          sources: this.sourceSelectors(),
+          types: this.tabs(),
+        },
+        controller.signal,
+      );
+      this.response.set(response);
+      // The candidates rank against the query, so a new query invalidates them — but changing the
+      // filter re-runs the same query, and clearing them there would empty the panel the author is
+      // choosing from.
+      if (!keepCandidates) {
+        this.candidates.set([]);
+        this.narrowingFilter.set('');
+      }
+      this.pages.set({});
+      this.exhausted.set({});
+      this.expanded.set(null);
+      this.topUp(this.activeTab());
+      this.error.set(null);
+      // The panel offers what this query reaches, so a query that has just changed has to refill it.
+      if (this.choosingNarrowing()) {
+        void this.loadCandidates();
+      }
+    } catch (failure: unknown) {
+      if (controller.signal.aborted) {
+        return;
+      }
+      this.response.set(null);
+      this.error.set(failure instanceof Error ? failure.message : 'The search failed.');
+    } finally {
+      if (!controller.signal.aborted) {
+        this.searching.set(false);
+      }
+    }
+  }
+
+  /** The badge: the collapsed count where the server offers one, else the hit count. */
+  protected readonly counts = computed<Partial<Record<SearchKind, string>>>(() => {
+    const results = this.response()?.results;
+    if (!results) {
+      return {};
+    }
+    const counts: Partial<Record<SearchKind, string>> = {};
+    for (const kind of TAB_ORDER) {
+      const type = results[kind];
+      if (!type) {
+        continue;
+      }
+      // Terms and branches both fold, so both badges count distinct labels rather than hits. The
+      // hit count saturates on any query worth typing and says the same thing every time.
+      const collapsed = type.distinctLabelCount;
+      const value = collapsed ?? type.totalCount;
+      const capped = collapsed === undefined ? type.countCapped : type.distinctLabelCountCapped;
+      counts[kind] = capped ? `${value.toLocaleString()}+` : value.toLocaleString();
+    }
+    return counts;
+  });
+
+  /**
+   * Whether a label is a bare code rather than a name.
+   *
+   * Some ontologies put an identifier where the name belongs and keep every human phrasing as a
+   * synonym — OCHV, the consumer health vocabulary, labels a concept 6188 and records "HIV disease",
+   * "HIV infection" and "disease HIV" beneath it; 27,758 of its terms are numbered this way, and
+   * DDSS and DRON have 667,569 each. Showing the author 6188 is showing them nothing.
+   */
+  private static isCode(label: string): boolean {
+    return label.length > 0 && !/\p{L}/u.test(label);
+  }
+
+  /** Terms, collapsed by label, in the order the server ranked them. */
+  protected readonly labelGroups = computed<readonly LabelGroup[]>(() => {
+    const hits = this.hitsOf('class').filter(isClassHit);
+    const groups = new Map<string, ClassHit[]>();
+    for (const hit of hits) {
+      const key = hit.termLabel.toLocaleLowerCase();
+      const group = groups.get(key);
+      if (group) {
+        group.push(hit);
+      } else {
+        groups.set(key, [hit]);
+      }
+    }
+    return [...groups.values()].map((members) => {
+      const first = members[0];
+      // A code is not a name. When the ontology gave one, lead with the name that actually matched
+      // and keep the code beside it, so the row says what the author searched for.
+      const matched = first.matchedLabels?.[0]?.label;
+      const coded = CedarEmbeddableTermPicker.isCode(first.termLabel) && matched !== undefined;
+      return {
+        label: coded ? matched : first.termLabel,
+        code: coded ? first.termLabel : undefined,
+        hits: members,
+      };
+    });
+  });
+
+  /**
+   * Branches, folded by label.
+   *
+   * The same fold the terms tab uses, for the same reason and then one more. A common label repeats
+   * across ontologies — a hundred of them name melanoma — and it repeats *within* one, because a
+   * thesaurus can materialise a concept once per position in its hierarchy: RH-MESH does that 11,528
+   * times, and its four "melanoma" branches include two that agree on parent and on descendant count
+   * and so cannot be told apart at all. One row per label, opening onto the ontologies and the
+   * positions each gives it.
+   */
+  protected readonly branchGroups = computed<readonly BranchGroup[]>(() => {
+    const groups = new Map<string, BranchHit[]>();
+    for (const hit of this.hitsOf('branch').filter(isBranchHit)) {
+      const key = hit.termBaseLabel.toLocaleLowerCase();
+      const group = groups.get(key);
+      if (group) {
+        group.push(hit);
+      } else {
+        groups.set(key, [hit]);
+      }
+    }
+    return [...groups.values()].map((hits) => ({
+      label: hits[0].termBaseLabel,
+      ontologyCount: new Set(hits.map((hit) => hit.sourceAcronym)).size,
+      hits,
+    }));
+  });
+  protected readonly ontologies = computed(() => this.hitsOf('ontology').filter(isOntologyHit));
+  protected readonly properties = computed(() =>
+    this.hitsOf('property').filter((hit): hit is PropertyHit => hit.type === 'property'),
+  );
+  protected readonly propertyGroups = computed(() => {
+    const groups = new Map<string, PropertyHit[]>();
+    for (const hit of this.properties()) {
+      const key = hit.termLabel.toLocaleLowerCase();
+      const group = groups.get(key);
+      if (group) group.push(hit);
+      else groups.set(key, [hit]);
+    }
+    return [...groups.values()].map((hits) => ({ label: hits[0].termLabel, hits }));
+  });
+
+  protected readonly valueSets = computed(() => this.hitsOf('valueSet').filter(isValueSetHit));
+
+  /** Sources the search could not read, which have to be shown or their absence reads as no matches. */
+  protected readonly unavailable = computed<readonly SourceBlock[]>(
+    () => this.response()?.sources.filter((source) => source.served === 'unavailable') ?? [],
+  );
+
+  private hitsOf(kind: SearchKind): readonly Hit[] {
+    return this.response()?.results[kind]?.collection ?? [];
+  }
+
+  /** A field's fixed release applies to browsing as well as search. */
+  private hierarchyVersion(acronym: string): string | undefined {
+    const fixed = this.effectiveSources().find((source) => source.sourceAcronym === acronym)?.version;
+    return fixed && fixed !== 'latest' ? fixed.id : this.pinned().get(acronym)?.id;
+  }
+
+  private sourceSelectors(): readonly SourceSelector[] | undefined {
+    if (this.effectiveSources().length) return this.effectiveSources();
+    const acronyms = this.narrowedTo();
+    return acronyms.length === 0 ? undefined : acronyms.map((sourceAcronym) => ({ sourceAcronym }));
+  }
+
+  /** Adds an ontology to the filter, or removes it if it is already there. */
+  protected toggleNarrowing(acronym: string): void {
+    this.narrowedTo.update((current) =>
+      current.includes(acronym) ? current.filter((a) => a !== acronym) : [...current, acronym],
+    );
+    void this.rerun();
+  }
+
+  protected clearNarrowing(): void {
+    this.narrowedTo.set([]);
+    void this.rerun();
+  }
+
+  protected isNarrowedTo(acronym: string): boolean {
+    return this.narrowedTo().includes(acronym);
+  }
+
+  /** Re-runs the current query from page one, which a changed filter is a new question for. */
+  private async rerun(): Promise<void> {
+    this.pages.set({});
+    this.expanded.set(null);
+    await this.run(this.text().trim(), true);
+  }
+
+  /**
+   * Opens the narrowing panel, fetching the ontologies ranked by how much of the query they hold.
+   *
+   * A different order from the ontologies tab, because it answers a different question. That tab
+   * leads with a vocabulary named after the query — right for "is there an ontology about this",
+   * wrong for "where are the terms". For melanoma the tab leads with MELO, aptly named and holding
+   * 38 terms, while the useful thing to narrow to is NCIT with 950.
+   */
+  protected async openNarrowing(): Promise<void> {
+    this.choosingNarrowing.update((open) => !open);
+    if (!this.choosingNarrowing() || this.candidates().length > 0) {
+      return;
+    }
+    await this.loadCandidates();
+  }
+
+  /**
+   * The ontologies the current query reaches, for the narrowing panel to offer.
+   *
+   * Its own method because two things need it: opening the panel, and a search finishing while the
+   * panel is already open. The candidates rank against the query, so a new query discards them —
+   * and with the panel open and nothing refilling it, an author watched it empty itself and say
+   * there was no search, in the middle of one.
+   */
+  private async loadCandidates(): Promise<void> {
+    const query = this.text().trim();
+    if (query.length === 0) {
+      this.candidates.set([]);
+      return;
+    }
+    // Every ontology the query reaches, not the first page of them: the list is filtered in the
+    // panel, and a filter over the first page could not find the ontology ranked just past it. The
+    // server serves at most 200 a page, so this asks for pages until the list is complete — three
+    // requests for a query reaching 448 — and an ontology hit is an acronym and two counts.
+    const found: OntologyHit[] = [];
+    const signal = this.alongside();
+    try {
+      for (let page = 1; found.length < NARROWING_LIMIT; page++) {
+        const response = await this.client.search(
+          {
+            query,
+            types: ['ontology'],
+            ontologyOrder: 'matches',
+            page,
+            pageSize: NARROWING_PAGE,
+          },
+          signal,
+        );
+        if (this.stale(query)) {
+          return;
+        }
+        const batch = (response.results.ontology?.collection ?? []).filter(isOntologyHit);
+        found.push(...batch);
+        this.response.update((current) =>
+          current === null ? current : { ...current, sources: mergeSources(current.sources, response.sources) },
+        );
+        // A short page is the end of the list, which is the same test the results tabs use.
+        if (batch.length < NARROWING_PAGE) {
+          break;
+        }
+      }
+    } catch (failure: unknown) {
+      // An aborted fetch died with its query; run() refills the panel for the new one. Anything
+      // else is a real failure the author should see instead of a panel that quietly stays empty.
+      if (signal?.aborted || this.stale(query)) {
+        return;
+      }
+      this.error.set(failure instanceof Error ? failure.message : 'The search failed.');
+      return;
+    }
+    this.candidates.set(found);
+  }
+
+  protected pageOf(kind: SearchKind): number {
+    return this.pages()[kind] ?? 1;
+  }
+
+  /** Whether every match this tab has is already on screen. */
+  protected isExhausted(kind: SearchKind): boolean {
+    return this.exhausted()[kind] === true;
+  }
+
+  /**
+   * Asks for the next page when the list is scrolled near its end.
+   *
+   * The threshold is a screenful rather than the last pixel, so the rows arrive before an author
+   * reaches the gap they would otherwise fill.
+   */
+  /** Switches tabs, and fills the new one if its first page does not reach the bottom of the box. */
+  protected showTab(kind: SearchKind): void {
+    this.activeTab.set(kind);
+    this.topUp(kind);
+  }
+
+  protected onScroll(event: Event): void {
+    const list = event.target as HTMLElement;
+    const remaining = list.scrollHeight - list.scrollTop - list.clientHeight;
+    if (remaining < list.clientHeight) {
+      void this.loadMore(this.activeTab());
+    }
+  }
+
+  /**
+   * Fetches on until the list is long enough to scroll.
+   *
+   * Scrolling is what asks for more, so a page that does not fill the box leaves an author with no
+   * way to ask: a tab whose first page is short of a screenful would end there while the tab badge
+   * counted thousands. Bounded by the same short-page test that ends the list.
+   */
+  private topUp(kind: SearchKind): void {
+    setTimeout(() => {
+      const list = this.list()?.nativeElement;
+      // A box of no height is one that has not been laid out — a test environment, or a picker in a
+      // hidden container. There is nothing to fill, and treating it as unfilled fetches for ever.
+      if (list && list.clientHeight > 0 && list.scrollHeight <= list.clientHeight && !this.isExhausted(kind)) {
+        void this.loadMore(kind);
+      }
+    });
+  }
+
+  /**
+   * Appends the next page of one tab.
+   *
+   * A page rather than everything, because a common query matches ten thousand distinct labels and
+   * an author reads the first twenty. The end is a short page, not a count: `totalCount` stops at
+   * the cap and cannot say where the list runs out.
+   */
+  protected async loadMore(kind: SearchKind): Promise<void> {
+    const current = this.response();
+    const query = this.text().trim();
+    if (!current || current.errors?.[kind] || query.length === 0 || this.searching() || this.isExhausted(kind)) {
+      return;
+    }
+    const page = this.pageOf(kind) + 1;
+    this.searching.set(true);
+    this.loadingMore.set(true);
+    const signal = this.alongside();
+    try {
+      const next = await this.client.search(
+        {
+          query,
+          types: [kind],
+          page,
+          pageSize: PAGE_SIZE,
+          sources: this.sourceSelectors(),
+        },
+        signal,
+      );
+      if (this.stale(query)) {
+        return;
+      }
+      const results = next.results[kind];
+      const arrived = results?.collection ?? [];
+      if (arrived.length < PAGE_SIZE) {
+        this.exhausted.update((done) => ({ ...done, [kind]: true }));
+      }
+      if (!results || arrived.length === 0) {
+        return;
+      }
+      const held = current.results[kind];
+      // A later page names ontologies the first did not, and a row reads its source from the
+      // envelope, so the blocks accumulate rather than being replaced. So do the hits: the list is
+      // one list an author scrolls, not a page that replaces the page before it.
+      this.response.set({
+        ...current,
+        sources: mergeSources(current.sources, next.sources),
+        results: {
+          ...current.results,
+          [kind]: { ...results, collection: [...(held?.collection ?? []), ...arrived] },
+        },
+      });
+      this.pages.update((pages) => ({ ...pages, [kind]: page }));
+    } catch (failure: unknown) {
+      // An aborted page died with its query, and its rejection is not this query's error.
+      if (signal?.aborted) {
+        return;
+      }
+      this.error.set(failure instanceof Error ? failure.message : 'The search failed.');
+    } finally {
+      this.loadingMore.set(false);
+      // The superseding search set `searching` for its own query and owns it now; clearing it here
+      // would blank the indicator in the middle of that search.
+      if (!signal?.aborted) {
+        this.searching.set(false);
+        this.topUp(kind);
+      }
+    }
+  }
+
+  protected sourceOf(acronym: string): SourceBlock | undefined {
+    return this.response()?.sources.find((source) => source.sourceAcronym === acronym);
+  }
+
+  protected sourceName(acronym: string): string {
+    return this.sourceOf(acronym)?.sourceName ?? acronym;
+  }
+
+  /**
+   * The repository a row's release was ingested from, named for a reader.
+   *
+   * An author choosing between vocabularies wants to know whose copy they are constraining to, and
+   * the rows said nothing about it. Only the well-known repositories get a name; anything else is
+   * shown as the catalog recorded it rather than guessed at, and a direct download says so.
+   */
+  protected authorityOf(acronym: string): string {
+    const authority = this.sourceOf(acronym)?.authority;
+    if (authority === undefined || authority === '') {
+      return '';
+    }
+    return CedarEmbeddableTermPicker.AUTHORITY_NAMES[authority] ?? authority;
+  }
+
+  private static readonly AUTHORITY_NAMES: Readonly<Record<string, string>> = {
+    bioportal: 'BioPortal',
+    obofoundry: 'OBO Foundry',
+    agroportal: 'AgroPortal',
+    ecoportal: 'EcoPortal',
+    eionet: 'Eionet',
+    url: 'direct download',
+  };
+
+  /** The name only when it says more than the acronym, so a row never reads "BERO BERO". */
+  protected sourceNameIfDistinct(acronym: string): string {
+    const name = this.sourceOf(acronym)?.sourceName;
+    return name === undefined || name === acronym ? '' : name;
+  }
+
+  /** What the row shows: the version stepped to, else the one that answered. */
+  protected versionOf(acronym: string): string {
+    return CedarEmbeddableTermPicker.nameOf(this.pinned().get(acronym) ?? this.sourceOf(acronym)?.version);
+  }
+
+  /**
+   * A version named the way an author recognises it.
+   *
+   * Never the content hash. The hash is what makes a pin reproducible and is meaningless to read;
+   * the declared version and the release date are what identify a release to a person.
+   *
+   * Shown as the ontology declares it, with nothing prepended. A synthesised `v` reads as part of
+   * the version and is wrong about it as often as not: the catalog holds `V2`, `v1.0.0`, `2026-07-06`
+   * and `latest`, which a prefix turns into `vV2`, `vv1.0.0` and `vlatest`.
+   *
+   * Declared, and therefore arbitrary: `owl:versionInfo` is free text, and some ontologies put a
+   * changelog in it. Of the 998 snapshots that declare a version, 915 are 20 characters or fewer,
+   * and the longest is 782 characters of prose with newlines and a table of HTML. The row elides
+   * from the middle at 20 and carries the whole string in its title, so a version that is prose
+   * costs a hover rather than the layout.
+   */
+  private static nameOf(version: VersionInfo | undefined): string {
+    if (version === undefined) {
+      return 'latest';
+    }
+    // A snapshot with neither a declared version nor an effective date is a release the source
+    // never named — 67 of the 448 ontologies a query for "disease" reaches. Nothing, rather than a
+    // word saying so: "unversioned" filled the column on every one of those rows with the absence
+    // of a fact, where a blank says the same and reads as blank. Calling it "latest" would be
+    // worse still, saying a release was unpinned when the row is reading a particular one; the
+    // history panel is where its hash identifies it.
+    return version.declaredVersion ?? version.effectiveDate?.slice(0, 10) ?? '';
+  }
+
+  protected isPinned(acronym: string): boolean {
+    return this.pinned().has(acronym);
+  }
+
+  /**
+   * This ontology's releases, newest first, fetched once.
+   *
+   * Not fetched with the search: a corpus-wide query touches a hundred ontologies and an author
+   * opens one.
+   */
+  private async loadHistory(acronym: string): Promise<readonly VersionInfo[]> {
+    const held = this.histories().get(acronym);
+    if (held) {
+      return held;
+    }
+    const response = await this.client.search({
+      query: this.text().trim(),
+      types: ['ontology'],
+      sources: [{ sourceAcronym: acronym }],
+      includeVersions: true,
+      pageSize: 1,
+    });
+    const history = response.sources.find((s) => s.sourceAcronym === acronym)?.versions ?? [];
+    this.histories.update((map) => new Map(map).set(acronym, history));
+    return history;
+  }
+
+  protected historyOf(acronym: string): readonly VersionInfo[] {
+    return this.histories().get(acronym) ?? [];
+  }
+
+  protected isHistoryOpen(acronym: string): boolean {
+    return this.historyFor() === acronym;
+  }
+
+  /** Opens the full history under the row, or closes it if this row already has it open. */
+  protected async openHistory(acronym: string): Promise<void> {
+    if (this.historyFor() === acronym) {
+      this.historyFor.set(null);
+      return;
+    }
+    this.historyFor.set(acronym);
+    await this.loadHistory(acronym);
+  }
+
+  /** Which release the row is currently reading: the pinned one, else the current one. */
+  protected isShowing(acronym: string, version: VersionInfo, index: number): boolean {
+    const pinned = this.pinned().get(acronym);
+    return pinned === undefined ? index === 0 : pinned.id === version.id;
+  }
+
+  /**
+   * Pins a release chosen from the history.
+   *
+   * Choosing the current one unpins rather than writing today's version, the same rule stepping
+   * forward to current obeys: writing nothing is what keeps latest meaning latest until the
+   * template is published.
+   */
+  protected pinTo(hit: Hit, version: VersionInfo, index: number): void {
+    const acronym = hit.sourceAcronym;
+    // Clicking the release already showing folds the hierarchy away, and clicking it again brings it
+    // back: the release rows are what an author is using at that moment, so the toggle belongs on
+    // them as much as on the row above. A different release always opens, since it has something new
+    // to show.
+    if (this.isShowing(acronym, version, index) && this.isMarked(hit)) {
+      this.marked.set(null);
+      return;
+    }
+    this.pinned.update((map) => {
+      const updated = new Map(map);
+      if (index === 0) {
+        updated.delete(acronym);
+      } else {
+        updated.set(acronym, version);
+      }
+      return updated;
+    });
+    // Choosing a release opens the row it belongs to. The release list can be opened from the row's
+    // own count without marking it, and a version chosen with no hierarchy on screen shows an author
+    // nothing of what they changed — which is the whole of what a release means to a term.
+    if (!this.isMarked(hit)) {
+      this.mark(hit);
+      return;
+    }
+    // The tree is of a release, so changing the release asks again. Without this the panel looks
+    // for a hierarchy under a key nothing has fetched and waits for a read that was never started.
+    const marked = this.marked();
+    if (marked !== null && (marked.type === 'class' || marked.type === 'branch')) {
+      void this.readHierarchy(marked).then(() => this.followPick(acronym));
+    }
+  }
+
+  /** Enough of a content hash to tell two releases apart, with the whole of it on hover. */
+  protected constraintHash(constraint: ControlledTermConfig): string | undefined {
+    if (constraint.version?.id) return constraint.version.id;
+    const acronym = this.constraintAcronym(constraint);
+    const source = this.sourceOf(acronym);
+    return source && (!constraint.sourceSystem || constraint.sourceSystem === source.sourceSystem)
+      ? source.version?.id
+      : this.observedHashes().get(this.hashKey(constraint.sourceSystem || 'bioportal', acronym));
+  }
+
+  protected readonly constraintHashes = computed(() => this.draft().constraints.map((c) => this.constraintHash(c)));
+
+  protected shortHash(id: string | undefined): string {
+    return id === undefined ? '' : id.slice(0, 12);
+  }
+
+  /**
+   * A name split around the part the query matched, so the row can mark it.
+   *
+   * The mark replaces a chip saying "named this". A chip said the same words on every row it
+   * appeared on, which is a line of vertical space carrying no information; showing which characters
+   * matched says it in the name itself.
+   */
+  /** The acronym around the query, so an ontology found by its acronym shows why. */
+  protected splitAcronym(acronym: string): readonly [string, string, string] {
+    return CedarEmbeddableTermPicker.split(acronym, this.text().trim());
+  }
+
+  protected splitName(acronym: string): readonly [string, string, string] {
+    return CedarEmbeddableTermPicker.split(this.sourceName(acronym), this.text().trim());
+  }
+
+  /** A string cut around the query: before, the match itself, after. */
+  private static split(text: string, query: string): readonly [string, string, string] {
+    const at = text.toLocaleLowerCase().indexOf(query.toLocaleLowerCase());
+    if (at < 0 || query.length === 0) {
+      return [text, '', ''];
+    }
+    return [text.slice(0, at), text.slice(at, at + query.length), text.slice(at + query.length)];
+  }
+
+  /** The range a folded branch covers, so the row says what it holds without listing its positions. */
+
+  /**
+   * Shortens a long label from the middle, keeping both ends.
+   *
+   * Some vocabularies put a whole question in the label and its axis codes after it — LOINC has
+   * "Have you been diagnosed with melanoma in the past - skin cancer, arising in melanocytes, skin
+   * cells that make skin pigment:Find:Pt:^Patient:Ord:PhenX". Cutting the end throws away the codes
+   * that say what kind of thing it is, and the two ends together identify it where either alone does
+   * not. The full text stays in the row's title, so nothing is lost, only folded.
+   */
+  protected elide(text: string | undefined, max = 96, tail = 28): string {
+    // A value set's name is optional in the contract, so this takes what the contract gives.
+    if (text === undefined || text.length <= max) {
+      return text ?? '';
+    }
+    return `${text.slice(0, max - tail - 1).trimEnd()}…${text.slice(-tail).trimStart()}`;
+  }
+
+  protected labelsOf(refs: readonly TermRef[] | undefined, limit = 4): string {
+    return (refs ?? [])
+      .slice(0, limit)
+      .map((ref) => ref.termLabel ?? ref.termIri)
+      .join(', ');
+  }
+
+  protected onInput(event: Event): void {
+    this.text.set((event.target as HTMLInputElement).value);
+  }
+
+  /**
+   * Opens a folded label, or closes it, and selects the first row it opens onto.
+   *
+   * Opening a fold is an author asking about that label, and the first row is the answer they are
+   * most likely to want — so the bar names it without a second click. Selecting rather than marking:
+   * the highlight and the phrase cost nothing, where opening the panel would fetch a hierarchy for
+   * every fold an author glances into.
+   */
+  protected toggle(label: string, hits: readonly Hit[] = []): void {
+    const opening = this.expanded() !== label;
+    this.expanded.update((open) => (open === label ? null : label));
+    if (opening && hits.length > 0 && !hits.some((hit) => this.isSelected(hit))) {
+      this.picked.set(hits[0]);
+    }
+  }
+
+  /**
+   * Emits the constraint, carrying a version only when the author stepped off latest.
+   *
+   * A class is never versioned: it has no snapshot of its own, so a version on it would name
+   * something that does not exist.
+   */
+  /** Identifies a row across the four kinds, which have no one identifier between them. */
+  protected keyOf(hit: Hit): string {
+    if (hit.type === 'ontology') {
+      return `ontology:${hit.sourceAcronym}`;
+    }
+    if (hit.type === 'property')
+      return `property:${hit.sourceAcronym}:${hit.propertyKind}:${hit.termIri}:${hit.versionId}`;
+    if (hit.type === 'class') {
+      return `class:${hit.sourceAcronym}:${hit.termIri}`;
+    }
+    return `${hit.type}:${hit.sourceAcronym}:${hit.termBaseIri}`;
+  }
+
+  /** The IRI a constraint would carry, which differs by kind: a class names one, a branch its root. */
+  protected termIriOf(hit: Hit): string {
+    if (hit.type === 'class' || hit.type === 'property') {
+      return hit.termIri;
+    }
+    // An ontology is addressed by its acronym within its system, not by a term IRI.
+    return hit.type === 'ontology' ? hit.sourceAcronym : hit.termBaseIri;
+  }
+
+  /** The ontology's own IRI, which is what an ontology constraint records in place of a term. */
+  /**
+   * What addresses the chosen thing, as a constraint records it.
+   *
+   * A term is its own IRI, a branch and a value set are the root everything under them hangs from,
+   * and an ontology is the ontology. The label is what an author reads and this is what is stored,
+   * so the bar says both rather than leaving the second to be inferred from the first.
+   */
+  /**
+   * An IRI split where its local name begins, so the bar can hold the two apart.
+   *
+   * The namespace is what an IRI has most of and the local name is what identifies the term, so a
+   * plain ellipsis at the end of the line takes the only part worth reading. Split at the last
+   * separator and the layout can collapse the first half and keep the second whole.
+   */
+  protected namespaceOf(iri: string): string {
+    return iri.slice(0, iri.length - this.localNameOf(iri).length);
+  }
+
+  protected localNameOf(iri: string): string {
+    const cut = Math.max(iri.lastIndexOf('/'), iri.lastIndexOf('#'));
+    return cut < 0 ? iri : iri.slice(cut + 1);
+  }
+
+  private iriOf(hit: Hit): string {
+    switch (hit.type) {
+      case 'class':
+      case 'property':
+        return hit.termIri;
+      case 'branch':
+      case 'valueSet':
+        return hit.termBaseIri;
+      default:
+        return this.sourceIriOf(hit);
+    }
+  }
+
+  protected sourceIriOf(hit: Hit): string {
+    return this.sourceOf(hit.sourceAcronym)?.sourceIri ?? '';
+  }
+
+  protected sourceAcronym(hit: Hit): string {
+    return hit.sourceAcronym;
+  }
+
+  /** How much sits under a term, phrased for a reader rather than as a bare figure. */
+  protected descendantsOf(hit: Hit): string {
+    const count = hit.type === 'class' || hit.type === 'branch' ? hit.descendantCount : 0;
+    if (count === 0) {
+      return '';
+    }
+    return `${count.toLocaleString()} ${count === 1 ? 'concept' : 'concepts'}`;
+  }
+
+  /**
+   * The other names a term goes by, capped at what a panel can hold.
+   *
+   * Capped because a source decides what a synonym is, and some decide oddly: BPT records
+   * "Description: …" and "Link: https://…" as exact synonyms of Melanoma, twenty-one names in all.
+   * The cap keeps a well-behaved term readable without hiding that the odd one has more.
+   */
+  protected namesOf(hit: Hit): readonly MatchedLabel[] | undefined {
+    const names = hit.type === 'class' || hit.type === 'branch' ? hit.names : undefined;
+    return names?.length ? names.slice(0, NAME_LIMIT) : undefined;
+  }
+
+  protected moreNames(hit: Hit): number {
+    const names = hit.type === 'class' || hit.type === 'branch' ? hit.names : undefined;
+    return Math.max((names?.length ?? 0) - NAME_LIMIT, 0);
+  }
+
+  /**
+   * What tells a row apart from its twins, where it has any.
+   *
+   * A fold gathers one label across ontologies, and an ontology can offer that label more than
+   * once: ACESO merges three vocabularies and labels a class "Disease" in each, so two of its rows
+   * carry the same acronym, the same name and the same release. Saying this on every row was noise;
+   * saying it on none left rows an author cannot tell apart. It is said where it distinguishes.
+   *
+   * The parent usually does. Where it does not, the term's own identifier is what is left: GENEPIO
+   * imports "disease" from three upstream vocabularies and files all three under "disposition", so
+   * three rows read identically down to the parent and are told apart only as DOID:4, MONDO:0000001
+   * and OGMS:0000031.
+   */
+  protected distinguisher(hits: readonly Hit[], hit: Hit): string {
+    const twins = hits.filter((other) => other.sourceAcronym === hit.sourceAcronym);
+    if (twins.length < 2) {
+      return '';
+    }
+    return CedarEmbeddableTermPicker.byParent(twins)
+      ? `under ${CedarEmbeddableTermPicker.parentOf(hit)}`
+      : CedarEmbeddableTermPicker.shortId(this.termIriOf(hit));
+  }
+
+  /**
+   * Whether the row is told apart by an identifier rather than by a parent.
+   *
+   * The two read differently and should look different: an identifier drawn from the tail of an IRI
+   * is sometimes a word — CHEAR's three rows are told apart as DOID:4, Disease and disease — and set
+   * in the same face as a parent's name it reads as one, saying the label again rather than
+   * identifying the term.
+   */
+  protected distinguishedById(hits: readonly Hit[], hit: Hit): boolean {
+    const twins = hits.filter((other) => other.sourceAcronym === hit.sourceAcronym);
+    return twins.length > 1 && !CedarEmbeddableTermPicker.byParent(twins);
+  }
+
+  /**
+   * One choice for a whole set of twins, not one a row.
+   *
+   * Deciding per row gave BAO's two rows a parent on one and an identifier on the other, so the
+   * column held two kinds of thing and answered neither "which parent" nor "which term". Parents are
+   * used only where they tell every twin apart.
+   */
+  private static byParent(twins: readonly Hit[]): boolean {
+    const parents = twins.map((other) => CedarEmbeddableTermPicker.parentOf(other));
+    return parents.every((parent) => parent !== '') && new Set(parents).size === parents.length;
+  }
+
+  private static parentOf(hit: Hit): string {
+    const path = hit.type === 'class' || hit.type === 'branch' ? hit.path : undefined;
+    const step = path?.[path.length - 1];
+    return step === undefined ? '' : (step.termLabel ?? step.termIri);
+  }
+
+  /**
+   * The tail of an IRI as a source and a local name, which is how OBO vocabularies are cited.
+   *
+   * Falls back to the whole IRI where it does not end in something of that shape, since an
+   * identifier an author cannot recognise still tells two rows apart.
+   */
+  private static shortId(iri: string): string {
+    const tail = iri.split(/[/#]/).pop() ?? iri;
+    const obo = /^([A-Za-z][\w-]*)_(.+)$/.exec(tail);
+    return obo === null ? tail : `${obo[1]}:${obo[2]}`;
+  }
+
+  /**
+   * Whether this row is the selection — which outlives its panel.
+   *
+   * Collapsing a hierarchy and unselecting a row are different acts, and clicking the row does the
+   * first: what an author selected is still what they selected once they have folded the tree away.
+   * So the highlight follows the selection and the panel follows the mark.
+   */
+  protected isSelected(hit: Hit): boolean {
+    const picked = this.picked();
+    return picked !== null && this.keyOf(picked) === this.keyOf(hit);
+  }
+
+  protected isMarked(hit: Hit): boolean {
+    const marked = this.marked();
+    return marked !== null && this.keyOf(marked) === this.keyOf(hit);
+  }
+
+  /**
+   * What the marked row would put on the field, said in a phrase.
+   *
+   * A row is dense with the evidence for choosing it and says nothing about the choice itself. The
+   * summary is the other half: the kind of constraint, the thing it names, and the release it would
+   * be recorded at — the sentence an author is about to commit to.
+   */
+  protected readonly selection = computed<Selection | null>(() => {
+    const hit = this.picked();
+    if (hit === null) {
+      return null;
+    }
+    const acronym = hit.sourceAcronym;
+    const fixed = this.effectiveSources().find((source) => source.sourceAcronym === acronym)?.version;
+    const pinned =
+      hit.type === 'property'
+        ? { id: hit.versionId }
+        : fixed && fixed !== 'latest'
+          ? { ...this.sourceOf(acronym)?.version, id: fixed.id }
+          : this.pinned().get(acronym);
+    const version = CedarEmbeddableTermPicker.nameOf(pinned ?? this.sourceOf(acronym)?.version);
+    // The date and the hash only where one was chosen: they are what a pinned constraint records
+    // beside the declared version, and an unpinned one records none of the three.
+    const of = {
+      effectiveDate: pinned?.effectiveDate?.slice(0, 10),
+      id: pinned?.id,
+      definition: hit.type === 'class' ? hit.definition : undefined,
+      iri: this.iriOf(hit),
+      // A pin can name an extraction a later one has corrected. It still resolves, so this is
+      // something to say rather than something to fix underneath the author.
+      superseded: this.sourceOf(acronym)?.version?.superseded === true,
+    };
+    switch (hit.type) {
+      case 'ontology':
+        return {
+          noun: 'ontology',
+          what: this.sourceName(acronym) || acronym,
+          acronym,
+          version,
+          pinned: pinned !== undefined,
+          ...of,
+        };
+      case 'branch':
+        return {
+          noun: 'branch',
+          what: hit.termBaseLabel,
+          descendants: hit.descendantCount,
+          acronym,
+          version,
+          pinned: pinned !== undefined,
+          ...of,
+        };
+      case 'valueSet':
+        // A value set's name is optional in the contract, so this falls back to what addresses it.
+        return {
+          noun: 'value set',
+          what: hit.termBaseLabel ?? hit.termBaseIri,
+          descendants: hit.termCount,
+          acronym,
+          version,
+          pinned: pinned !== undefined,
+          ...of,
+        };
+      default:
+        return {
+          noun: hit.type === 'property' ? 'property' : 'term',
+          what: hit.termLabel,
+          acronym,
+          version,
+          pinned: pinned !== undefined,
+          ...of,
+        };
+    }
+  });
+
+  /**
+   * Marks a row, or closes the one already marked.
+   *
+   * The panel a mark opens has no dismissal of its own, and a tree deep enough to fill the list is
+   * exactly when an author wants it gone. Clicking the row again is where they will try, so that is
+   * what closes it. The selection survives: closing the panel says nothing about what was chosen,
+   * and the bar goes on stating it.
+   */
+  protected mark(hit: Hit): void {
+    if (this.isMarked(hit)) {
+      // Closes the panel and leaves the row selected: the bar goes on naming it, and so does the row.
+      this.marked.set(null);
+      this.picked.set(hit);
+      return;
+    }
+    this.marked.set(hit);
+    this.picked.set(hit);
+    if (hit.type === 'class' || hit.type === 'branch') {
+      void this.readHierarchy(hit);
+    }
+  }
+
+  /**
+   * Fetches where a term sits, once per term.
+   *
+   * Its own call rather than part of the search: a page is twenty-five terms and an author asks
+   * this of the one they marked. Held once fetched, so re-marking a row costs nothing.
+   */
+  private async readHierarchy(hit: ClassHit | BranchHit): Promise<void> {
+    // Keyed by release as well as by term: a hierarchy belongs to a release, so stepping an
+    // ontology back asks again rather than redrawing the shape the current one happens to have.
+    const key = `${this.keyOf(hit)}\u0000${this.hierarchyVersion(hit.sourceAcronym) ?? ''}`;
+    if (this.hierarchies().has(key)) {
+      return;
+    }
+    const iri = this.termIriOf(hit);
+    let outcome: HierarchyOutcome;
+    try {
+      outcome = await this.client.hierarchy(hit.sourceAcronym, iri, this.hierarchyVersion(hit.sourceAcronym));
+    } catch (error) {
+      // A hierarchy is context, not the answer, so a failure leaves the panel without it rather
+      // than replacing the results. What it must not do is claim the store holds nothing: nothing
+      // was read, and the row says so instead.
+      outcome = { kind: 'failed', reason: error instanceof Error ? error.message : String(error) };
+    }
+    this.hierarchies.update((held) => new Map(held).set(key, outcome));
+    if (outcome.kind !== 'found') {
+      return;
+    }
+    // The term itself opens, since what is under it is the first thing an author looks at. Its
+    // ancestors stay closed: opening one shows what else is beside the path, which is a question
+    // asked of one ancestor at a time and not of all of them at once.
+    this.openNodes.update((nodes) => new Set(nodes).add(this.nodeKey(hit.sourceAcronym, iri)));
+    this.nodes.update((held) => new Map(held).set(this.nodeKey(hit.sourceAcronym, iri), outcome.hierarchy));
+    afterNextRender(() => this.revealTreeTerm(), { injector: this.injector });
+  }
+
+  /**
+   * Scrolls the tree to the term it was read for.
+   *
+   * A term sits at the bottom of its own ancestry, and a deep one has more ancestors than the box
+   * has room for: MESH reaches "Mice" through eight steps, so the box opened full of Eukaryota,
+   * Animals, Chordata and the term itself was below the fold, in a tree that exists to show where
+   * the term sits. The box is scrolled rather than the row asked to scroll itself into view, which
+   * would also move the panel the tree is in and take the row the author came from off screen.
+   */
+  private revealTreeTerm(): void {
+    // The rows are in the shadow tree, and the host element's own `querySelector` does not reach
+    // into it: searching the host found nothing and scrolled nothing.
+    const root: ParentNode = this.host.nativeElement.shadowRoot ?? this.host.nativeElement;
+    const term = root.querySelector<HTMLElement>('.tree .node.self');
+    const tree = term?.closest<HTMLElement>('.tree');
+    if (!term || !tree) {
+      return;
+    }
+    const offset = term.getBoundingClientRect().top - tree.getBoundingClientRect().top;
+    tree.scrollTop = Math.max(0, tree.scrollTop + offset - (tree.clientHeight - term.offsetHeight) / 2);
+  }
+
+  private hierarchyOutcomeOf(hit: Hit): HierarchyOutcome | undefined {
+    return this.hierarchies().get(`${this.keyOf(hit)}\u0000${this.hierarchyVersion(hit.sourceAcronym) ?? ''}`);
+  }
+
+  /** The tree, where one was read. */
+  protected hierarchyOf(hit: Hit): Hierarchy | undefined {
+    const outcome = this.hierarchyOutcomeOf(hit);
+    return outcome?.kind === 'found' ? outcome.hierarchy : undefined;
+  }
+
+  /**
+   * Why there is no tree, or null while one is still being read.
+   *
+   * `answered` separates the store having said what it holds from a request that never got an
+   * answer. The row says different things about the two, and it used to say the first about both.
+   */
+  protected hierarchyRefusal(hit: Hit): { readonly answered: boolean; readonly reason: string } | null {
+    const outcome = this.hierarchyOutcomeOf(hit);
+    if (outcome === undefined || outcome.kind === 'found') {
+      return null;
+    }
+    return { answered: outcome.kind === 'absent', reason: outcome.reason };
+  }
+
+  /**
+   * Keys a node of the tree: the pair that addresses a term, and the release it was read at.
+   *
+   * The release belongs in the key for the same reason it belongs in the request — a term's
+   * children differ between two of them, and a node opened before a step would otherwise be
+   * redrawn from what the other release holds.
+   */
+  private nodeKey(acronym: string, iri: string): string {
+    return `${acronym}\u0000${iri}\u0000${this.hierarchyVersion(acronym) ?? ''}`;
+  }
+
+  protected isNodeOpen(acronym: string, iri: string): boolean {
+    return this.openNodes().has(this.nodeKey(acronym, iri));
+  }
+
+  /**
+   * Opens or closes a node of the tree, reading its children the first time it opens.
+   *
+   * Lazily, because a hierarchy is a tree and not a list: SNOMED's clinical findings run to
+   * hundreds of thousands of concepts, and an author opens the handful on their way down.
+   */
+  protected async toggleNode(acronym: string, iri: string): Promise<void> {
+    if (this.openNodes().has(this.nodeKey(acronym, iri))) {
+      this.openNodes.update((nodes) => {
+        const next = new Set(nodes);
+        next.delete(this.nodeKey(acronym, iri));
+        return next;
+      });
+      return;
+    }
+    await this.openNode(acronym, iri);
+  }
+
+  /**
+   * Reads on when a tree is scrolled near its end, as the results list does.
+   *
+   * A tree scrolls what has been fetched, which is at most fifty children — so its scrollbar ended
+   * long before the node did, and a button had to stand in for the rest of the scroll. Scrolling is
+   * the natural way to ask for more of a list, so it is what asks.
+   *
+   * The node topped up is the last one on screen that has children left, which is the one whose
+   * list the author has just reached the bottom of.
+   */
+  protected onTreeScroll(event: Event, hit: Hit): void {
+    const tree = event.target as HTMLElement;
+    if (tree.scrollHeight - tree.scrollTop - tree.clientHeight >= tree.clientHeight) {
+      return;
+    }
+    const truncated = this.treeRows(hit).filter((row) => row.total > row.shown && row.open);
+    const last = truncated[truncated.length - 1];
+    if (last) {
+      void this.showMore(last.acronym, last.iri);
+    }
+  }
+
+  /** One read in flight a node, so a scroll that overtakes an earlier one does not race it. */
+  private readonly nodeInFlight = new Map<string, AbortController>();
+
+  /** Adds the next page of a node's children, keeping the ones already drawn. */
+  private async showMore(acronym: string, iri: string): Promise<void> {
+    const held = this.nodes().get(this.nodeKey(acronym, iri));
+    if (!held) {
+      return;
+    }
+    await this.readChildren(acronym, iri, held.children?.length ?? 0);
+  }
+
+  /**
+   * Reads the next page of a node's children and adds them to the ones already drawn.
+   *
+   * The node keeps its own path and counts; only the children change, so extending a node does not
+   * redraw the tree around it.
+   */
+  private async readChildren(acronym: string, iri: string, offset: number): Promise<void> {
+    const key = this.nodeKey(acronym, iri);
+    // One read a node: a scroll that reaches the end twice in quick succession would otherwise ask
+    // for the same page twice and draw it twice.
+    this.nodeInFlight.get(key)?.abort();
+    const attempt = new AbortController();
+    this.nodeInFlight.set(key, attempt);
+    try {
+      const outcome = await this.client.hierarchy(acronym, iri, this.hierarchyVersion(acronym), attempt.signal, offset);
+      if (outcome.kind !== 'found') {
+        return;
+      }
+      const found = outcome.hierarchy;
+      this.nodes.update((held) => {
+        const previous = held.get(key);
+        return new Map(held).set(key, {
+          ...found,
+          children: [...(previous?.children ?? []), ...(found.children ?? [])],
+        });
+      });
+    } catch {
+      // Narrowing is a refinement of what is already on screen. Failing to read it leaves the node
+      // as it was rather than emptying it.
+    }
+  }
+
+  /** Opens a node, reading its children the first time. Idempotent, so a path can be walked open. */
+  private async openNode(acronym: string, iri: string): Promise<void> {
+    const key = this.nodeKey(acronym, iri);
+    this.openNodes.update((nodes) => new Set(nodes).add(key));
+    if (this.nodes().has(key)) {
+      return;
+    }
+    try {
+      const outcome = await this.client.hierarchy(acronym, iri, this.hierarchyVersion(acronym));
+      this.nodes.update((held) => new Map(held).set(key, outcome.kind === 'found' ? outcome.hierarchy : null));
+    } catch {
+      this.nodes.update((held) => new Map(held).set(key, null));
+    }
+  }
+
+  /**
+   * Carries a selected term across a change of release.
+   *
+   * An author reading a term deep in one release and stepping to another means to see that term
+   * there, not to be returned to the row they started from. So the same IRI is looked for in the
+   * new release and the tree opened down to it. A release that does not contain it — a term added
+   * since, or removed — falls back to the row's own term, which every release of it has.
+   */
+  private async followPick(acronym: string): Promise<void> {
+    const picked = this.picked();
+    const marked = this.marked();
+    if (picked === null || marked === null || picked.type !== 'class' || picked.sourceAcronym !== acronym) {
+      return;
+    }
+    if (marked.type !== 'class' && marked.type !== 'branch') {
+      return;
+    }
+    if (this.termIriOf(marked) === picked.termIri) {
+      return;
+    }
+    // Read it the way the panel reads any focus term, so the tree the new release draws is held
+    // under the same key the panel looks it up by. Fetching it directly here left the re-rooted
+    // panel waiting on a read that had already happened and been thrown away.
+    await this.readHierarchy(picked);
+    const found = this.hierarchyOf(picked);
+    if (found === undefined) {
+      // The release does not hold the term, or the read failed. Either way the row's own term is
+      // the one every release of it has, so the panel falls back to where the author started.
+      this.picked.set(marked);
+      return;
+    }
+    this.picked.set({ ...picked, termLabel: found.termLabel });
+  }
+
+  /**
+   * The tree under a marked term, flattened to rows with a depth apiece.
+   *
+   * Flattened rather than rendered by recursion: the shape is a list of lines on screen, one
+   * template renders it, and a row can be reasoned about — and tested — by its depth and its key
+   * rather than by where it sits in a nest of outlets.
+   */
+  protected treeRows(hit: Hit): readonly TreeRow[] {
+    const tree = this.hierarchyOf(hit);
+    return tree
+      ? hierarchyRows(tree, hit.sourceAcronym, this.nodes(), this.openNodes(), (iri) =>
+          this.nodeKey(hit.sourceAcronym, iri),
+        )
+      : [];
+  }
+
+  /** A term reached by browsing, shaped as the constraint it would become. */
+  private nodeAsHit(hit: Hit, row: TreeRow): ClassHit {
+    return {
+      type: 'class',
+      sourceSystem: hit.sourceSystem,
+      sourceAcronym: row.acronym,
+      termIri: row.iri,
+      termType: 'class',
+      termLabel: row.label,
+      obsolete: false,
+      hasChildren: row.hasChildren,
+      descendantCount: row.descendantCount,
+      definition: row.definition,
+    };
+  }
+
+  /**
+   * Picks a term from the tree, and makes the tree about it.
+   *
+   * The panel used to stay rooted at the row the author searched into, on the grounds that the tree
+   * is where the term was found. But the row is only where they started: an author who has walked
+   * down to `anemia` is asking about anemia, and leaving the panel's children, counts and paging
+   * addressed to `disease` left the subject of the panel and the subject of the selection as two
+   * different terms. Re-rooting keeps the ancestors above, so the way back is one click on the step
+   * they came from and nothing is lost by moving.
+   */
+  protected pickNode(hit: Hit, row: TreeRow): void {
+    const picked = this.nodeAsHit(hit, row);
+    this.picked.set(picked);
+    // The re-rooted tree is this term's own, which may not have been read yet: the parent said
+    // whether it has children, not what they are.
+    void this.readHierarchy(picked);
+  }
+
+  /**
+   * Which term the panel's tree is about: the one last clicked inside it, else the row's own.
+   *
+   * A row and a pick can name different sources — an author marks a row in NCIT and picks one in
+   * DOID from a group — so the pick only takes over its own source's panel.
+   */
+  protected treeFocus(hit: Hit): Hit {
+    const picked = this.picked();
+    if (picked === null || picked.type !== 'class' || picked.sourceAcronym !== hit.sourceAcronym) {
+      return hit;
+    }
+    if (hit.type !== 'class' && hit.type !== 'branch') {
+      return hit;
+    }
+    return this.termIriOf(picked) === this.termIriOf(hit) ? hit : picked;
+  }
+
+  /**
+   * Why the selection cannot be recorded, or null when it can.
+   *
+   * A pinned constraint names a term, a source and a release, and the store has to hold that term in
+   * that release or the constraint resolves to nothing for everyone who reads it later. Stepping to
+   * a release the term is missing from is a fair thing to do while looking — ICO's 2020 release
+   * predates its import of MONDO — so the step is allowed and the recording is not.
+   *
+   * Only for a release the author pinned. An unpinned constraint records no release and is resolved
+   * at publish time, so there is nothing here to be inconsistent with.
+   */
+  protected unrecordable(hit: Hit | null): string | null {
+    if (hit && this.actionMode() && hit.type !== 'class') return 'Choose an individual term for the action.';
+    if (hit && !this.tabs().includes(hit.type)) return 'This term type is not enabled.';
+    if (this.configurationError()) return this.configurationError();
+    if (hit && this.termTypes() === undefined && this.selectionMode() === 'term' && hit.type !== 'class')
+      return 'Choose a single term for the default value.';
+    if (
+      hit &&
+      this.effectiveSources().length &&
+      !this.effectiveSources().some((source) => source.sourceAcronym === hit.sourceAcronym)
+    )
+      return 'Choose a term from the field vocabulary.';
+    if (hit === null || (hit.type !== 'class' && hit.type !== 'branch')) {
+      return null;
+    }
+    if (!this.hierarchyVersion(hit.sourceAcronym)) {
+      return null;
+    }
+    const outcome = this.hierarchyOutcomeOf(hit);
+    return outcome?.kind === 'absent' ? outcome.reason : null;
+  }
+
+  /** The same, for whatever is currently selected, which is what the bar is about. */
+  protected selectionBlocked(): string | null {
+    return this.unrecordable(this.picked());
+  }
+
+  protected isPicked(row: TreeRow): boolean {
+    const picked = this.picked();
+    return (
+      picked !== null && picked.type === 'class' && picked.termIri === row.iri && picked.sourceAcronym === row.acronym
+    );
+  }
+
+  /** Chooses a term reached by browsing rather than by searching. */
+  protected chooseNode(hit: Hit, row: TreeRow): void {
+    this.choose(this.nodeAsHit(hit, row));
+  }
+
+  /** How many releases this ontology has, when it has more than the one on the row. */
+  protected versionCount(acronym: string): number | undefined {
+    if (this.selectionMode() === 'term' || this.actionMode()) return undefined;
+    const source = this.sourceOf(acronym);
+    const count = source?.versionCount ?? 1;
+    return source?.pinnable === true && count > 1 ? count : undefined;
+  }
+
+  protected choose(hit: Hit): void {
+    // Refused rather than emitted: the bar already says why, so a double-click that does nothing is
+    // explained on screen rather than being a control that silently misbehaves.
+    if (this.unrecordable(hit) !== null) {
+      return;
+    }
+    const version =
+      hit.type === 'property'
+        ? { id: hit.versionId }
+        : this.selectionMode() === 'term'
+          ? undefined
+          : this.pinned().get(hit.sourceAcronym);
+    if (!this.tableMode()) {
+      this.selected.emit(version === undefined ? hit : { ...hit, version });
+      return;
+    }
+    const action = this.actionMode();
+    if (action) {
+      if (hit.type !== 'class') return;
+      if (action === 'move' && (!Number.isInteger(this.actionPosition()) || this.actionPosition() < 0)) {
+        this.error.set('Use a non-negative whole number for the result position.');
+        return;
+      }
+      const target = this.draft().constraints[this.actionConstraint()];
+      // The same question the constraint row asks, so it is asked in one place.
+      const sourceUri = target === undefined ? undefined : this.constraintUri(target);
+      if (!sourceUri) {
+        this.error.set('Choose a constraint with a source identifier for this action.');
+        return;
+      }
+      this.draft.update((d) => ({
+        ...d,
+        actions: [
+          ...d.actions,
+          {
+            action,
+            termUri: hit.termIri,
+            sourceUri,
+            source: hit.sourceAcronym,
+            type: hit.termType === 'value' ? 'Value' : 'OntologyClass',
+            ...(action === 'move' ? { to: this.actionPosition() } : {}),
+          },
+        ],
+      }));
+      this.actionMode.set(null);
+      return;
+    }
+    const maximum = this.maximumTerms();
+    if (this.editing() === null && maximum !== undefined && this.draft().constraints.length >= maximum) {
+      this.selectionError.set(
+        `You can select at most ${maximum} terms. Remove an entry from the table to select another.`,
+      );
+      return;
+    }
+    this.selectionError.set(null);
+    const source = this.sourceOf(hit.sourceAcronym);
+    const config = toControlledTermConfig({
+      ...hit,
+      version,
+      sourceName: source?.sourceName,
+      sourceIri: source?.sourceIri,
+    });
+    const index = this.editing();
+    if (this.draft().constraints.some((c, i) => i !== index && constraintIdentity(c) === constraintIdentity(config))) {
+      this.selectionError.set('This selection is already in the table.');
+      return;
+    }
+    this.draft.update((d) => ({
+      ...d,
+      constraints:
+        index === null ? [...d.constraints, config] : d.constraints.map((c, i) => (i === index ? config : c)),
+    }));
+    this.editing.set(null);
+  }
+
+  protected onCancel(): void {
+    this.cancelled.emit();
+  }
+
+  protected asBranch(hit: Hit): BranchHit {
+    return hit as BranchHit;
+  }
+
+  protected asOntology(hit: Hit): OntologyHit {
+    return hit as OntologyHit;
+  }
+
+  protected asValueSet(hit: Hit): ValueSetHit {
+    return hit as ValueSetHit;
+  }
+}

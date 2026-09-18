@@ -7,7 +7,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "cedar-term-picker": {
+    "cedar-embeddable-term-picker": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -16,7 +16,7 @@
       },
       "root": "",
       "sourceRoot": "src",
-      "prefix": "ctp",
+      "prefix": "cetp",
       "architect": {
         "build": {
           "builder": "@angular/build:application",
@@ -25,6 +25,11 @@
             "index": "src/index.html",
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "node_modules"
+              ]
+            },
             "assets": [
               {
                 "glob": "**/*",
@@ -42,13 +47,11 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "300kB",
-                  "maximumError": "500kB"
+                  "maximumError": "450000"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "8kB",
-                  "maximumError": "16kB"
+                  "maximumError": "200kB"
                 }
               ]
             },
@@ -63,14 +66,15 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "port": 4500
+            "port": 4500,
+            "proxyConfig": "proxy.conf.json"
           },
           "configurations": {
             "production": {
-              "buildTarget": "cedar-term-picker:build:production"
+              "buildTarget": "cedar-embeddable-term-picker:build:production"
             },
             "development": {
-              "buildTarget": "cedar-term-picker:build:development"
+              "buildTarget": "cedar-embeddable-term-picker:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -84,7 +88,10 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
           }
         }
       }

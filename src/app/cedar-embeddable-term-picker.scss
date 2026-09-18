@@ -1,0 +1,1166 @@
+@use './shared/scrolls';
+// CEDAR's design values, from the package that holds them for every component that
+// draws CEDAR. `node_modules` is on the Sass load path for this — angular.json says
+// so — because Sass resolves no package path on its own.
+@use '@org.metadatacenter/cedar-design-tokens/tokens' as tokens;
+
+// The host contract.
+//
+// These ten custom properties are what an embedder may set, and the list is short on purpose. A
+// host page setting one of them wins: rules in the outer tree take precedence over `:host`, so the
+// values below are defaults rather than a floor.
+//
+// What is deliberately not here is everything that would let a host break the component while
+// appearing to theme it — row padding, chip radius, the geometry of a control, the meaning of a
+// colour. The picker marks an obsolete term in the warning colour and a pinned version in the
+// tinted surface; a host that could re-point those individually could make an obsolete term look
+// ordinary. CEE reached the same rule from the other direction: its Material internals are not host
+// API. Adding a property here is a change to a public contract, not a tweak.
+:host {
+  --cetp-color-primary: #{tokens.$color-primary};
+  --cetp-color-on-primary: #{tokens.$color-on-primary};
+  --cetp-color-heading: #{tokens.$color-component-title};
+  --cetp-color-text: #{tokens.$text-primary};
+  --cetp-color-muted: #{tokens.$text-muted};
+  --cetp-color-surface: #{tokens.$surface-panel};
+  --cetp-color-border: #{tokens.$border-rule};
+  --cetp-color-warning: #{tokens.$color-warning};
+  --cetp-font-family: #{tokens.$font-family};
+  --cetp-font-size: #{tokens.$font-size};
+
+  // Derived, not settable. The type scale is CEDAR's — 14 for the body, 12 for what supports it,
+  // 15 for what leads — and it moves with the base a host sets rather than being pinned beside it,
+  // so `--cetp-font-size: 16px` reads as a larger component and not a broken one.
+  --cetp-font-size-small: calc(var(--cetp-font-size) + #{tokens.$font-size-small - tokens.$font-size});
+  --cetp-font-size-lead: calc(var(--cetp-font-size) + #{tokens.$font-size-lead - tokens.$font-size});
+
+  // Derived from the brand, so a host that re-points the primary colour gets a tint that matches it
+  // rather than one left behind. A chip and a pinned version share this; the panel behind expanded
+  // rows is the neutral surface, and the two have to stay distinguishable.
+  --cetp-color-tint: color-mix(in srgb, var(--cetp-color-primary) 12%, white);
+
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  font-family: var(--cetp-font-family);
+  font-size: var(--cetp-font-size);
+  line-height: normal;
+  color: var(--cetp-color-text);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+.picker {
+  position: relative;
+  border: 1px solid var(--cetp-color-border);
+  border-radius: 4px;
+  padding: 0.75rem;
+  background: #fff;
+}
+
+// The two halves hang from the top, so their captions sit on one line. Aligned at the bottom, the
+// selection's caption rode above the search's by however tall its own contents happened to be.
+.bar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  // Half the bar rather than all of it: the other half says what has been found. Both halves keep
+  // their width whether or not anything is selected, so marking a row does not move the input.
+  flex: 1 1 50%;
+  min-width: 0;
+}
+
+.chosen {
+  // Holding the space, saying nothing. `visibility` rather than a conditional, so the bar is the
+  // same height before and after a first selection.
+  &.awaiting {
+    visibility: hidden;
+  }
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 50%;
+  min-width: 0;
+  // Clear of the corner the dismiss now occupies.
+  padding-right: 1.6rem;
+
+  .phrase,
+  .about,
+  .selection-release,
+  .meaning,
+  .iri {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Every line starts at the same place. The acronym carries a left margin in a result row, where it
+  // follows a label; here it opens the line, and the indent read as the source being a note on the
+  // term above rather than half of the constraint.
+  .who,
+  .selection-release > .from {
+    margin-left: 0;
+  }
+
+  // One line, with the whole of it on hover, and the line held whether or not there is one to show.
+  // A definition is prose: left to wrap it would set the bar's height from its longest sentence, and
+  // left to appear only when present it would move everything below it as the selection changed.
+  .meaning {
+    font-size: var(--cetp-font-size-small);
+    color: var(--cetp-color-muted);
+    line-height: 1.5;
+    height: 1.5em;
+    padding-bottom: 0.35rem;
+  }
+
+  // The IRI itself, in the face the hash already uses on the line above. The namespace gives way
+  // and the local name does not: an ellipsis at the end of the line would eat the only part of an
+  // IRI that identifies the term.
+  .iri {
+    display: flex;
+    // Tall enough for what is in it, and the same box as the line below. A monospace face wants more
+    // than 1.25 line boxes, and at 1.25 the fixed height that keeps the bar still was clipping the
+    // descenders off the namespace.
+    font-size: var(--cetp-font-size-small);
+    line-height: 1.5;
+    height: 1.5em;
+
+    code {
+      font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+      color: var(--cetp-color-muted);
+    }
+
+    .ns {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    // Held whole while the namespace is elided. Drawn no differently: in a monospace face the darker
+    // colour read as weight, and an IRI is one string rather than a phrase with a stressed half.
+    .local {
+      flex: 0 0 auto;
+    }
+  }
+
+  // Sits on the input's baseline opposite it, rather than floating clear of its own caption.
+  .phrase {
+    padding: 0.45rem 0 0;
+  }
+
+  .about {
+    padding: 0.1rem 0 0.2rem;
+  }
+
+  // Why the selection cannot be recorded. Quiet, at the size of the rest of the bar's detail: it
+  // states a condition of the release the author chose, not a mistake they made, and the sentence
+  // it carries comes from the store.
+  .blocked {
+    padding: 0.1rem 0 0.2rem;
+    font-size: var(--cetp-font-size-small);
+    color: var(--cetp-color-muted);
+  }
+
+  strong {
+    color: var(--cetp-color-heading);
+    font-weight: var(--cedar-font-weight-medium, 500);
+  }
+}
+
+.label {
+  font-size: var(--cetp-font-size-small);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cetp-color-heading);
+}
+
+input {
+  padding: 0.5rem;
+  border: 1px solid var(--cetp-color-border);
+  border-radius: 3px;
+  font: inherit;
+  color: inherit;
+  min-width: 0;
+
+  &:focus {
+    outline: 2px solid var(--cetp-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+// One focus ring for everything focusable. Without this a button falls back to the browser's own,
+// which is a blue rectangle in Chrome — beside a component whose every other focus state is the
+// brand colour, and against a host page that may be neither.
+button:focus-visible,
+[tabindex]:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--cetp-color-primary);
+  outline-offset: 1px;
+}
+
+button {
+  font: inherit;
+  font-size: var(--cetp-font-size-small);
+  // Sized so a row carrying buttons is the same height as a row without: the ontology rows stood a
+  // third taller than the folded term rows, which is the vertical creep this component keeps
+  // attracting.
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--cetp-color-primary);
+  border-radius: 3px;
+  background: var(--cetp-color-primary);
+  color: var(--cetp-color-on-primary);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &.ghost {
+    background: transparent;
+    color: var(--cetp-color-primary);
+  }
+}
+
+.narrowing {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+}
+
+.chip.removable {
+  border: none;
+  cursor: pointer;
+  padding: 0.1rem 0.45rem;
+
+  .x {
+    color: var(--cetp-color-muted);
+    margin-left: 0.15rem;
+  }
+}
+
+// The way in, wearing the shape of what it adds. Outlined rather than filled, so a strip of chips
+// reads as the ontologies chosen plus one empty slot rather than as one more of them.
+.chip.adder {
+  background: transparent;
+  border: 1px dashed var(--cetp-color-border);
+  color: var(--cetp-color-primary);
+  cursor: pointer;
+  padding: 0.1rem 0.45rem;
+}
+
+// A control with no box. For the reset beside the chips, which is worth having once several
+// ontologies are on and worth nothing before that.
+.quiet {
+  background: transparent;
+  border: none;
+  padding: 0.1rem 0.2rem;
+  color: var(--cetp-color-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: var(--cetp-color-heading);
+  }
+}
+
+// The finder above the list it filters, sharing its width so the two read as one panel.
+.finder {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+
+  input {
+    // Sized to what is typed into it — an acronym or a word of a name — rather than to the panel.
+    flex: 0 1 22rem;
+    min-width: 0;
+    height: 28px;
+    font-size: var(--cetp-font-size-small);
+    padding: 0 0.45rem;
+    border: 1px solid var(--cetp-color-border);
+    border-radius: 3px;
+    background: #fff;
+    color: inherit;
+  }
+}
+
+// Naming the column, once, above the list. The release panel heads its columns the same way, and
+// for the same reason: a row of bare figures beside a name explains nothing.
+.candidates-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.15rem;
+  padding: 0 0.4rem;
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
+
+  .grow {
+    flex: 1 1 auto;
+  }
+}
+
+// One a line rather than in columns. Side by side, the eye had to read across as well as down to
+// find a name, and the second column was cut off by the panel's own width more often than not.
+.candidates {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.15rem 0.5rem;
+  max-height: 11rem;
+  @include scrolls.scrolls;
+  margin-top: 0.4rem;
+  padding: 0.35rem;
+  background: var(--cetp-color-surface);
+  border-radius: 3px;
+}
+
+.candidate {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  background: transparent;
+  border: none;
+  border-radius: 2px;
+  color: inherit;
+  text-align: left;
+  padding: 0.2rem 0.3rem;
+  min-width: 0;
+
+  &.on {
+    background: var(--cetp-color-tint);
+    font-weight: var(--cedar-font-weight-medium, 500);
+  }
+
+  .meta.inline {
+    margin-left: auto;
+  }
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  border-bottom: 1px solid var(--cetp-color-border);
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size);
+  padding: 0.4rem 0.6rem;
+
+  &.active {
+    color: var(--cetp-color-heading);
+    border-bottom-color: var(--cetp-color-primary);
+    font-weight: var(--cedar-font-weight-medium, 500);
+  }
+}
+
+.badge {
+  margin-left: 0.35rem;
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
+}
+
+.working {
+  margin: 0;
+  padding: 0.35rem 0.2rem 0;
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
+
+  // Holding the line, saying nothing, so the list below does not move when a search starts.
+  &.idle {
+    visibility: hidden;
+  }
+}
+
+// One set of columns for every row of a tab, so the counts, the versions and the step arrows line
+// up down the list instead of each row packing its own trailing cells against the right edge. The
+// rows are their own boxes — they tint when marked and rule off from each other — so they take the
+// columns through `subgrid` rather than by dissolving into the grid with `display: contents`.
+.results {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+  column-gap: 0.75rem;
+
+  // The list scrolls and grows as it is scrolled, rather than paging. A common query matches ten
+  // thousand distinct labels; page numbers over a count that stops at a cap said "400+" and asked
+  // an author to navigate a list nobody knows the length of.
+  max-height: 60vh;
+  @include scrolls.scrolls;
+}
+
+// What the bottom of the list is doing: fetching, finished, or neither.
+.tail {
+  margin: 0;
+  padding: 0.4rem 0.2rem 0;
+  min-height: 1.6rem;
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-small);
+  text-align: center;
+}
+
+.row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  padding: 0.35rem 0.2rem;
+  border-bottom: 1px solid var(--cetp-color-border);
+
+  &.group {
+    display: block;
+    padding: 0;
+  }
+}
+
+// A row an author can choose. Clicking marks it, and the mark is the whole affordance: with the
+// buttons gone there is nothing else on the row to say it answers to a click, so the tint has to
+// be visible at a glance and the cursor has to change before one.
+.pick {
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cetp-color-surface);
+  }
+
+  &.marked,
+  &.marked:hover {
+    background: var(--cetp-color-tint);
+  }
+}
+
+// Dismissal. A glyph rather than a word: it is the one control on the bar that answers nothing, and
+// spelling it out gave it the weight of a choice next to the field it sits beside.
+// In the panel's corner, not in the bar's flow. The bar is as tall as the search field and the
+// phrase beside it, and a control that answers nothing was being centred against them — floating in
+// the middle of the panel with a hand's width of space beneath it.
+.dismiss {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-lead);
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+
+  &:hover {
+    color: var(--cetp-color-heading);
+    background: var(--cetp-color-surface);
+  }
+}
+
+// How many releases the ontology has, next to the one on the row. Shown only where an author can
+// reach the others, so it reads as an invitation rather than as a fact about the corpus — and it
+// is the way in, because stepping one release at a time never says which release you reached.
+// Laid out as a row so the caret sits on the count's centre line rather than on its baseline,
+// where a glyph with no ascender hangs low against the digits beside it.
+.of {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: var(--cetp-color-primary);
+  font-size: var(--cetp-font-size-small);
+  white-space: nowrap;
+  padding: 0 0.2rem;
+  text-align: left;
+
+  &:hover {
+    background: var(--cetp-color-surface);
+  }
+}
+
+// The caret carries the affordance. Without it the count reads as another muted figure beside the
+// version, and an author has no reason to click the one thing on the row that opens.
+.caret {
+  font-size: 1.5em;
+  line-height: 1;
+}
+
+// What the marked row is offering, under the row itself. A definition list rather than a table:
+// the fields are few, they are labelled, and half of them are absent on any given term.
+// Where the term sits, drawn as the ontology draws it, and walkable from there. The indent is the
+// structure; the spine is the chain the search landed on, and everything else is what an author
+// opened to see beside it.
+// On the panel's own ground rather than the panel's tint, so the ontology's shape reads as a thing
+// in its own right instead of as more of the detail block it sits in — the release list above it is
+// tinted, and two tinted blocks running together were hard to tell apart.
+.tree {
+  list-style: none;
+  margin: 0 0 0.2rem;
+  padding: 0.25rem 0.35rem;
+  max-height: 14rem;
+  background: #fff;
+  border: 1px solid var(--cetp-color-border);
+  border-radius: 3px;
+  @include scrolls.scrolls;
+}
+
+.node {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  color: var(--cetp-color-muted);
+  white-space: nowrap;
+
+  &.spine {
+    color: var(--cetp-color-text);
+  }
+
+  &.self > .term {
+    color: var(--cetp-color-heading);
+    font-weight: var(--cedar-font-weight-medium, 500);
+  }
+
+  // The term the bar is describing. The tint alone: a bar down its edge is the mark a row and a
+  // release carry, and inside a tree it read as another level of indent rather than as emphasis.
+  &.picked > .term {
+    background: var(--cetp-color-tint);
+    color: var(--cetp-color-heading);
+  }
+
+  > .twist {
+    flex: 0 0 1.1em;
+    background: transparent;
+    border: none;
+    border-radius: 2px;
+    padding: 0;
+    color: var(--cetp-color-primary);
+    font-size: 0.85em;
+    text-align: center;
+  }
+
+  // Not `.label`: the search field's caption owns that class and uppercases it.
+  > .term {
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: transparent;
+    border: none;
+    border-radius: 2px;
+    padding: 0 0.15rem;
+    color: inherit;
+    font-size: inherit;
+    text-align: left;
+
+    &:hover {
+      background: var(--cetp-color-tint);
+    }
+  }
+}
+
+// One ontology's tree, standing in for the folded rows. It takes the whole width of the results
+// grid and scrolls with it rather than inside a box of its own.
+
+.detail {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.15rem 0.75rem;
+  // Tight against whatever it follows. Below the release list these were stacking — that margin,
+  // this one and this padding — into a finger's width of nothing above the tree.
+  margin: 0 0 0.35rem 0;
+  padding: 0 0.6rem 0.3rem;
+  background: var(--cetp-color-surface);
+  border-radius: 3px;
+  font-size: var(--cetp-font-size-small);
+
+  dt {
+    color: var(--cetp-color-muted);
+    text-align: right;
+  }
+
+  dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  // The tree has no term to define, so it takes the whole width rather than sitting in the value
+  // column with an empty label beside it.
+  // Prose, so it wraps and reads as a sentence — every other cell here is a name or a figure and
+  // is kept to one line.
+  .meaning {
+    white-space: normal;
+    line-height: 1.4;
+    padding-bottom: 0.15rem;
+    color: var(--cetp-color-text);
+  }
+
+  .wide {
+    grid-column: 1 / -1;
+  }
+
+  // The IRI is the value a template records, so it is shown whole and set apart from the prose.
+  .iri {
+    font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+    color: var(--cetp-color-heading);
+  }
+}
+
+// The full history, under the row that opened it. Scrolls rather than growing: DOID has fifteen
+// releases and nothing bounds the number an ontology can accumulate.
+.history {
+  grid-column: 1 / -1;
+  background: var(--cetp-color-surface);
+  border-radius: 3px;
+  margin: 0.15rem 0 0 0;
+  max-height: 11rem;
+  margin-bottom: 0;
+
+  // A visible track, rather than one that appears once an author is already scrolling. It is the
+  // second thing saying the list is longer than the box, after the row cut off at the bottom edge.
+  @include scrolls.scrolls;
+}
+
+.releases-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7.5em 7.5em 4em;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.3rem 0.6rem;
+  background: var(--cetp-color-surface);
+  border-bottom: 1px solid var(--cetp-color-border);
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-small);
+}
+
+.releases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+// Version, date and hash in fixed columns: what an author compares is one release against the
+// release above it, and a ragged column makes that a reading exercise.
+.release {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7.5em 7.5em 4em;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: inherit;
+  text-align: left;
+  padding: 0.25rem 0.6rem;
+  font-size: var(--cetp-font-size-small);
+
+  &:hover {
+    background: var(--cetp-color-surface);
+  }
+
+  // The release the row is reading: the pinned one, or the current one where nothing is pinned.
+  // Marked the way a marked row is marked — a tint and a bar down its edge — because a list of
+  // releases where none is picked out reads as a list an author has yet to choose from, and the
+  // one they are already on is the fact the panel exists to state. The tint carries it on its own:
+  // marking is a tinted row throughout the picker, and nothing else marks a left edge.
+  &.on,
+  &.on:hover {
+    background: var(--cetp-color-tint);
+    color: var(--cetp-color-heading);
+  }
+
+  .declared {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .date,
+  .tag {
+    color: var(--cetp-color-muted);
+  }
+
+  .hash {
+    color: var(--cetp-color-muted);
+    font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+  }
+}
+
+.rowhead {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: inherit;
+  text-align: left;
+  // Room before the twist. At 0.2rem a group's label began three pixels from the panel edge.
+  padding: 0.35rem 0.55rem;
+  font-size: var(--cetp-font-size);
+}
+
+.twist {
+  color: var(--cetp-color-muted);
+  width: 0.8em;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+
+.title {
+  font-size: var(--cetp-font-size-lead);
+  font-weight: var(--cedar-font-weight-medium, 500);
+
+  &.obsolete {
+    color: var(--cetp-color-muted);
+  }
+}
+
+.who {
+  margin-left: 0.4rem;
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-heading);
+}
+
+// A "·"-prefixed note, standing after whatever it qualifies. Angular strips the whitespace between
+// two elements, so without a margin the separator hugs the word before it — "BioAssay Ontology·
+// BioPortal". The one exception carries no separator and needs no room.
+.dim:not(.ellipsis) {
+  margin-left: 0.25rem;
+}
+
+.dim {
+  color: var(--cetp-color-muted);
+}
+
+// The compact group heading. Shorter than a row, but starting where one does: at 0.2rem its twist
+// sat three pixels from the panel edge, and the tint behind a selected row began there too.
+.oneline {
+  padding: 0.25rem 0.55rem;
+}
+
+.ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// A child row names its ontology and says where in that ontology the term sits. One ellipsis over
+// the pair cut from the right, which took the parent — and the parent is the whole reason the row
+// is distinguishable: ACESO merges three vocabularies and labels a class "Disease" in each. So the
+// two are laid out as a row of their own and the ontology name gives way first, its acronym having
+// already identified it.
+.child .grow {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+
+  .who {
+    flex: 0 0 auto;
+  }
+
+  .dim,
+  .under {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // The name gives way first and by far: it is the part the acronym beside it already identified,
+  // and the parent is the part that tells two rows of one ontology apart.
+  .dim {
+    flex: 0 8 auto;
+  }
+
+  .under {
+    flex: 0 1 auto;
+  }
+}
+
+// Every result row is one line: title and acronym on the left, the facts that distinguish it on
+// the right. A number is a number — sizing the descendant count at heading scale made a branch row
+// three times the height of an ontology row to carry no more meaning.
+.meta.inline {
+  display: inline;
+  white-space: nowrap;
+  margin-top: 0;
+}
+
+mark {
+  background: var(--cetp-color-tint);
+  color: inherit;
+  padding: 0 1px;
+}
+
+.sub,
+.meta {
+  display: block;
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
+  margin-top: 0.15rem;
+}
+
+.path {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// A term's other names. Outlined and muted, not tinted: the tint is what marks a selection
+// throughout the picker, and a row of tinted names read as eight things an author had chosen.
+//
+// Not `.tag`: the release list marks its current release with one, and an outline meant for a name
+// drew a thin grey line across every release that is not the latest, and across the header.
+.alias {
+  display: inline-block;
+  border: 1px solid var(--cetp-color-border);
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-small);
+  padding: 0.02rem 0.35rem;
+  border-radius: 3px;
+  margin-right: 0.35rem;
+}
+
+.chip {
+  display: inline-block;
+  background: var(--cetp-color-tint);
+  color: var(--cetp-color-heading);
+  font-size: var(--cetp-font-size-small);
+  padding: 0.05rem 0.4rem;
+  border-radius: 3px;
+  margin-right: 0.35rem;
+
+  &.warn {
+    background: #fff3cd;
+    color: var(--cetp-color-warning);
+  }
+
+  // A chip that annotates the words immediately before it, rather than one of a strip of chips
+  // standing on its own. The tint is pale enough that its own left padding reads as a gap between
+  // the term and the annotation, so this one carries the least padding that still keeps its text
+  // off the edge.
+  &.attached {
+    padding-left: 0.2rem;
+    padding-right: 0.25rem;
+  }
+}
+
+.children {
+  background: var(--cetp-color-surface);
+  padding: 0.1rem 0.5rem 0.2rem 1.6rem;
+}
+
+// The children of one group get the same treatment among themselves. They cannot take the outer
+// columns — a group row spans them all and the children sit inside it — so they declare their own,
+// which is enough: what an author compares is one ontology against another within a term.
+.children {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+  column-gap: 0.75rem;
+}
+
+// The counts run right against their column, so "terms" and "descendants" line up down the list
+// rather than starting wherever the number before them happens to end.
+.row > .meta.inline,
+// That a row opens onto something. In the primary colour and at the head of the row, under the
+// twist of the group heading it sits below, so the two read as the same sign at the same depth —
+// these rows had nothing at all.
+
+
+
+// A pin naming an extraction a later one corrected. Marked rather than alarming: the pin resolves,
+// and an author may well have meant that exact reading.
+.stale {
+  color: var(--cetp-color-warning);
+  font-style: italic;
+}
+
+.opener {
+  color: var(--cetp-color-primary);
+  font-size: var(--cetp-font-size-small);
+  flex: 0 0 auto;
+  padding-right: 0.35rem;
+  // One glyph turned, rather than two swapped: ▸ and ▾ are a pixel apart in width, and the column
+  // stepped sideways as a row opened.
+  display: inline-block;
+  transition: transform 0.12s ease;
+
+  &.open {
+    transform: rotate(90deg);
+  }
+}
+
+// Which repository the copy came from. Muted and last of the names, because it qualifies the
+// ontology rather than identifying it, and it gives way before the acronym does.
+.child .grow .from {
+  flex: 0 4 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.child > .meta.inline {
+  text-align: right;
+}
+
+.child {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  // Room before the first glyph, matching the group head above it. At zero a child's tint and its
+  // opening mark began hard against the panel edge.
+  padding: 0.3rem 0.55rem;
+  border-bottom: 1px solid var(--cetp-color-border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+// Stepping back through releases. Muted until an author steps off latest, at which point the row is
+// carrying a decision and says so.
+.version {
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
+  text-align: right;
+  white-space: nowrap;
+
+  &.pinned {
+    background: var(--cetp-color-tint);
+    color: var(--cetp-color-heading);
+    border-radius: 3px;
+    padding: 0 0.25rem;
+    font-weight: var(--cedar-font-weight-medium, 500);
+  }
+}
+
+.notice {
+  background: var(--cetp-color-surface);
+  border-left: 3px solid var(--cetp-color-warning);
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-small);
+  padding: 0.5rem 0.6rem;
+  margin: 0.75rem 0 0;
+}
+
+.empty {
+  color: var(--cetp-color-muted);
+  font-size: var(--cetp-font-size-small);
+  padding: 1rem 0.2rem;
+}
+
+/* The commit, reachable by keyboard: a marked row opens its detail, and the detail carries the
+   control that writes the constraint. A double click still commits for a mouse, which is quicker
+   for someone who can already see what they are choosing. */
+.use {
+  display: block;
+  width: fit-content;
+  margin: 0.5rem 0 0.25rem;
+  padding: 0.25rem 0.75rem;
+  font: inherit;
+  color: var(--cetp-color-on-primary);
+  background: var(--cetp-color-primary);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.use:focus-visible {
+  outline: 2px solid var(--cetp-color-primary);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+// CEE's compact specification rows: inline controls, details only when present.
+.term-action-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.term-action-controls {
+  margin-top: 6px;
+}
+
+.picker.set-mode {
+  padding: 8px 14px;
+  .chosen.awaiting {
+    display: none;
+  }
+  .search {
+    padding-right: 24px;
+  }
+  .narrowing {
+    margin-top: 6px;
+  }
+  .tabs {
+    margin-top: 4px;
+  }
+  .working.idle {
+    display: none;
+  }
+  .tail:empty {
+    display: none;
+  }
+  .empty {
+    margin: 0;
+    padding: 10px 2px;
+  }
+}
+
+.picker.set-mode {
+  .chosen {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 2px 8px;
+    .label {
+      grid-column: 1 / -1;
+    }
+    .phrase,
+    .about {
+      padding: 0;
+    }
+    .selection-release,
+    .iri {
+      grid-column: 1 / -1;
+      height: auto;
+    }
+    .meaning {
+      display: none;
+    }
+  }
+  .chosen.awaiting {
+    display: none;
+  }
+  .tree {
+    max-height: 8rem;
+  }
+  .detail {
+    padding-bottom: 0;
+  }
+  .use {
+    margin: 4px 0;
+  }
+}
+
+.selection-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  grid-column: 1 / -1;
+  button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.selection-detail {
+  display: contents;
+}
+.set-mode .selection-detail {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  background: var(--cetp-color-surface);
+  .detail {
+    grid-column: 1;
+    margin: 0;
+  }
+  .use {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0 6px 0 0;
+    background: var(--cetp-color-primary);
+    color: var(--cetp-color-on-primary);
+  }
+  .use:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.set-mode .selection-detail:has(.hierarchy-choice) {
+  display: block;
+}
+.set-mode .hierarchy-choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  > div {
+    min-width: 0;
+  }
+  .tree {
+    margin: 0;
+  }
+  .use {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+  }
+}
+.set-mode .chosen {
+  padding-right: 0;
+}
+
+.selection-error {
+  color: tokens.$color-warn;
+  margin: 0;
+  padding: 4px 16px;
+}
+
+.scope-selector {
+  display: block;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--cetp-color-border);
+}
+
+.selection-release > .release-part + .release-part::before {
+  content: ' · ';
+  white-space: pre;
+  font-style: normal;
+}
+
+.phrase strong {
+  font-weight: var(--cedar-font-weight-medium, 500);
+}
