@@ -1,3 +1,4 @@
+@use '@org.metadatacenter/cedar-design-tokens/tokens';
 @use '../shared/scrolls';
 
 :host {
@@ -39,7 +40,7 @@
     color: var(--cetp-color-primary);
   }
   button:disabled {
-    opacity: 0.4;
+    opacity: tokens.$control-disabled-opacity;
     cursor: default;
   }
   button:hover:enabled {
@@ -77,7 +78,7 @@
   border-collapse: collapse;
   table-layout: fixed;
   th {
-    padding: 4px 10px;
+    padding: tokens.$table-cell-padding-block-authoring tokens.$table-cell-padding-inline-authoring;
     color: var(--cetp-color-muted);
     font-size: var(--cetp-font-size-small);
     font-weight: var(--cedar-font-weight-medium, 500);
@@ -90,9 +91,9 @@
     width: 40px;
   }
   td {
-    padding: 4px 10px;
+    padding: tokens.$table-cell-padding-block-authoring tokens.$table-cell-padding-inline-authoring;
     border-top: 1px solid var(--cetp-color-border);
-    height: 28px;
+    height: tokens.$table-row-height-authoring;
     font-size: var(--cetp-font-size);
     vertical-align: middle;
     overflow-wrap: anywhere;

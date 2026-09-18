@@ -64,13 +64,6 @@
       "value": "#000",
       "count": 1
     },
-    "11cf0230d187f21c531f": {
-      "file": "src/app/search/constraint-table.scss",
-      "rule": "spacing",
-      "property": "padding",
-      "value": "4px 10px",
-      "count": 2
-    },
     "12050208396cb6d03c86": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "spacing",
@@ -531,13 +524,6 @@
       "rule": "spacing",
       "property": "padding",
       "value": "10px 2px",
-      "count": 1
-    },
-    "b5398bec04df894af32c": {
-      "file": "src/app/search/constraint-table.scss",
-      "rule": "geometry",
-      "property": "height",
-      "value": "28px",
       "count": 1
     },
     "b553f4cbfc8e72c491fa": {
