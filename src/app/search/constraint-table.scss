@@ -91,6 +91,8 @@
     width: 40px;
   }
   td {
+    box-sizing: border-box;
+    line-height: tokens.$form-help-line-height;
     padding: tokens.$table-cell-padding-block-authoring tokens.$table-cell-padding-inline-authoring;
     border-top: 1px solid var(--cetp-color-border);
     height: tokens.$table-row-height-authoring;
@@ -113,13 +115,13 @@
   }
   .constraint-row-actions button {
     border: 0;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
     width: 24px;
     height: 22px;
-    margin: 0;
+    margin: 0 0 0 auto;
     background: transparent;
     color: var(--cetp-color-text);
     line-height: 1;
