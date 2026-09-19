@@ -1189,3 +1189,8 @@ mark {
 }
 
 @include motion.reduced-motion;
+
+/* Manual field resizing is forbidden; automatic content sizing remains available. */
+textarea {
+  resize: none;
+}
