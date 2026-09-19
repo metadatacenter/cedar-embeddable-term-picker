@@ -251,6 +251,7 @@
     <label class="search">
       <span class="label">Find terms</span>
       <input
+        spellcheck="false"
         type="search"
         [placeholder]="selectionMode() === 'term' ? 'Search for a default term' : 'Search for terms'"
         [value]="text()"
@@ -435,6 +436,7 @@
     -->
   <label class="finder">
     <input
+      spellcheck="false"
       type="search"
       [value]="narrowingFilter()"
       placeholder="Find an ontology by name or acronym; click to select"

@@ -30,7 +30,13 @@
               @if (c.sourceType === 'ontology-branch') {
               <label
                 >Maximum depth
-                <input type="number" min="0" step="1" [value]="c.searchDepth" (change)="changeDepth(i, $event)"
+                <input
+                  spellcheck="false"
+                  type="number"
+                  min="0"
+                  step="1"
+                  [value]="c.searchDepth"
+                  (change)="changeDepth(i, $event)"
               /></label>
               }
             </details>
