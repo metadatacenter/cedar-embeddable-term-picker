@@ -1,3 +1,5 @@
+@use '@org.metadatacenter/cedar-design-tokens/motion';
+@use '@org.metadatacenter/cedar-design-tokens/controls';
 @use './shared/scrolls';
 // CEDAR's design values, from the package that holds them for every component that
 // draws CEDAR. `node_modules` is on the Sass load path for this — angular.json says
@@ -24,7 +26,7 @@
   --cetp-color-muted: #{tokens.$text-muted};
   --cetp-color-surface: #{tokens.$surface-panel};
   --cetp-color-border: #{tokens.$border-rule};
-  --cetp-color-warning: #{tokens.$color-warning};
+  --cetp-color-warning: #{tokens.$status-warning-text};
   --cetp-font-family: #{tokens.$font-family};
   --cetp-font-size: #{tokens.$font-size};
 
@@ -37,9 +39,14 @@
   // Derived from the brand, so a host that re-points the primary colour gets a tint that matches it
   // rather than one left behind. A chip and a pinned version share this; the panel behind expanded
   // rows is the neutral surface, and the two have to stay distinguishable.
-  --cetp-color-tint: color-mix(in srgb, var(--cetp-color-primary) 12%, white);
+  --cetp-color-tint: color-mix(
+    in srgb,
+    var(--cetp-color-primary) #{tokens.$selection-tint-percentage},
+    #{tokens.$surface-raised}
+  );
 
   display: block;
+  container-type: inline-size;
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
@@ -57,10 +64,10 @@
 
 .picker {
   position: relative;
-  border: 1px solid var(--cetp-color-border);
-  border-radius: 4px;
-  padding: 0.75rem;
-  background: #fff;
+  border: 0;
+  border-bottom: 1px solid var(--cetp-color-border);
+  padding: tokens.$space-3;
+  background: tokens.$surface-raised;
 }
 
 // The two halves hang from the top, so their captions sit on one line. Aligned at the bottom, the
@@ -182,23 +189,22 @@
 }
 
 .label {
-  font-size: var(--cetp-font-size-small);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: var(--cetp-font-size);
+  font-weight: tokens.$font-weight-medium;
   color: var(--cetp-color-heading);
 }
 
 input {
-  padding: 0.5rem;
-  border: 1px solid var(--cetp-color-border);
-  border-radius: 3px;
+  min-height: tokens.$control-height-default;
+  padding: tokens.$space-2;
+  border: 1px solid tokens.$control-border-default;
+  border-radius: tokens.$control-radius-default;
   font: inherit;
   color: inherit;
   min-width: 0;
 
   &:focus {
-    outline: 2px solid var(--cetp-color-primary);
-    outline-offset: 1px;
+    @include controls.focus-ring(var(--cetp-color-primary));
   }
 }
 
@@ -208,8 +214,7 @@ input {
 button:focus-visible,
 [tabindex]:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--cetp-color-primary);
-  outline-offset: 1px;
+  @include controls.focus-ring(var(--cetp-color-primary));
 }
 
 button {
@@ -220,7 +225,7 @@ button {
   // attracting.
   padding: 0.2rem 0.6rem;
   border: 1px solid var(--cetp-color-primary);
-  border-radius: 3px;
+  border-radius: tokens.$control-radius-default;
   background: var(--cetp-color-primary);
   color: var(--cetp-color-on-primary);
   cursor: pointer;
@@ -288,12 +293,12 @@ button {
     // Sized to what is typed into it — an acronym or a word of a name — rather than to the panel.
     flex: 0 1 22rem;
     min-width: 0;
-    height: 28px;
+    height: tokens.$control-height-default;
     font-size: var(--cetp-font-size-small);
     padding: 0 0.45rem;
-    border: 1px solid var(--cetp-color-border);
-    border-radius: 3px;
-    background: #fff;
+    border: 1px solid tokens.$control-border-default;
+    border-radius: tokens.$control-radius-default;
+    background: tokens.$surface-raised;
     color: inherit;
   }
 }
@@ -325,7 +330,7 @@ button {
   margin-top: 0.4rem;
   padding: 0.35rem;
   background: var(--cetp-color-surface);
-  border-radius: 3px;
+  border-radius: tokens.$control-radius-default;
 }
 
 .candidate {
@@ -334,7 +339,7 @@ button {
   gap: 0.4rem;
   background: transparent;
   border: none;
-  border-radius: 2px;
+  border-radius: tokens.$control-radius-authoring;
   color: inherit;
   text-align: left;
   padding: 0.2rem 0.3rem;
@@ -459,7 +464,7 @@ button {
   right: 0.35rem;
   background: transparent;
   border: none;
-  border-radius: 3px;
+  border-radius: tokens.$control-radius-default;
   color: var(--cetp-color-muted);
   font-size: var(--cetp-font-size-lead);
   line-height: 1;
@@ -482,7 +487,7 @@ button {
   gap: 0.35rem;
   background: transparent;
   border: none;
-  border-radius: 3px;
+  border-radius: tokens.$control-radius-default;
   color: var(--cetp-color-primary);
   font-size: var(--cetp-font-size-small);
   white-space: nowrap;
@@ -514,9 +519,9 @@ button {
   margin: 0 0 0.2rem;
   padding: 0.25rem 0.35rem;
   max-height: 14rem;
-  background: #fff;
+  background: tokens.$surface-raised;
   border: 1px solid var(--cetp-color-border);
-  border-radius: 3px;
+  border-radius: tokens.$control-radius-default;
   @include scrolls.scrolls;
 }
 
@@ -544,10 +549,10 @@ button {
   }
 
   > .twist {
-    flex: 0 0 1.1em;
+    flex: 0 0 tokens.$icon-size-small;
     background: transparent;
     border: none;
-    border-radius: 2px;
+    border-radius: tokens.$control-radius-authoring;
     padding: 0;
     color: var(--cetp-color-primary);
     font-size: 0.85em;
@@ -561,7 +566,7 @@ button {
     text-overflow: ellipsis;
     background: transparent;
     border: none;
-    border-radius: 2px;
+    border-radius: tokens.$control-radius-authoring;
     padding: 0 0.15rem;
     color: inherit;
     font-size: inherit;
@@ -587,7 +592,7 @@ button {
   margin: 0 0 0.35rem 0;
   padding: 0 0.6rem 0.3rem;
   background: var(--cetp-color-surface);
-  border-radius: 3px;
+  border-radius: tokens.$control-radius-default;
   font-size: var(--cetp-font-size-small);
 
   dt {
@@ -628,7 +633,7 @@ button {
 .history {
   grid-column: 1 / -1;
   background: var(--cetp-color-surface);
-  border-radius: 3px;
+  border-radius: tokens.$control-radius-default;
   margin: 0.15rem 0 0 0;
   max-height: 11rem;
   margin-bottom: 0;
@@ -725,7 +730,7 @@ button {
 
 .twist {
   color: var(--cetp-color-muted);
-  width: 0.8em;
+  width: tokens.$icon-size-small;
 }
 
 .grow {
@@ -844,7 +849,7 @@ mark {
   color: var(--cetp-color-muted);
   font-size: var(--cetp-font-size-small);
   padding: 0.02rem 0.35rem;
-  border-radius: 3px;
+  border-radius: tokens.$control-radius-default;
   margin-right: 0.35rem;
 }
 
@@ -854,11 +859,11 @@ mark {
   color: var(--cetp-color-heading);
   font-size: var(--cetp-font-size-small);
   padding: 0.05rem 0.4rem;
-  border-radius: 3px;
+  border-radius: tokens.$control-radius-default;
   margin-right: 0.35rem;
 
   &.warn {
-    background: #fff3cd;
+    background: tokens.$status-warning-surface;
     color: var(--cetp-color-warning);
   }
 
@@ -907,10 +912,9 @@ mark {
   font-size: var(--cetp-font-size-small);
   flex: 0 0 auto;
   padding-right: 0.35rem;
-  // One glyph turned, rather than two swapped: ▸ and ▾ are a pixel apart in width, and the column
-  // stepped sideways as a row opened.
+  // Rotate the same square shared icon without shifting the text column.
   display: inline-block;
-  transition: transform 0.12s ease;
+  transition: transform tokens.$motion-duration-fast tokens.$motion-ease-standard;
 
   &.open {
     transform: rotate(90deg);
@@ -956,7 +960,7 @@ mark {
   &.pinned {
     background: var(--cetp-color-tint);
     color: var(--cetp-color-heading);
-    border-radius: 3px;
+    border-radius: tokens.$control-radius-default;
     padding: 0 0.25rem;
     font-weight: var(--cedar-font-weight-medium, 500);
   }
@@ -981,6 +985,7 @@ mark {
    control that writes the constraint. A double click still commits for a mouse, which is quicker
    for someone who can already see what they are choosing. */
 .use {
+  min-height: tokens.$control-height-default;
   display: block;
   width: fit-content;
   margin: 0.5rem 0 0.25rem;
@@ -989,7 +994,7 @@ mark {
   color: var(--cetp-color-on-primary);
   background: var(--cetp-color-primary);
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: tokens.$control-radius-default;
   cursor: pointer;
 }
 
@@ -1087,7 +1092,7 @@ mark {
   gap: 8px;
   grid-column: 1 / -1;
   button:disabled {
-    opacity: 0.4;
+    opacity: tokens.$control-disabled-opacity;
     cursor: default;
   }
 }
@@ -1114,7 +1119,7 @@ mark {
     color: var(--cetp-color-on-primary);
   }
   .use:disabled {
-    opacity: 0.4;
+    opacity: tokens.$control-disabled-opacity;
     cursor: default;
   }
 }
@@ -1163,4 +1168,29 @@ mark {
 
 .phrase strong {
   font-weight: var(--cedar-font-weight-medium, 500);
+}
+
+// Embedded width, rather than the browser width, decides when the two panes stack.
+@container (max-width: 480px) {
+  .bar {
+    flex-direction: column;
+  }
+  .search,
+  .chosen {
+    width: 100%;
+    flex-basis: auto;
+  }
+  .chosen.awaiting {
+    display: none;
+  }
+  .tabs {
+    flex-wrap: wrap;
+  }
+}
+
+@include motion.reduced-motion;
+
+/* Manual field resizing is forbidden; automatic content sizing remains available. */
+textarea {
+  resize: none;
 }

@@ -1,8 +1,10 @@
+import { Icon } from '../icon';
 import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
 import { TerminologyClient } from './terminology-client';
 import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './search-types';
 
 @Component({
+  imports: [Icon],
   selector: 'cetp-property-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -17,7 +19,10 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
             aria-label="Property ontology releases"
             (click)="showReleases.set(!showReleases())"
           >
-            of {{ versions().length }} <span aria-hidden="true">{{ showReleases() ? '▴' : '▾' }}</span>
+            of {{ versions().length }}
+            <span aria-hidden="true"
+              ><cetp-icon size="small" [name]="showReleases() ? 'chevron-up' : 'chevron-down'"
+            /></span>
           </button>
         </div>
         @if (showReleases()) {
@@ -47,7 +52,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
           <ol class="tree" aria-label="Property hierarchy">
             @for (iri of tree.selected.property.parents; track iri) {
               <li class="node">
-                <span class="twist" aria-hidden="true">▾</span>
+                <span class="twist" aria-hidden="true"><cetp-icon size="small" name="chevron-down" /></span>
                 @if (ancestor(iri); as parent) {
                   <button type="button" class="term" [title]="iri" (click)="navigate(parent)">
                     {{ parent.label }}
@@ -58,12 +63,20 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
               </li>
             }
             <li class="node self" [style.padding-left.rem]="tree.selected.property.parents.length ? 0.9 : 0">
-              <span class="twist" aria-hidden="true">{{ tree.children.length ? '▾' : '' }}</span>
+              <span class="twist" aria-hidden="true">
+                @if (tree.children.length) {
+                  <cetp-icon size="small" name="chevron-down" />
+                }
+              </span>
               <span class="term" [title]="tree.selected.property.iri">{{ tree.selected.property.label }}</span>
             </li>
             @for (child of tree.children; track child.iri) {
               <li class="node" [style.padding-left.rem]="tree.selected.property.parents.length ? 1.8 : 0.9">
-                <span class="twist" aria-hidden="true">{{ child.hasChildren ? '▸' : '' }}</span>
+                <span class="twist" aria-hidden="true">
+                  @if (child.hasChildren) {
+                    <cetp-icon size="small" name="chevron-right" />
+                  }
+                </span>
                 <button type="button" class="term" [title]="child.iri" (click)="navigate(child)">
                   {{ child.label }}
                 </button>
@@ -164,7 +177,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
       gap: 3px;
     }
     .twist {
-      flex: 0 0 1.1em;
+      flex: 0 0 tokens.$icon-size-small;
       color: var(--cetp-color-primary);
       font-size: 0.85em;
     }

@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
 
     steps:
@@ -48,6 +48,16 @@ jobs:
       # that check.
       - name: Run the gate
         run: npm run test:ci
+
+      - name: Compare pinned CEE-style visual baselines
+        run: npm run test:visual
+
+      - name: Upload visual diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: picker-browser-results
+          path: browser/test-results/
 
       # Deliberately its own step, and deliberately not part of `test:ci`.
       #

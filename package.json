@@ -1,7 +1,7 @@
 {
   "name": "cedar-embeddable-term-picker",
   "description": "CEDAR Embeddable Term Picker (CETP), a reusable Web Component for choosing what constrains a CEDAR field.",
-  "version": "0.1.0-dev.20260917.55cb50c3",
+  "version": "0.1.0-dev.20260921.009a10a3",
   "engines": {
     "node": "^24.15.0"
   },
@@ -24,7 +24,8 @@
     "package:npm": "npm run types:public && node scripts/stage-npm-package.mjs && npm run check:npm-package",
     "check:npm-package": "node scripts/check-npm-package.mjs",
     "test:packaging": "node --test scripts/npm-package.test.mjs",
-    "dist": "npm run build:production && npm run bundle && npm run check:size && npm run package:npm"
+    "dist": "npm run build:production && npm run bundle && npm run check:size && npm run package:npm",
+    "test:visual": "bash browser/run-visual.sh"
   },
   "dependencies": {
     "@angular/common": "^22.1.6",
@@ -41,7 +42,7 @@
     "@angular/cli": "^22.1.8",
     "@angular/compiler-cli": "^22.1.6",
     "@eslint/js": "^10.0.1",
-    "@org.metadatacenter/cedar-design-tokens": "0.1.0-dev.20260917.156f7425",
+    "@org.metadatacenter/cedar-design-tokens": "0.1.0-dev.20260923.gafb9139c70a8.t0622",
     "@types/node": "^24.9.2",
     "angular-eslint": "^22.1.0",
     "esbuild": "^0.28.2",

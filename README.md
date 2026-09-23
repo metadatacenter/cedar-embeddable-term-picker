@@ -106,9 +106,13 @@ its `cancelled` event. Nothing on that page ships.
 | `npm run typecheck`        | `tsc` over every file under `src/`                                                             |
 | `npm run dist`             | the distribution: one script, its declarations, and a staged package                           |
 | `npm run test:ci`          | the gate: lint, typecheck, tests, the production build, the browser tests and the distribution |
+| `npm run test:visual`     | desktop and narrow CEE-style pixel baselines in pinned ARM Linux Docker (build first) |
 | `npm run audit:prod`       | advisories against what actually ships                                                         |
 
-GitHub Actions runs the gate on push and pull request. The build is zoneless, so
+GitHub Actions runs the gate and visual baselines on push and pull request. The
+visual runner uses Playwright 1.63.0 on ARM Linux both locally and in CI, with no
+pixel difference allowance. To review an intentional visual change, build first,
+then run `npm run test:visual -- --update-snapshots` and inspect both images. The build is zoneless, so
 change detection runs on signals rather than on `zone.js` patching the browser's
 async APIs: a view updates on a microtask after a signal is set, and
 `await fixture.whenStable()` is what a spec waits on.

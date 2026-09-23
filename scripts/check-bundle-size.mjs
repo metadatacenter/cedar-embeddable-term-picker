@@ -20,7 +20,10 @@ import { gzipSync } from 'node:zlib';
 import { readFileSync } from 'node:fs';
 import { OUT, readManifest } from './make-bundle.mjs';
 
-const RAW_LIMIT = 450_000;
+// 2026-09-18: shared semantic SVG registry and adapters bring the Angular output
+// to about 480k raw bytes including the distribution wrapper. Keep the compressed ceiling unchanged (230k); this replaces
+// local glyphs and includes only the curated registry, never the full Lucide set.
+const RAW_LIMIT = 490_000;
 const GZIP_LIMIT = 230_000;
 
 const format = (bytes) => `${bytes.toLocaleString('en-US')} bytes`;

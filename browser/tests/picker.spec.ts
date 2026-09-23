@@ -1158,6 +1158,8 @@ test('authors a constraint set in compact tables and applies it as one event', a
   // carried a second one reading the same word a few lines above it.
   await picker.locator('.hierarchy-choice').getByRole('button', { name: 'Select', exact: true }).click();
   await expect(picker.locator('.constraint-table').first().locator('tbody tr')).toHaveCount(2);
+  await expect(picker.locator('.constraint-table td').first()).toHaveCSS('height', '28px');
+  await expect(picker.locator('.constraint-table td').first()).toHaveCSS('padding-top', '2px');
   await expect(picker.locator('.constraint-table tbody tr').last().locator('.hash')).toHaveAttribute('title', 'hash');
   await expect(picker.locator('.constraint-table tbody tr').last().locator('details')).toHaveCount(0);
   await expect(picker.getByRole('button', { name: 'Exclude a term', exact: true })).toHaveCount(0);
