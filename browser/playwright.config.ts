@@ -18,6 +18,7 @@ const port = Number(process.env.PORT ?? 4599);
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
+  workers: process.env.CEDAR_TEST_WORKERS ? Number(process.env.CEDAR_TEST_WORKERS) : undefined,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'line' : 'list',
