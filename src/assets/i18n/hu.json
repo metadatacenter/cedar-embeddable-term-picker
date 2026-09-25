@@ -29,7 +29,7 @@
     "deprecated": "Elavult",
     "replacedBy": "helyettesítője: {{term}}",
     "noReplacement": "a forrás nem nevez meg helyettesítőt",
-    "useThisTerm": "Kifejezés használata"
+    "useThisTerm": "Fogalom használata"
   },
   "history": {
     "count": "{{count}} kiadás, a legújabb elöl",
@@ -39,14 +39,14 @@
     "reading": "Kiadások beolvasása…"
   },
   "bar": {
-    "findTerms": "Kifejezések keresése",
-    "placeholderDefaultTerm": "Alapértelmezett kifejezés keresése",
-    "placeholderTerms": "Kifejezés keresése",
+    "findTerms": "Fogalmak keresése",
+    "placeholderDefaultTerm": "Alapértelmezett fogalom keresése",
+    "placeholderTerms": "Fogalom keresése",
     "close": "Bezárás választás nélkül"
   },
   "selection": {
     "heading": {
-      "term": "Kiválasztott kifejezés",
+      "term": "Kiválasztott fogalom",
       "branch": "Kiválasztott ág",
       "ontology": "Kiválasztott ontológia",
       "valueSet": "Kiválasztott értékkészlet",
@@ -65,14 +65,14 @@
     "finderPlaceholder": "Ontológia keresése név vagy rövidítés alapján; a kiválasztáshoz kattintson rá",
     "finderLabel": "Ontológia keresése a szűkítéshez",
     "visibleOf": "{{total}} ontológiából {{shown}}",
-    "matchingTerms": "egyező kifejezések",
+    "matchingTerms": "egyező fogalmak",
     "noneByThatName": "A listában nincs ilyen nevű ontológia.",
     "looking": "Keresés…",
-    "noneHoldsMatch": "Egyik ontológia sem tartalmaz a keresésnek megfelelő kifejezést.",
+    "noneHoldsMatch": "Egyik ontológia sem tartalmaz a keresésnek megfelelő fogalmat.",
     "nothingYet": "Nincs mire szűkíteni — előbb keressen valamire."
   },
   "tabs": {
-    "class": "kifejezések",
+    "class": "fogalmak",
     "branch": "ágak",
     "ontology": "ontológiák",
     "valueSet": "értékkészletek",
@@ -82,7 +82,7 @@
     "searching": "keresés…",
     "readingMore": "további találatok beolvasása…",
     "noMore": "nincs több találat",
-    "unavailable": "{{acronym}}: a keresés nem terjedt ki erre a forrásra — {{reason}}. A kifejezései ezért hiányoznak a találatok közül, nem azért, mert a szótárban nem szerepelnek."
+    "unavailable": "{{acronym}}: a keresés nem terjedt ki erre a forrásra — {{reason}}. A fogalmai ezért hiányoznak a találatok közül, nem azért, mert a szótárban nem szerepelnek."
   },
   "counts": {
     "descendants": {
@@ -102,18 +102,18 @@
       "many": "{{branches}} ág {{count}} ontológiában"
     },
     "terms": {
-      "one": "{{count}} kifejezés",
-      "many": "{{count}} kifejezés"
+      "one": "{{count}} fogalom",
+      "many": "{{count}} fogalom"
     },
     "values": "{{count}} érték"
   },
   "results": {
     "obsolete": "elavult",
     "matched": "egyezés: {{label}}",
-    "noTerms": "Nincs egyező kifejezés.",
-    "noBranches": "Nincs egyező ág. Az ág olyan kifejezés, amelynek leszármazottai vannak.",
-    "noTermsMatch": "nincs egyező kifejezés",
-    "noOntologies": "Egyik szótár neve sem ez, és egyikben sincs egyező kifejezés.",
+    "noTerms": "Nincs egyező fogalom.",
+    "noBranches": "Nincs egyező ág. Az ág olyan fogalom, amelynek leszármazottai vannak.",
+    "noTermsMatch": "nincs egyező fogalom",
+    "noOntologies": "Egyik szótár neve sem ez, és egyikben sincs egyező fogalom.",
     "propertyIn": "{{label}} ({{acronym}})",
     "propertyKind": {
       "object": "objektumtulajdonság",
@@ -129,27 +129,27 @@
   "errors": {
     "maximumTerms": "A maximumTerms értéke pozitív egész szám legyen; korlát nélküli működéshez hagyja el.",
     "termTypes": "A termTypes értéke a class, branch, ontology, valueSet és property értékekből álló tömb legyen.",
-    "tooManyToApply": "Legfeljebb {{maximum}} kifejezést válasszon ki. A folytatás előtt távolítson el bejegyzéseket a táblázatból.",
-    "tooManyToAdd": "Legfeljebb {{maximum}} kifejezést választhat ki. Újabb kiválasztásához távolítson el egy bejegyzést a táblázatból.",
+    "tooManyToApply": "Legfeljebb {{maximum}} fogalmat válasszon ki. A folytatás előtt távolítson el bejegyzéseket a táblázatból.",
+    "tooManyToAdd": "Legfeljebb {{maximum}} fogalmat választhat ki. Újabb kiválasztásához távolítson el egy bejegyzést a táblázatból.",
     "corpusQueryTooShort": "A teljes gyűjteményben való kereséshez legalább {{count}} karakter szükséges. Rövidebb kereséshez szűkítsen egy ontológiára.",
     "searchFailed": "A keresés sikertelen.",
-    "actionNeedsTerm": "A művelethez válasszon egy egyedi kifejezést.",
-    "typeNotEnabled": "Ez a kifejezéstípus nincs engedélyezve.",
-    "defaultNeedsTerm": "Az alapértelmezett értékhez egyetlen kifejezést válasszon.",
-    "outsideFieldVocabulary": "A mező szótárából válasszon kifejezést.",
+    "actionNeedsTerm": "A művelethez válasszon egy egyedi fogalmat.",
+    "typeNotEnabled": "Ez a fogalomtípus nincs engedélyezve.",
+    "defaultNeedsTerm": "Az alapértelmezett értékhez egyetlen fogalmat válasszon.",
+    "outsideFieldVocabulary": "A mező szótárából válasszon fogalmat.",
     "positionNotWhole": "A találati pozíció nemnegatív egész szám legyen.",
     "actionNeedsSource": "Ehhez a művelethez forrásazonosítóval rendelkező megkötést válasszon.",
     "alreadyInTable": "Ez a kiválasztás már szerepel a táblázatban.",
     "serverAnswered": "A terminológiai szerver {{status}} állapotkóddal válaszolt.",
     "propertySearchFailed": "A tulajdonságkeresés sikertelen.",
     "propertyLookupFailed": "A tulajdonság lekérdezése sikertelen ({{status}}).",
-    "termNotHeld": "A tárban nincs ilyen kifejezés: {{iri}} ({{acronym}}).",
+    "termNotHeld": "A tárban nincs ilyen fogalom: {{iri}} ({{acronym}}).",
     "propertyUnreadable": "Ez a tulajdonság nem olvasható be."
   },
   "table": {
     "label": "Mezőmegkötések",
-    "heading": "Kiválasztott kifejezések",
-    "term": "Kifejezés",
+    "heading": "Kiválasztott fogalmak",
+    "term": "Fogalom",
     "sourceAndRelease": "Forrás és kiadás",
     "remove": "Eltávolítás",
     "identifier": "Azonosító",
@@ -161,13 +161,13 @@
     "rowTitle": "{{uri}}\nForrás: {{source}}\nVerzió: {{version}}",
     "removeConstraint": "{{number}}. megkötés eltávolítása",
     "removeConstraintTitle": "Megkötés eltávolítása",
-    "empty": "Nincs kiválasztott kifejezés. Hozzáadáshoz keressen alább.",
+    "empty": "Nincs kiválasztott fogalom. Hozzáadáshoz keressen alább.",
     "done": "Kész",
     "cancel": "Mégse",
-    "savedActions": "{{count}} mentett kifejezésművelet",
+    "savedActions": "{{count}} mentett fogalomművelet",
     "position": "pozíció: {{position}}",
     "kind": {
-      "ontologyTerm": "kifejezés",
+      "ontologyTerm": "fogalom",
       "ontologyBranch": "Ág",
       "ontology": "Ontológia",
       "valueSet": "Értékkészlet",

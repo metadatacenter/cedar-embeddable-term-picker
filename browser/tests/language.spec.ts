@@ -14,7 +14,7 @@ test('the language attribute and property both switch the picker, at once', asyn
   await expect(picker.locator('.search .label')).toHaveText('Find terms');
 
   await picker.evaluate((element) => element.setAttribute('language', 'hu'));
-  await expect(picker.locator('.search .label')).toHaveText('Kifejezések keresése');
+  await expect(picker.locator('.search .label')).toHaveText('Fogalmak keresése');
   await expect(picker.locator('.dismiss')).toHaveAttribute('aria-label', 'Bezárás választás nélkül');
 
   await picker.evaluate((element) => ((element as HTMLElement & { language: string }).language = 'en'));
@@ -38,5 +38,5 @@ test('two pickers on one page keep their own languages', async ({ page }) => {
     }
   });
   await expect(page.locator('#a .search .label')).toHaveText('Find terms');
-  await expect(page.locator('#b .search .label')).toHaveText('Kifejezések keresése');
+  await expect(page.locator('#b .search .label')).toHaveText('Fogalmak keresése');
 });

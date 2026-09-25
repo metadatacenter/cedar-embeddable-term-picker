@@ -74,9 +74,9 @@ describe('the language input', () => {
 
     fixture.componentRef.setInput('language', 'hu');
     await fixture.whenStable();
-    expect(text(fixture, '.search .label')).toBe('Kifejezések keresése');
+    expect(text(fixture, '.search .label')).toBe('Fogalmak keresése');
     // Hungarian groups digits with a no-break space, where English uses a comma.
-    expect(text(fixture, '.tab')).toBe('kifejezések 12 552');
+    expect(text(fixture, '.tab')).toBe('fogalmak 12 552');
     expect(text(fixture, '.results .rowhead')).toContain('1 ontológiában');
     expect(shadow(fixture).querySelector('.constraint-table-controls .use')?.textContent?.trim()).toBe('Kész');
 
@@ -113,6 +113,6 @@ describe('the language input', () => {
     await english.whenStable();
     await hungarian.whenStable();
     expect(text(english, '.search .label')).toBe('Find terms');
-    expect(text(hungarian, '.search .label')).toBe('Kifejezések keresése');
+    expect(text(hungarian, '.search .label')).toBe('Fogalmak keresése');
   });
 });
