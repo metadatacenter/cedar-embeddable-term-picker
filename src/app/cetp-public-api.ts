@@ -33,6 +33,9 @@ export type {
 
 import type { SelectedConstraint, SourceSelector } from './search/search-types';
 
+/** The languages the picker speaks. */
+export type CetpLanguage = 'en' | 'hu';
+
 /**
  * The picker, as a host sees it.
  *
@@ -42,6 +45,11 @@ import type { SelectedConstraint, SourceSelector } from './search/search-types';
  */
 export interface CedarEmbeddableTermPickerElement extends HTMLElement {
   query: string;
+  /**
+   * The language of every string the picker shows, `en` unless set. Also settable as the
+   * `language` attribute, and changeable at any time. Any other value falls back to `en`.
+   */
+  language: CetpLanguage;
   /** Enabled types. Omitted means all five; an empty array enables none. */
   termTypes?: readonly import('./search/search-types').SearchKind[];
   /** Maximum table entries; omitted means unlimited. */

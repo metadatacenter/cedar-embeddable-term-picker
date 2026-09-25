@@ -1,0 +1,186 @@
+{
+  "common": {
+    "latest": "legújabb",
+    "select": "Kiválasztás",
+    "reading": "beolvasás…",
+    "pinned": "rögzített"
+  },
+  "scope": {
+    "label": "Keresett szótár és kiadás"
+  },
+  "stepper": {
+    "versionTitle": "Verzió: {{version}}",
+    "showAllReleases": "{{acronym}}: az összes kiadás megjelenítése ({{count}})",
+    "of": "/ {{count}}"
+  },
+  "tree": {
+    "collapse": "{{label}} bezárása",
+    "expand": "{{label}} kinyitása",
+    "useHint": "{{iri}} — dupla kattintással kiválasztható",
+    "shownOf": "{{total}} közül {{shown}}",
+    "unreadable": "a hierarchia nem olvasható be: {{reason}}"
+  },
+  "detail": {
+    "ontologyIri": "Ontológia IRI",
+    "valueSetIri": "Értékkészlet IRI",
+    "matched": "Egyezés",
+    "alsoCalled": "Más néven",
+    "moreNames": "és még {{count}}",
+    "deprecated": "Elavult",
+    "replacedBy": "helyettesítője: {{term}}",
+    "noReplacement": "a forrás nem nevez meg helyettesítőt",
+    "useThisTerm": "Kifejezés használata"
+  },
+  "history": {
+    "count": "{{count}} kiadás, a legújabb elöl",
+    "effectiveDate": "hatálybalépés dátuma",
+    "contentHash": "tartalmi hash",
+    "noDeclaredVersion": "nincs megadott verzió",
+    "reading": "Kiadások beolvasása…"
+  },
+  "bar": {
+    "findTerms": "Kifejezések keresése",
+    "placeholderDefaultTerm": "Alapértelmezett kifejezés keresése",
+    "placeholderTerms": "Kifejezés keresése",
+    "close": "Bezárás választás nélkül"
+  },
+  "selection": {
+    "heading": {
+      "term": "Kiválasztott kifejezés",
+      "branch": "Kiválasztott ág",
+      "ontology": "Kiválasztott ontológia",
+      "valueSet": "Kiválasztott értékkészlet",
+      "property": "Kiválasztott tulajdonság"
+    },
+    "supersededTitle": "Ugyanezen forrásbájtoknak létezik egy későbbi beolvasása. Ez a rögzítés továbbra is feloldható.",
+    "superseded": "felülírt"
+  },
+  "narrowing": {
+    "searchingOnly": "Keresés csak ezekben:",
+    "done": "kész",
+    "addOntology": "+ ontológia",
+    "clear": "törlés",
+    "searchingEvery": "Keresés minden ontológiában",
+    "narrowTo": "szűkítés…",
+    "finderPlaceholder": "Ontológia keresése név vagy rövidítés alapján; a kiválasztáshoz kattintson rá",
+    "finderLabel": "Ontológia keresése a szűkítéshez",
+    "visibleOf": "{{total}} ontológiából {{shown}}",
+    "matchingTerms": "egyező kifejezések",
+    "noneByThatName": "A listában nincs ilyen nevű ontológia.",
+    "looking": "Keresés…",
+    "noneHoldsMatch": "Egyik ontológia sem tartalmaz a keresésnek megfelelő kifejezést.",
+    "nothingYet": "Nincs mire szűkíteni — előbb keressen valamire."
+  },
+  "tabs": {
+    "class": "kifejezések",
+    "branch": "ágak",
+    "ontology": "ontológiák",
+    "valueSet": "értékkészletek",
+    "property": "tulajdonságok"
+  },
+  "status": {
+    "searching": "keresés…",
+    "readingMore": "további találatok beolvasása…",
+    "noMore": "nincs több találat",
+    "unavailable": "{{acronym}}: a keresés nem terjedt ki erre a forrásra — {{reason}}. A kifejezései ezért hiányoznak a találatok közül, nem azért, mert a szótárban nem szerepelnek."
+  },
+  "counts": {
+    "descendants": {
+      "one": "{{count}} leszármazott",
+      "many": "{{count}} leszármazott"
+    },
+    "ontologies": {
+      "one": "{{count}} ontológia",
+      "many": "{{count}} ontológia"
+    },
+    "inOntologies": {
+      "one": "{{count}} ontológiában",
+      "many": "{{count}} ontológiában"
+    },
+    "branchesInOntologies": {
+      "one": "{{branches}} ág {{count}} ontológiában",
+      "many": "{{branches}} ág {{count}} ontológiában"
+    },
+    "terms": {
+      "one": "{{count}} kifejezés",
+      "many": "{{count}} kifejezés"
+    },
+    "values": "{{count}} érték"
+  },
+  "results": {
+    "obsolete": "elavult",
+    "matched": "egyezés: {{label}}",
+    "noTerms": "Nincs egyező kifejezés.",
+    "noBranches": "Nincs egyező ág. Az ág olyan kifejezés, amelynek leszármazottai vannak.",
+    "noTermsMatch": "nincs egyező kifejezés",
+    "noOntologies": "Egyik szótár neve sem ez, és egyikben sincs egyező kifejezés.",
+    "propertyIn": "{{label}} ({{acronym}})",
+    "propertyKind": {
+      "object": "objektumtulajdonság",
+      "datatype": "adattípus-tulajdonság",
+      "annotation": "annotációs tulajdonság"
+    },
+    "noProperties": "Nincs egyező tulajdonság.",
+    "noValueSets": "Nincs egyező értékkészlet."
+  },
+  "authority": {
+    "url": "közvetlen letöltés"
+  },
+  "errors": {
+    "maximumTerms": "A maximumTerms értéke pozitív egész szám legyen; korlát nélküli működéshez hagyja el.",
+    "termTypes": "A termTypes értéke a class, branch, ontology, valueSet és property értékekből álló tömb legyen.",
+    "tooManyToApply": "Legfeljebb {{maximum}} kifejezést válasszon ki. A folytatás előtt távolítson el bejegyzéseket a táblázatból.",
+    "tooManyToAdd": "Legfeljebb {{maximum}} kifejezést választhat ki. Újabb kiválasztásához távolítson el egy bejegyzést a táblázatból.",
+    "corpusQueryTooShort": "A teljes gyűjteményben való kereséshez legalább {{count}} karakter szükséges. Rövidebb kereséshez szűkítsen egy ontológiára.",
+    "searchFailed": "A keresés sikertelen.",
+    "actionNeedsTerm": "A művelethez válasszon egy egyedi kifejezést.",
+    "typeNotEnabled": "Ez a kifejezéstípus nincs engedélyezve.",
+    "defaultNeedsTerm": "Az alapértelmezett értékhez egyetlen kifejezést válasszon.",
+    "outsideFieldVocabulary": "A mező szótárából válasszon kifejezést.",
+    "positionNotWhole": "A találati pozíció nemnegatív egész szám legyen.",
+    "actionNeedsSource": "Ehhez a művelethez forrásazonosítóval rendelkező megkötést válasszon.",
+    "alreadyInTable": "Ez a kiválasztás már szerepel a táblázatban.",
+    "serverAnswered": "A terminológiai szerver {{status}} állapotkóddal válaszolt.",
+    "propertySearchFailed": "A tulajdonságkeresés sikertelen.",
+    "propertyLookupFailed": "A tulajdonság lekérdezése sikertelen ({{status}}).",
+    "termNotHeld": "A tárban nincs ilyen kifejezés: {{iri}} ({{acronym}}).",
+    "propertyUnreadable": "Ez a tulajdonság nem olvasható be."
+  },
+  "table": {
+    "label": "Mezőmegkötések",
+    "heading": "Kiválasztott kifejezések",
+    "term": "Kifejezés",
+    "sourceAndRelease": "Forrás és kiadás",
+    "remove": "Eltávolítás",
+    "identifier": "Azonosító",
+    "sourceIdentity": "Forrás azonossága",
+    "notRecorded": "Nincs rögzítve",
+    "versionPin": "Rögzített verzió",
+    "latest": "Legújabb",
+    "maximumDepth": "Legnagyobb mélység",
+    "rowTitle": "{{uri}}\nForrás: {{source}}\nVerzió: {{version}}",
+    "removeConstraint": "{{number}}. megkötés eltávolítása",
+    "removeConstraintTitle": "Megkötés eltávolítása",
+    "empty": "Nincs kiválasztott kifejezés. Hozzáadáshoz keressen alább.",
+    "done": "Kész",
+    "cancel": "Mégse",
+    "savedActions": "{{count}} mentett kifejezésművelet",
+    "position": "pozíció: {{position}}",
+    "kind": {
+      "ontologyTerm": "kifejezés",
+      "ontologyBranch": "Ág",
+      "ontology": "Ontológia",
+      "valueSet": "Értékkészlet",
+      "ontologyProperty": "Tulajdonság"
+    }
+  },
+  "property": {
+    "details": "Tulajdonság részletei",
+    "release": "Kiadás: {{release}}",
+    "releases": "A tulajdonság ontológiájának kiadásai",
+    "reading": "Tulajdonság beolvasása…",
+    "notHeld": "{{iri}} (ebben a pillanatképben nem szerepel)",
+    "hierarchy": "Tulajdonsághierarchia",
+    "moreChildren": "További gyermekelemek"
+  }
+}

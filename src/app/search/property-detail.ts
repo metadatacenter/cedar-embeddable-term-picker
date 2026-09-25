@@ -1,32 +1,34 @@
 import { Icon } from '../icon';
+import { TranslatePipe } from '@ngx-translate/core';
+import { Localizer, Message, messageOf, phrase } from '../i18n/localization';
 import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
 import { TerminologyClient } from './terminology-client';
 import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './search-types';
 
 @Component({
-  imports: [Icon],
+  imports: [Icon, TranslatePipe],
   selector: 'cetp-property-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section aria-label="Property details">
+    <section [attr.aria-label]="'property.details' | translate">
       @if (allowVersions() && versions().length) {
         <div class="release-toolbar">
-          <span>Release {{ releaseLabel() }}</span>
+          <span>{{ 'property.release' | translate: { release: releaseLabel() } }}</span>
           <button
             type="button"
             class="release-toggle"
             [attr.aria-expanded]="showReleases()"
-            aria-label="Property ontology releases"
+            [attr.aria-label]="'property.releases' | translate"
             (click)="showReleases.set(!showReleases())"
           >
-            of {{ versions().length }}
+            {{ 'stepper.of' | translate: { count: versions().length } }}
             <span aria-hidden="true"
               ><cetp-icon size="small" [name]="showReleases() ? 'chevron-up' : 'chevron-down'"
             /></span>
           </button>
         </div>
         @if (showReleases()) {
-          <div class="releases" aria-label="Property ontology releases">
+          <div class="releases" [attr.aria-label]="'property.releases' | translate">
             @for (version of versions(); track version.id) {
               <button
                 type="button"
@@ -42,14 +44,14 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
         }
       }
       @if (loading()) {
-        <p role="status">Reading property…</p>
+        <p role="status">{{ 'property.reading' | translate }}</p>
       }
       @if (error(); as message) {
-        <p role="alert">{{ message }}</p>
+        <p role="alert">{{ localizer.say(message) }}</p>
       }
       @if (hierarchy(); as tree) {
         <div class="hierarchy-choice">
-          <ol class="tree" aria-label="Property hierarchy">
+          <ol class="tree" [attr.aria-label]="'property.hierarchy' | translate">
             @for (iri of tree.selected.property.parents; track iri) {
               <li class="node">
                 <span class="twist" aria-hidden="true"><cetp-icon size="small" name="chevron-down" /></span>
@@ -58,7 +60,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
                     {{ parent.label }}
                   </button>
                 } @else {
-                  <span class="missing">{{ iri }} (not held in this snapshot)</span>
+                  <span class="missing">{{ 'property.notHeld' | translate: { iri } }}</span>
                 }
               </li>
             }
@@ -84,12 +86,14 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
             }
             @if (more()) {
               <li>
-                <button type="button" class="term" [disabled]="loading()" (click)="loadMore()">More children</button>
+                <button type="button" class="term" [disabled]="loading()" (click)="loadMore()">
+                  {{ 'property.moreChildren' | translate }}
+                </button>
               </li>
             }
           </ol>
           <button type="button" class="use" [disabled]="loading() || !!error()" (click)="chosen.emit(current())">
-            Select
+            {{ 'common.select' | translate }}
           </button>
         </div>
         @for (literal of tree.selected.property.literals; track $index) {
@@ -221,6 +225,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
 })
 export class PropertyDetailComponent {
   private readonly client = inject(TerminologyClient);
+  protected readonly localizer = inject(Localizer);
   readonly hit = input.required<PropertyHit>();
   readonly allowVersions = input(true);
   readonly focused = output<PropertyHit | null>();
@@ -229,7 +234,7 @@ export class PropertyDetailComponent {
   protected readonly hierarchy = signal<PropertyHierarchy | null>(null);
   protected readonly versions = signal<readonly VersionInfo[]>([]);
   protected readonly loading = signal(false);
-  protected readonly error = signal<string | null>(null);
+  protected readonly error = signal<Message | null>(null);
   protected readonly more = signal(false);
   protected readonly showReleases = signal(false);
   protected releaseLabel(): string {
@@ -307,8 +312,7 @@ export class PropertyDetailComponent {
       this.more.set(result.children.length === 50);
       this.focused.emit(selected);
     } catch (error) {
-      if (!attempt.signal.aborted)
-        this.error.set(error instanceof Error ? error.message : 'Could not read this property.');
+      if (!attempt.signal.aborted) this.error.set(messageOf(error, phrase('errors.propertyUnreadable')));
     } finally {
       if (!attempt.signal.aborted) this.loading.set(false);
     }

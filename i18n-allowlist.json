@@ -1,0 +1,12 @@
+[
+  {
+    "file": "src/app/cedar-embeddable-term-picker.html",
+    "text": "bioportal",
+    "reason": "The identifier of the default source system, shown when a source names none. It is a value of the constraint's sourceSystem field, not a word."
+  },
+  {
+    "file": "src/app/search/constraint-table.html",
+    "text": "bioportal",
+    "reason": "The identifier of the default source system, shown when a constraint names none. It is a value of the constraint's sourceSystem field, not a word."
+  }
+]

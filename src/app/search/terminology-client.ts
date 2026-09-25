@@ -9,6 +9,7 @@ import {
   PropertyHierarchy,
   VersionInfo,
 } from './search-types';
+import { Message, MessageError, messageOf, phrase } from '../i18n/localization';
 
 /**
  * The picker's one call to the terminology server.
@@ -57,7 +58,7 @@ export class TerminologyClient {
             sources: [],
             results: {},
             errors: {
-              property: error instanceof Error ? error.message : 'Property search failed.',
+              property: messageOf(error, phrase('errors.propertySearchFailed')),
             },
           };
         }),
@@ -78,7 +79,7 @@ export class TerminologyClient {
     });
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(refusalMessage(body) ?? `The terminology server answered ${response.status}.`);
+      throw new MessageError(refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }));
     }
     return body as SearchResponse;
   }
@@ -90,7 +91,10 @@ export class TerminologyClient {
   private async propertyRequest<T>(path: string, init?: RequestInit): Promise<T> {
     const response = await fetch(`${this.propertyEndpoint()}${path}`, init);
     const body: unknown = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(refusalMessage(body) ?? `Property lookup failed (${response.status}).`);
+    if (!response.ok)
+      throw new MessageError(
+        refusalMessage(body) ?? phrase('errors.propertyLookupFailed', { status: response.status }),
+      );
     return body as T;
   }
 
@@ -190,13 +194,13 @@ export class TerminologyClient {
     if (response.status === 404) {
       return {
         kind: 'absent',
-        reason: refusalMessage(body) ?? `The store holds no ${termIri} in ${sourceAcronym}.`,
+        reason: refusalMessage(body) ?? phrase('errors.termNotHeld', { iri: termIri, acronym: sourceAcronym }),
       };
     }
     if (!response.ok) {
       return {
         kind: 'failed',
-        reason: refusalMessage(body) ?? `The terminology server answered ${response.status}.`,
+        reason: refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }),
       };
     }
     return { kind: 'found', hierarchy: body as Hierarchy };
@@ -213,8 +217,8 @@ export class TerminologyClient {
  */
 export type HierarchyOutcome =
   | { readonly kind: 'found'; readonly hierarchy: Hierarchy }
-  | { readonly kind: 'absent'; readonly reason: string }
-  | { readonly kind: 'failed'; readonly reason: string };
+  | { readonly kind: 'absent'; readonly reason: Message }
+  | { readonly kind: 'failed'; readonly reason: Message };
 
 function refusalMessage(body: unknown): string | null {
   if (body === null || typeof body !== 'object') {

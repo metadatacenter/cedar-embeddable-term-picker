@@ -1,12 +1,13 @@
 import type { ControlledTermConfig } from './constraint-set';
 
+/** The translation key of the word a constraint row uses for its kind. */
 export function constraintKind(c: ControlledTermConfig): string {
   return {
-    'ontology-term': 'term',
-    'ontology-branch': 'Branch',
-    ontology: 'Ontology',
-    'value-set': 'Value set',
-    'ontology-property': 'Property',
+    'ontology-term': 'table.kind.ontologyTerm',
+    'ontology-branch': 'table.kind.ontologyBranch',
+    ontology: 'table.kind.ontology',
+    'value-set': 'table.kind.valueSet',
+    'ontology-property': 'table.kind.ontologyProperty',
   }[c.sourceType];
 }
 

@@ -1,11 +1,12 @@
 import { Icon } from '../icon';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import type { ControlledTermSet } from './constraint-set';
 import { constraintKind, constraintLabel, constraintUri, constraintAcronym } from './constraint-presentation';
 
 /** Displays a draft and emits editing intents; the picker owns application and cancellation. */
 @Component({
-  imports: [Icon],
+  imports: [Icon, TranslatePipe],
   selector: 'cetp-constraint-table',
   templateUrl: './constraint-table.html',
   styleUrl: './constraint-table.scss',

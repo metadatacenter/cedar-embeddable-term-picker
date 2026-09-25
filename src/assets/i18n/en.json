@@ -1,0 +1,186 @@
+{
+  "common": {
+    "latest": "latest",
+    "select": "Select",
+    "reading": "reading…",
+    "pinned": "pinned"
+  },
+  "scope": {
+    "label": "Search vocabulary and release"
+  },
+  "stepper": {
+    "versionTitle": "Version {{version}}",
+    "showAllReleases": "Show all {{count}} releases of {{acronym}}",
+    "of": "of {{count}}"
+  },
+  "tree": {
+    "collapse": "Collapse {{label}}",
+    "expand": "Expand {{label}}",
+    "useHint": "{{iri}} — double click to use it",
+    "shownOf": "{{shown}} of {{total}}",
+    "unreadable": "the hierarchy could not be read: {{reason}}"
+  },
+  "detail": {
+    "ontologyIri": "Ontology IRI",
+    "valueSetIri": "Value set IRI",
+    "matched": "Matched",
+    "alsoCalled": "Also called",
+    "moreNames": "and {{count}} more",
+    "deprecated": "Deprecated",
+    "replacedBy": "replaced by {{term}}",
+    "noReplacement": "the source names no replacement",
+    "useThisTerm": "Use this term"
+  },
+  "history": {
+    "count": "{{count}} releases, newest first",
+    "effectiveDate": "effective date",
+    "contentHash": "content hash",
+    "noDeclaredVersion": "no declared version",
+    "reading": "Reading the releases…"
+  },
+  "bar": {
+    "findTerms": "Find terms",
+    "placeholderDefaultTerm": "Search for a default term",
+    "placeholderTerms": "Search for terms",
+    "close": "Close without choosing"
+  },
+  "selection": {
+    "heading": {
+      "term": "Selected term",
+      "branch": "Selected branch",
+      "ontology": "Selected ontology",
+      "valueSet": "Selected value set",
+      "property": "Selected property"
+    },
+    "supersededTitle": "A later reading of these same source bytes exists. This pin still resolves.",
+    "superseded": "superseded"
+  },
+  "narrowing": {
+    "searchingOnly": "Searching only",
+    "done": "done",
+    "addOntology": "+ ontology",
+    "clear": "clear",
+    "searchingEvery": "Searching every ontology",
+    "narrowTo": "narrow to…",
+    "finderPlaceholder": "Find an ontology by name or acronym; click to select",
+    "finderLabel": "Find an ontology to narrow to",
+    "visibleOf": "{{shown}} of {{total}} ontologies",
+    "matchingTerms": "matching terms",
+    "noneByThatName": "No ontology here goes by that.",
+    "looking": "Looking…",
+    "noneHoldsMatch": "No ontology holds a term matching that search.",
+    "nothingYet": "Nothing to narrow to — search for something first."
+  },
+  "tabs": {
+    "class": "terms",
+    "branch": "branches",
+    "ontology": "ontologies",
+    "valueSet": "value sets",
+    "property": "properties"
+  },
+  "status": {
+    "searching": "searching…",
+    "readingMore": "reading more…",
+    "noMore": "no more matches",
+    "unavailable": "{{acronym}} was not searched — {{reason}}. Its terms are absent from these results rather than missing from the vocabulary."
+  },
+  "counts": {
+    "descendants": {
+      "one": "{{count}} descendant",
+      "many": "{{count}} descendants"
+    },
+    "ontologies": {
+      "one": "{{count}} ontology",
+      "many": "{{count}} ontologies"
+    },
+    "inOntologies": {
+      "one": "in {{count}} ontology",
+      "many": "in {{count}} ontologies"
+    },
+    "branchesInOntologies": {
+      "one": "{{branches}} branches in {{count}} ontology",
+      "many": "{{branches}} branches in {{count}} ontologies"
+    },
+    "terms": {
+      "one": "{{count}} term",
+      "many": "{{count}} terms"
+    },
+    "values": "{{count}} values"
+  },
+  "results": {
+    "obsolete": "obsolete",
+    "matched": "matched {{label}}",
+    "noTerms": "No terms match.",
+    "noBranches": "No branches match. A branch is a term with descendants.",
+    "noTermsMatch": "no terms match",
+    "noOntologies": "No vocabulary is named this, and none of them matched terms.",
+    "propertyIn": "{{label}} in {{acronym}}",
+    "propertyKind": {
+      "object": "object property",
+      "datatype": "datatype property",
+      "annotation": "annotation property"
+    },
+    "noProperties": "No properties match.",
+    "noValueSets": "No value set matches."
+  },
+  "authority": {
+    "url": "direct download"
+  },
+  "errors": {
+    "maximumTerms": "maximumTerms must be a positive whole number, or omitted for no limit.",
+    "termTypes": "termTypes must be an array of class, branch, ontology, valueSet or property.",
+    "tooManyToApply": "Select at most {{maximum}} terms. Remove entries from the table before continuing.",
+    "tooManyToAdd": "You can select at most {{maximum}} terms. Remove an entry from the table to select another.",
+    "corpusQueryTooShort": "A corpus-wide search needs at least {{count}} characters. Narrow to an ontology to search it with fewer.",
+    "searchFailed": "The search failed.",
+    "actionNeedsTerm": "Choose an individual term for the action.",
+    "typeNotEnabled": "This term type is not enabled.",
+    "defaultNeedsTerm": "Choose a single term for the default value.",
+    "outsideFieldVocabulary": "Choose a term from the field vocabulary.",
+    "positionNotWhole": "Use a non-negative whole number for the result position.",
+    "actionNeedsSource": "Choose a constraint with a source identifier for this action.",
+    "alreadyInTable": "This selection is already in the table.",
+    "serverAnswered": "The terminology server answered {{status}}.",
+    "propertySearchFailed": "Property search failed.",
+    "propertyLookupFailed": "Property lookup failed ({{status}}).",
+    "termNotHeld": "The store holds no {{iri}} in {{acronym}}.",
+    "propertyUnreadable": "Could not read this property."
+  },
+  "table": {
+    "label": "Field constraints",
+    "heading": "Selected terms",
+    "term": "Term",
+    "sourceAndRelease": "Source and release",
+    "remove": "Remove",
+    "identifier": "Identifier",
+    "sourceIdentity": "Source identity",
+    "notRecorded": "Not recorded",
+    "versionPin": "Version pin",
+    "latest": "Latest",
+    "maximumDepth": "Maximum depth",
+    "rowTitle": "{{uri}}\nSource: {{source}}\nVersion: {{version}}",
+    "removeConstraint": "Remove constraint {{number}}",
+    "removeConstraintTitle": "Remove constraint",
+    "empty": "No terms selected. Search below to add one.",
+    "done": "Done",
+    "cancel": "Cancel",
+    "savedActions": "{{count}} saved term actions",
+    "position": "position {{position}}",
+    "kind": {
+      "ontologyTerm": "term",
+      "ontologyBranch": "Branch",
+      "ontology": "Ontology",
+      "valueSet": "Value set",
+      "ontologyProperty": "Property"
+    }
+  },
+  "property": {
+    "details": "Property details",
+    "release": "Release {{release}}",
+    "releases": "Property ontology releases",
+    "reading": "Reading property…",
+    "notHeld": "{{iri}} (not held in this snapshot)",
+    "hierarchy": "Property hierarchy",
+    "moreChildren": "More children"
+  }
+}
