@@ -78,7 +78,7 @@ export async function stubSearch(
  * response whose results are not marked with the page requested is not an answer to that request.
  */
 function answer(replied: unknown, body: SearchBody): unknown {
-  const asked = body.page ?? 1;
+  const asked = pageOf(body);
   if (asked === 1) {
     return replied;
   }
@@ -91,9 +91,15 @@ export interface SearchBody {
   readonly query: string;
   readonly types?: readonly string[];
   readonly sources?: readonly { sourceAcronym: string }[];
-  readonly page?: number;
+  readonly limit?: number;
+  readonly offset?: number;
   readonly includeVersions?: boolean;
   readonly ontologyOrder?: string;
+}
+
+/** The page a request asks for, from the offset and limit the picker sends. */
+export function pageOf(body: { limit?: number; offset?: number }): number {
+  return Math.floor((body.offset ?? 0) / (body.limit ?? 20)) + 1;
 }
 
 interface SourceOptions {

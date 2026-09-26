@@ -28,7 +28,7 @@ test('property-only table enforces the maximum and browses parents at the select
         page: 1,
         pageSize: 25,
         items:
-          route.request().postDataJSON().page > 1
+          (route.request().postDataJSON().offset ?? 0) > 0
             ? []
             : [
                 {

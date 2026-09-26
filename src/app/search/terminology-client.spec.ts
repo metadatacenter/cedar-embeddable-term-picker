@@ -76,3 +76,48 @@ it('keeps class results when a historical snapshot has no extracted properties',
   expect(result.results.class?.collection).toHaveLength(1);
   expect(result.errors?.property).toBe('Properties were not extracted');
 });
+
+it('asks for a page by limit and offset, never by page number', async () => {
+  const bodies: Record<string, unknown>[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url: string, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({ query: 'x', sources: [], results: {} }), { status: 200 });
+    }),
+  );
+  const client = new TerminologyClient();
+  client.setBaseUrl('https://local.example/');
+
+  await client.search({ query: 'x', types: ['class'], pageSize: 25 });
+  await client.search({ query: 'x', types: ['class'], page: 3, pageSize: 25 });
+  await client.search({ query: 'x', types: ['class'], page: 2 });
+
+  expect(bodies[0]).toMatchObject({ limit: 25 });
+  expect(bodies[0]).not.toHaveProperty('offset');
+  expect(bodies[1]).toMatchObject({ limit: 25, offset: 50 });
+  expect(bodies[2]).toMatchObject({ offset: 20 });
+  expect(bodies[2]).not.toHaveProperty('limit');
+  for (const body of bodies) {
+    expect(body).not.toHaveProperty('page');
+    expect(body).not.toHaveProperty('pageSize');
+  }
+});
+
+it('pages a property search by offset too', async () => {
+  const bodies: Record<string, unknown>[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url: string, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({ total: 0, page: 2, pageSize: 25, items: [] }), { status: 200 });
+    }),
+  );
+  const client = new TerminologyClient();
+  client.setBaseUrl('https://local.example/');
+
+  await client.search({ query: 'part', types: ['property'], page: 2, pageSize: 25 });
+
+  expect(bodies[0]).toMatchObject({ query: 'part', limit: 25, offset: 25 });
+  expect(bodies[0]).not.toHaveProperty('page');
+});

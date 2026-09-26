@@ -74,7 +74,15 @@ export class TerminologyClient {
     const response = await fetch(this.endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(query),
+      body: JSON.stringify({
+        query: query.query,
+        types: query.types,
+        sources: query.sources,
+        lang: query.lang,
+        includeVersions: query.includeVersions,
+        ontologyOrder: query.ontologyOrder,
+        ...pagingOf(query, SEARCH_DEFAULT_LIMIT),
+      }),
       signal,
     });
     const body: unknown = await response.json().catch(() => null);
@@ -110,8 +118,7 @@ export class TerminologyClient {
       signal,
       body: JSON.stringify({
         query: query.query,
-        page: query.page,
-        pageSize: query.pageSize,
+        ...pagingOf(query, SEARCH_DEFAULT_LIMIT),
         sources: query.sources?.map((source) => ({
           sourceAcronym: source.sourceAcronym,
           versionId: typeof source.version === 'object' ? source.version.id : undefined,
@@ -226,4 +233,21 @@ function refusalMessage(body: unknown): string | null {
   }
   const message = (body as { message?: unknown }).message;
   return typeof message === 'string' && message.length > 0 ? message : null;
+}
+
+/** The page size the server gives a search that names none. */
+const SEARCH_DEFAULT_LIMIT = 20;
+
+/**
+ * A page asked for by number, stated as the server's paging states it: a limit, and an offset only
+ * past the first page. The picker counts pages; the server takes offsets, and refuses a request that
+ * sends both.
+ */
+function pagingOf(query: SearchQuery, defaultLimit: number): { limit?: number; offset?: number } {
+  const limit = query.pageSize;
+  const page = query.page ?? 1;
+  return {
+    ...(limit !== undefined ? { limit } : {}),
+    ...(page > 1 ? { offset: (page - 1) * (limit ?? defaultLimit) } : {}),
+  };
 }
