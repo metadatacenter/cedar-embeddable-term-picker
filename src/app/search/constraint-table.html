@@ -1,15 +1,15 @@
-<section class="constraint-set" aria-label="Field constraints">
+<section class="constraint-set" [attr.aria-label]="'table.label' | translate">
   <header class="constraint-heading">
-    <h2>Selected terms</h2>
+    <h2>{{ 'table.heading' | translate }}</h2>
     <span>{{ set().constraints.length }}@if (maximumTerms() !== undefined) { / {{ maximumTerms() }} }</span>
   </header>
   <div class="constraint-table-layout">
     <table class="constraint-table">
       <thead>
         <tr>
-          <th scope="col">Term</th>
-          <th scope="col">Source and release</th>
-          <th scope="col"><span class="sr-only">Remove</span></th>
+          <th scope="col">{{ 'table.term' | translate }}</th>
+          <th scope="col">{{ 'table.sourceAndRelease' | translate }}</th>
+          <th scope="col"><span class="sr-only">{{ 'table.remove' | translate }}</span></th>
         </tr>
       </thead>
       <tbody>
@@ -18,18 +18,18 @@
           <td>
             @if (c.sourceType === 'ontology-branch') {
             <details>
-              <summary><span class="constraint-kind">{{ constraintKind(c) }}</span> {{ constraintLabel(c) }}</summary>
+              <summary><span class="constraint-kind">{{ constraintKind(c) | translate }}</span> {{ constraintLabel(c) }}</summary>
               <dl>
-                <dt>Identifier</dt>
+                <dt>{{ 'table.identifier' | translate }}</dt>
                 <dd>{{ constraintUri(c) }}</dd>
-                <dt>Source identity</dt>
-                <dd>{{ c.iri || 'Not recorded' }}</dd>
-                <dt>Version pin</dt>
-                <dd>{{ c.version?.id || 'Latest' }} {{ c.version?.effectiveDate }}</dd>
+                <dt>{{ 'table.sourceIdentity' | translate }}</dt>
+                <dd>{{ c.iri || ('table.notRecorded' | translate) }}</dd>
+                <dt>{{ 'table.versionPin' | translate }}</dt>
+                <dd>{{ c.version?.id || ('table.latest' | translate) }} {{ c.version?.effectiveDate }}</dd>
               </dl>
               @if (c.sourceType === 'ontology-branch') {
               <label
-                >Maximum depth
+                >{{ 'table.maximumDepth' | translate }}
                 <input
                   spellcheck="false"
                   type="number"
@@ -42,10 +42,18 @@
             </details>
             } @else {
             <span
-              [title]="constraintUri(c) + '\nSource: ' + (c.iri || constraintAcronym(c)) + '\nVersion: ' + (c.version?.id || 'latest')"
+              [title]="
+                'table.rowTitle'
+                  | translate
+                    : {
+                        uri: constraintUri(c),
+                        source: c.iri || constraintAcronym(c),
+                        version: c.version?.id || ('common.latest' | translate),
+                      }
+              "
             >
               <span class="constraint-kind" [class.term-kind]="c.sourceType === 'ontology-term'"
-                >{{ constraintKind(c) }}</span
+                >{{ constraintKind(c) | translate }}</span
               >
               {{ constraintLabel(c) }}
             </span>
@@ -55,7 +63,7 @@
             <span>{{ constraintAcronym(c) }}</span
             ><small>
               · {{ c.sourceSystem || 'bioportal' }} · @if (c.version) { {{ c.version.declaredVersion ||
-              c.version.effectiveDate || 'pinned' }} } @else { <em>latest</em> } @if (hashes()[i]; as hash) { ·
+              c.version.effectiveDate || ('common.pinned' | translate) }} } @else { <em>{{ 'common.latest' | translate }}</em> } @if (hashes()[i]; as hash) { ·
               <code class="hash" [title]="hash">{{ shortHash(hash) }}</code> }
             </small>
           </td>
@@ -63,8 +71,8 @@
             <button
               type="button"
               (click)="removed.emit(i)"
-              [attr.aria-label]="'Remove constraint ' + (i + 1)"
-              title="Remove constraint"
+              [attr.aria-label]="'table.removeConstraint' | translate: { number: i + 1 }"
+              [title]="'table.removeConstraintTitle' | translate"
             >
               <!-- Same Font Awesome trash glyph as the Groups/Permissions dialogs. -->
               <cetp-icon name="delete" />
@@ -73,21 +81,21 @@
         </tr>
         } @empty {
         <tr>
-          <td colspan="3" class="constraint-empty">No terms selected. Search below to add one.</td>
+          <td colspan="3" class="constraint-empty">{{ 'table.empty' | translate }}</td>
         </tr>
         }
       </tbody>
     </table>
     <div class="constraint-table-controls">
-      <button type="button" class="use" (click)="applied.emit()">Done</button>
-      <button type="button" (click)="cancelled.emit()">Cancel</button>
+      <button type="button" class="use" (click)="applied.emit()">{{ 'table.done' | translate }}</button>
+      <button type="button" (click)="cancelled.emit()">{{ 'table.cancel' | translate }}</button>
     </div>
   </div>
   @if (set().actions.length) {
   <details class="saved-actions">
-    <summary>{{ set().actions.length }} saved term actions</summary>
+    <summary>{{ 'table.savedActions' | translate: { count: set().actions.length } }}</summary>
     @for (action of set().actions; track $index) {
-    <p>{{ action.action }} · {{ action.termUri }}@if (action.to !== undefined) { · position {{ action.to }} }</p>
+    <p>{{ action.action }} · {{ action.termUri }}@if (action.to !== undefined) { · {{ 'table.position' | translate: { position: action.to } }} }</p>
     }
   </details>
   }

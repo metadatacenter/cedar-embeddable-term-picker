@@ -4,6 +4,7 @@ import {
   classHit,
   ontologyHit,
   openPicker,
+  pageOf,
   results,
   search,
   source,
@@ -821,7 +822,7 @@ test('narrowing ranks by matching terms and survives being used', async ({ page 
 
 test('the list fills itself, asks for one type, and keeps the ontologies it learns', async ({ page }) => {
   const recorded = await stubSearch(page, (body) =>
-    body.page === 2
+    pageOf(body) === 2
       ? {
           sources: [source('LATER', { name: 'An Ontology From Page Two' })],
           results: {
@@ -847,9 +848,11 @@ test('the list fills itself, asks for one type, and keeps the ontologies it lear
   expect(await page.locator('cedar-embeddable-term-picker .rowhead').count()).toBe(3);
   expect(await arrived.count()).toBe(1);
 
-  const asked = recorded.bodies.at(-1) as { types?: string[]; page?: number };
+  const asked = recorded.bodies.at(-1) as { types?: string[]; limit?: number; offset?: number; page?: number };
   expect(asked.types).toEqual(['class']);
-  expect(asked.page).toBe(2);
+  expect(asked.offset).toBe(25);
+  expect(asked.limit).toBe(25);
+  expect(asked.page, 'the request pages by offset alone').toBeUndefined();
 
   // A row reads its ontology's name from the envelope, and page two names one page one did not.
   await arrived.click();

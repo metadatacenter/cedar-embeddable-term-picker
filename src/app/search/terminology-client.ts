@@ -9,6 +9,7 @@ import {
   PropertyHierarchy,
   VersionInfo,
 } from './search-types';
+import { Message, MessageError, messageOf, phrase } from '../i18n/localization';
 
 /**
  * The picker's one call to the terminology server.
@@ -57,7 +58,7 @@ export class TerminologyClient {
             sources: [],
             results: {},
             errors: {
-              property: error instanceof Error ? error.message : 'Property search failed.',
+              property: messageOf(error, phrase('errors.propertySearchFailed')),
             },
           };
         }),
@@ -73,12 +74,20 @@ export class TerminologyClient {
     const response = await fetch(this.endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(query),
+      body: JSON.stringify({
+        query: query.query,
+        types: query.types,
+        sources: query.sources,
+        lang: query.lang,
+        includeVersions: query.includeVersions,
+        ontologyOrder: query.ontologyOrder,
+        ...pagingOf(query, SEARCH_DEFAULT_LIMIT),
+      }),
       signal,
     });
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(refusalMessage(body) ?? `The terminology server answered ${response.status}.`);
+      throw new MessageError(refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }));
     }
     return body as SearchResponse;
   }
@@ -90,7 +99,10 @@ export class TerminologyClient {
   private async propertyRequest<T>(path: string, init?: RequestInit): Promise<T> {
     const response = await fetch(`${this.propertyEndpoint()}${path}`, init);
     const body: unknown = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(refusalMessage(body) ?? `Property lookup failed (${response.status}).`);
+    if (!response.ok)
+      throw new MessageError(
+        refusalMessage(body) ?? phrase('errors.propertyLookupFailed', { status: response.status }),
+      );
     return body as T;
   }
 
@@ -106,8 +118,7 @@ export class TerminologyClient {
       signal,
       body: JSON.stringify({
         query: query.query,
-        page: query.page,
-        pageSize: query.pageSize,
+        ...pagingOf(query, SEARCH_DEFAULT_LIMIT),
         sources: query.sources?.map((source) => ({
           sourceAcronym: source.sourceAcronym,
           versionId: typeof source.version === 'object' ? source.version.id : undefined,
@@ -190,13 +201,13 @@ export class TerminologyClient {
     if (response.status === 404) {
       return {
         kind: 'absent',
-        reason: refusalMessage(body) ?? `The store holds no ${termIri} in ${sourceAcronym}.`,
+        reason: refusalMessage(body) ?? phrase('errors.termNotHeld', { iri: termIri, acronym: sourceAcronym }),
       };
     }
     if (!response.ok) {
       return {
         kind: 'failed',
-        reason: refusalMessage(body) ?? `The terminology server answered ${response.status}.`,
+        reason: refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }),
       };
     }
     return { kind: 'found', hierarchy: body as Hierarchy };
@@ -213,8 +224,8 @@ export class TerminologyClient {
  */
 export type HierarchyOutcome =
   | { readonly kind: 'found'; readonly hierarchy: Hierarchy }
-  | { readonly kind: 'absent'; readonly reason: string }
-  | { readonly kind: 'failed'; readonly reason: string };
+  | { readonly kind: 'absent'; readonly reason: Message }
+  | { readonly kind: 'failed'; readonly reason: Message };
 
 function refusalMessage(body: unknown): string | null {
   if (body === null || typeof body !== 'object') {
@@ -222,4 +233,21 @@ function refusalMessage(body: unknown): string | null {
   }
   const message = (body as { message?: unknown }).message;
   return typeof message === 'string' && message.length > 0 ? message : null;
+}
+
+/** The page size the server gives a search that names none. */
+const SEARCH_DEFAULT_LIMIT = 20;
+
+/**
+ * A page asked for by number, stated as the server's paging states it: a limit, and an offset only
+ * past the first page. The picker counts pages; the server takes offsets, and refuses a request that
+ * sends both.
+ */
+function pagingOf(query: SearchQuery, defaultLimit: number): { limit?: number; offset?: number } {
+  const limit = query.pageSize;
+  const page = query.page ?? 1;
+  return {
+    ...(limit !== undefined ? { limit } : {}),
+    ...(page > 1 ? { offset: (page - 1) * (limit ?? defaultLimit) } : {}),
+  };
 }

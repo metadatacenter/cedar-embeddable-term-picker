@@ -101,13 +101,20 @@ its `cancelled` event. Nothing on that page ships.
 | Command                    | What it does                                                                                   |
 | -------------------------- | ---------------------------------------------------------------------------------------------- |
 | `npm run build:production` | the custom-element bundle, into `dist/cedar-embeddable-term-picker`                            |
-| `npm test`                 | unit tests, through the Angular CLI's Vitest builder                                           |
+| `npm test`                 | unit tests, through the Angular CLI's Vitest builder, then the untranslated-string guard      |
 | `npm run lint`             | ESLint over TypeScript and templates, Prettier included                                        |
 | `npm run typecheck`        | `tsc` over every file under `src/`                                                             |
 | `npm run dist`             | the distribution: one script, its declarations, and a staged package                           |
 | `npm run test:ci`          | the gate: lint, typecheck, tests, the production build, the browser tests and the distribution |
 | `npm run test:visual`     | desktop and narrow CEE-style pixel baselines in pinned ARM Linux Docker (build first) |
 | `npm run audit:prod`       | advisories against what actually ships                                                         |
+
+Every string the picker shows is stated in `src/assets/i18n/en.json` and
+`hu.json`, which must declare the same keys. The guard `npm test` ends with,
+`scripts/i18n-guard.test.mjs`, fails on template text, a read attribute or a
+message written outside those files. A deliberate exception goes in
+`i18n-allowlist.json` with its reason, and an entry that no longer matches
+anything fails too.
 
 GitHub Actions runs the gate and visual baselines on push and pull request. The
 visual runner uses Playwright 1.63.0 on ARM Linux both locally and in CI, with no
@@ -145,6 +152,7 @@ and cancellation:
   const picker = document.getElementById('picker');
   picker.terminologyBaseUrl = 'https://terminology.metadatacenter.org/';
   picker.query = 'melanoma';
+  picker.language = 'hu'; // Or the language="hu" attribute. Omit for English.
   picker.termTypes = ['ontology', 'class', 'branch', 'valueSet'];
   picker.maximumTerms = 4; // Omit for unlimited selections.
   picker.constraintSet = { constraints: [], actions: [] };
@@ -156,6 +164,15 @@ and cancellation:
 `terminologyBaseUrl` is what makes the picker embeddable at all. Unset, it asks
 its own origin for `/search`, which is what the development server's proxy
 answers and what no host page has.
+
+`language` selects the language of every string the picker shows: `en`, the
+default, or `hu`. It can be set as a property or as the `language` attribute, and
+changed at any time; the picker redraws at once, including a message already on
+screen. Any other value falls back to `en`. Each element holds its own language,
+so two pickers on one page can differ. Counts are grouped the way the chosen
+language groups digits. Both translation maps, in `src/assets/i18n`, are compiled
+into the script, so nothing is fetched at runtime. Labels, identifiers and
+messages that come from the terminology server are shown as the server sent them.
 
 The default workflow collects selections in the table at the top. Assign `constraintSet = { constraints: [], actions: [] }` (or the existing set).
 Selections add to the draft. Its tables let authors inspect and remove

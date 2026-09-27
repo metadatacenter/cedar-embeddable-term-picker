@@ -1,7 +1,7 @@
 {
   "name": "cedar-embeddable-term-picker",
   "description": "CEDAR Embeddable Term Picker (CETP), a reusable Web Component for choosing what constrains a CEDAR field.",
-  "version": "0.1.0-dev.20260921.009a10a3",
+  "version": "0.1.0-dev.20260926.90581c71",
   "engines": {
     "node": "^24.15.0"
   },
@@ -10,7 +10,8 @@
     "start": "ng serve",
     "build": "ng build",
     "build:production": "ng build --configuration=production",
-    "test": "ng test",
+    "test": "ng test && npm run test:i18n",
+    "test:i18n": "node --test scripts/i18n-guard.test.mjs",
     "test:watch": "ng test --watch",
     "lint": "ng lint",
     "typecheck": "tsc -p tsconfig.eslint.json --noEmit",
@@ -28,21 +29,22 @@
     "test:visual": "bash browser/run-visual.sh"
   },
   "dependencies": {
-    "@angular/common": "^22.1.6",
-    "@angular/compiler": "^22.1.6",
-    "@angular/core": "^22.1.6",
-    "@angular/elements": "^22.1.6",
-    "@angular/forms": "^22.1.6",
-    "@angular/platform-browser": "^22.1.6",
+    "@angular/common": "^22.2.0",
+    "@angular/compiler": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/elements": "^22.2.0",
+    "@angular/forms": "^22.2.0",
+    "@angular/platform-browser": "^22.2.0",
+    "@ngx-translate/core": "^18.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.8.1"
   },
   "devDependencies": {
-    "@angular/build": "^22.1.8",
-    "@angular/cli": "^22.1.8",
-    "@angular/compiler-cli": "^22.1.6",
+    "@angular/build": "^22.2.0",
+    "@angular/cli": "^22.2.0",
+    "@angular/compiler-cli": "^22.2.0",
     "@eslint/js": "^10.0.1",
-    "@org.metadatacenter/cedar-design-tokens": "0.1.0-dev.20260923.gafb9139c70a8.t0622",
+    "@org.metadatacenter/cedar-design-tokens": "0.1.0-dev.20260927.g6da3a86b7a1c.t0427",
     "@types/node": "^24.9.2",
     "angular-eslint": "^22.1.0",
     "esbuild": "^0.28.2",

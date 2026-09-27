@@ -30,6 +30,17 @@ import { ControlledTermSet, ControlledTermConfig, ControlledTermAction } from '.
 import { toControlledTermConfig } from './search/picked-constraint';
 import { PropertyDetailComponent } from './search/property-detail';
 import { NgTemplateOutlet } from '@angular/common';
+import { TranslatePipe } from '@ngx-translate/core';
+import {
+  CetpLanguage,
+  DEFAULT_LANGUAGE,
+  Localizer,
+  Message,
+  languageOf,
+  messageOf,
+  phrase,
+  provideLocalization,
+} from './i18n/localization';
 import { FontRegistrar } from './font-registrar/font-registrar';
 import { HierarchyOutcome, TerminologyClient } from './search/terminology-client';
 import {
@@ -45,7 +56,6 @@ import {
   Selection,
   SourceSelector,
   SourceBlock,
-  TAB_LABELS,
   TAB_ORDER,
   TermRef,
   TreeRow,
@@ -134,8 +144,9 @@ export interface LabelGroup {
 
 @Component({
   selector: CETP_TAG,
-  imports: [Icon, FontRegistrar, NgTemplateOutlet, PropertyDetailComponent, ConstraintTableComponent],
+  imports: [Icon, FontRegistrar, NgTemplateOutlet, PropertyDetailComponent, ConstraintTableComponent, TranslatePipe],
   providers: [TerminologyClient],
+  viewProviders: [provideLocalization()],
   templateUrl: './cedar-embeddable-term-picker.html',
   styleUrl: './cedar-embeddable-term-picker.scss',
   encapsulation: ViewEncapsulation.ShadowDom,
@@ -145,9 +156,19 @@ export class CedarEmbeddableTermPicker {
   private readonly client = inject(TerminologyClient);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
+  protected readonly localizer = inject(Localizer);
 
   /** The query the picker opens on, so a host can seed it from the field's name. */
   readonly query = input('');
+
+  /**
+   * The language the picker speaks: `en` or `hu`.
+   *
+   * Settable as a property or as the `language` attribute, and at any time: the picker redraws in
+   * the new language at once, including any message already on screen. A value the picker does not
+   * speak falls back to English rather than showing translation keys.
+   */
+  readonly language = input<CetpLanguage, unknown>(DEFAULT_LANGUAGE, { transform: languageOf });
 
   /** A default is one term; constraint authoring also offers branches and vocabularies. */
   readonly selectionMode = input<'constraint' | 'constraints' | 'term'>('constraints');
@@ -155,17 +176,22 @@ export class CedarEmbeddableTermPicker {
   readonly termTypes = input<readonly SearchKind[] | undefined>();
   /** Maximum number of selected table entries; omitted means unlimited. */
   readonly maximumTerms = input<number | undefined>();
-  protected readonly selectionError = signal<string | null>(null);
+  /** Why the last attempt to add to or apply the table was refused, kept as a message so it can be redrawn. */
+  protected readonly selectionProblem = signal<Message | null>(null);
+  /** The same, in the active language. */
+  protected readonly selectionError = computed(() => {
+    const problem = this.selectionProblem();
+    return problem === null ? null : this.localizer.say(problem);
+  });
   protected readonly tableMode = computed(
     () => this.termTypes() !== undefined || this.maximumTerms() !== undefined || this.selectionMode() === 'constraints',
   );
-  protected readonly configurationError = computed(() => {
+  protected readonly configurationError = computed<Message | null>(() => {
     const max = this.maximumTerms();
-    if (max !== undefined && (!Number.isSafeInteger(max) || max < 1))
-      return 'maximumTerms must be a positive whole number, or omitted for no limit.';
+    if (max !== undefined && (!Number.isSafeInteger(max) || max < 1)) return phrase('errors.maximumTerms');
     const types = this.termTypes();
     if (types !== undefined && (!Array.isArray(types) || types.some((type) => !TAB_ORDER.includes(type))))
-      return 'termTypes must be an array of class, branch, ontology, valueSet or property.';
+      return phrase('errors.termTypes');
     return null;
   });
 
@@ -212,7 +238,7 @@ export class CedarEmbeddableTermPicker {
   }
 
   protected removeConstraint(index: number): void {
-    this.selectionError.set(null);
+    this.selectionProblem.set(null);
     this.draft.update((d) => ({ ...d, constraints: d.constraints.filter((_, i) => i !== index) }));
     this.editing.set(null);
     this.actionMode.set(null);
@@ -252,7 +278,7 @@ export class CedarEmbeddableTermPicker {
     if (this.configurationError()) return;
     const maximum = this.maximumTerms();
     if (maximum !== undefined && this.draft().constraints.length > maximum) {
-      this.selectionError.set(`Select at most ${maximum} terms. Remove entries from the table before continuing.`);
+      this.selectionProblem.set(phrase('errors.tooManyToApply', { maximum }));
       return;
     }
     this.constraintsSelected.emit(structuredClone(this.draft()));
@@ -314,7 +340,7 @@ export class CedarEmbeddableTermPicker {
   protected readonly text = linkedSignal(() => this.query());
   protected readonly activeTab = signal<SearchKind>('class');
   protected readonly response = signal<SearchResponse | null>(null);
-  protected readonly error = signal<string | null>(null);
+  protected readonly error = signal<Message | null>(null);
   protected readonly searching = signal(false);
 
   /**
@@ -438,7 +464,6 @@ export class CedarEmbeddableTermPicker {
             : TAB_ORDER
         : TAB_ORDER.filter((type) => this.termTypes()?.includes(type)),
   );
-  protected readonly tabLabels = TAB_LABELS;
 
   private debounce?: ReturnType<typeof setTimeout>;
   private inFlight?: AbortController;
@@ -483,6 +508,10 @@ export class CedarEmbeddableTermPicker {
     // it once at construction.
     effect(() => this.client.setBaseUrl(this.terminologyBaseUrl()));
 
+    // Each picker holds its own translation service, so this changes the language of this element
+    // alone. The maps are bundled, so the switch completes before the next render.
+    effect(() => this.localizer.use(this.language()));
+
     effect(() => {
       const tabs = this.tabs();
       if (!tabs.includes(untracked(() => this.activeTab()))) this.activeTab.set(tabs[0] ?? 'class');
@@ -509,10 +538,7 @@ export class CedarEmbeddableTermPicker {
     this.inFlight?.abort();
     this.response.set(null);
     this.searching.set(false);
-    this.error.set(
-      `A corpus-wide search needs at least ${MIN_CORPUS_QUERY} characters. ` +
-        'Narrow to an ontology to search it with fewer.',
-    );
+    this.error.set(phrase('errors.corpusQueryTooShort', { count: MIN_CORPUS_QUERY }));
   }
 
   /**
@@ -578,7 +604,7 @@ export class CedarEmbeddableTermPicker {
         return;
       }
       this.response.set(null);
-      this.error.set(failure instanceof Error ? failure.message : 'The search failed.');
+      this.error.set(messageOf(failure, phrase('errors.searchFailed')));
     } finally {
       if (!controller.signal.aborted) {
         this.searching.set(false);
@@ -603,7 +629,8 @@ export class CedarEmbeddableTermPicker {
       const collapsed = type.distinctLabelCount;
       const value = collapsed ?? type.totalCount;
       const capped = collapsed === undefined ? type.countCapped : type.distinctLabelCountCapped;
-      counts[kind] = capped ? `${value.toLocaleString()}+` : value.toLocaleString();
+      const shown = this.localizer.number(value);
+      counts[kind] = capped ? `${shown}+` : shown;
     }
     return counts;
   });
@@ -803,7 +830,7 @@ export class CedarEmbeddableTermPicker {
       if (signal?.aborted || this.stale(query)) {
         return;
       }
-      this.error.set(failure instanceof Error ? failure.message : 'The search failed.');
+      this.error.set(messageOf(failure, phrase('errors.searchFailed')));
       return;
     }
     this.candidates.set(found);
@@ -913,7 +940,7 @@ export class CedarEmbeddableTermPicker {
       if (signal?.aborted) {
         return;
       }
-      this.error.set(failure instanceof Error ? failure.message : 'The search failed.');
+      this.error.set(messageOf(failure, phrase('errors.searchFailed')));
     } finally {
       this.loadingMore.set(false);
       // The superseding search set `searching` for its own query and owns it now; clearing it here
@@ -945,16 +972,19 @@ export class CedarEmbeddableTermPicker {
     if (authority === undefined || authority === '') {
       return '';
     }
+    if (authority === 'url') {
+      return this.localizer.t('authority.url');
+    }
     return CedarEmbeddableTermPicker.AUTHORITY_NAMES[authority] ?? authority;
   }
 
+  /** The repositories' own names, which are not translated. A direct download is described instead. */
   private static readonly AUTHORITY_NAMES: Readonly<Record<string, string>> = {
     bioportal: 'BioPortal',
     obofoundry: 'OBO Foundry',
     agroportal: 'AgroPortal',
     ecoportal: 'EcoPortal',
     eionet: 'Eionet',
-    url: 'direct download',
   };
 
   /** The name only when it says more than the acronym, so a row never reads "BERO BERO". */
@@ -965,7 +995,7 @@ export class CedarEmbeddableTermPicker {
 
   /** What the row shows: the version stepped to, else the one that answered. */
   protected versionOf(acronym: string): string {
-    return CedarEmbeddableTermPicker.nameOf(this.pinned().get(acronym) ?? this.sourceOf(acronym)?.version);
+    return this.nameOf(this.pinned().get(acronym) ?? this.sourceOf(acronym)?.version);
   }
 
   /**
@@ -984,9 +1014,9 @@ export class CedarEmbeddableTermPicker {
    * from the middle at 20 and carries the whole string in its title, so a version that is prose
    * costs a hover rather than the layout.
    */
-  private static nameOf(version: VersionInfo | undefined): string {
+  private nameOf(version: VersionInfo | undefined): string {
     if (version === undefined) {
-      return 'latest';
+      return this.localizer.t('common.latest');
     }
     // A snapshot with neither a declared version nor an effective date is a release the source
     // never named — 67 of the 448 ontologies a query for "disease" reaches. Nothing, rather than a
@@ -1249,15 +1279,6 @@ export class CedarEmbeddableTermPicker {
     return hit.sourceAcronym;
   }
 
-  /** How much sits under a term, phrased for a reader rather than as a bare figure. */
-  protected descendantsOf(hit: Hit): string {
-    const count = hit.type === 'class' || hit.type === 'branch' ? hit.descendantCount : 0;
-    if (count === 0) {
-      return '';
-    }
-    return `${count.toLocaleString()} ${count === 1 ? 'concept' : 'concepts'}`;
-  }
-
   /**
    * The other names a term goes by, capped at what a panel can hold.
    *
@@ -1378,7 +1399,7 @@ export class CedarEmbeddableTermPicker {
         : fixed && fixed !== 'latest'
           ? { ...this.sourceOf(acronym)?.version, id: fixed.id }
           : this.pinned().get(acronym);
-    const version = CedarEmbeddableTermPicker.nameOf(pinned ?? this.sourceOf(acronym)?.version);
+    const version = this.nameOf(pinned ?? this.sourceOf(acronym)?.version);
     // The date and the hash only where one was chosen: they are what a pinned constraint records
     // beside the declared version, and an unpinned one records none of the three.
     const of = {
@@ -1413,7 +1434,7 @@ export class CedarEmbeddableTermPicker {
       case 'valueSet':
         // A value set's name is optional in the contract, so this falls back to what addresses it.
         return {
-          noun: 'value set',
+          noun: 'valueSet',
           what: hit.termBaseLabel ?? hit.termBaseIri,
           descendants: hit.termCount,
           acronym,
@@ -1476,7 +1497,7 @@ export class CedarEmbeddableTermPicker {
       // A hierarchy is context, not the answer, so a failure leaves the panel without it rather
       // than replacing the results. What it must not do is claim the store holds nothing: nothing
       // was read, and the row says so instead.
-      outcome = { kind: 'failed', reason: error instanceof Error ? error.message : String(error) };
+      outcome = { kind: 'failed', reason: messageOf(error, String(error)) };
     }
     this.hierarchies.update((held) => new Map(held).set(key, outcome));
     if (outcome.kind !== 'found') {
@@ -1528,7 +1549,7 @@ export class CedarEmbeddableTermPicker {
    * `answered` separates the store having said what it holds from a request that never got an
    * answer. The row says different things about the two, and it used to say the first about both.
    */
-  protected hierarchyRefusal(hit: Hit): { readonly answered: boolean; readonly reason: string } | null {
+  protected hierarchyRefusal(hit: Hit): { readonly answered: boolean; readonly reason: Message } | null {
     const outcome = this.hierarchyOutcomeOf(hit);
     if (outcome === undefined || outcome.kind === 'found') {
       return null;
@@ -1762,18 +1783,18 @@ export class CedarEmbeddableTermPicker {
    * Only for a release the author pinned. An unpinned constraint records no release and is resolved
    * at publish time, so there is nothing here to be inconsistent with.
    */
-  protected unrecordable(hit: Hit | null): string | null {
-    if (hit && this.actionMode() && hit.type !== 'class') return 'Choose an individual term for the action.';
-    if (hit && !this.tabs().includes(hit.type)) return 'This term type is not enabled.';
+  protected unrecordable(hit: Hit | null): Message | null {
+    if (hit && this.actionMode() && hit.type !== 'class') return phrase('errors.actionNeedsTerm');
+    if (hit && !this.tabs().includes(hit.type)) return phrase('errors.typeNotEnabled');
     if (this.configurationError()) return this.configurationError();
     if (hit && this.termTypes() === undefined && this.selectionMode() === 'term' && hit.type !== 'class')
-      return 'Choose a single term for the default value.';
+      return phrase('errors.defaultNeedsTerm');
     if (
       hit &&
       this.effectiveSources().length &&
       !this.effectiveSources().some((source) => source.sourceAcronym === hit.sourceAcronym)
     )
-      return 'Choose a term from the field vocabulary.';
+      return phrase('errors.outsideFieldVocabulary');
     if (hit === null || (hit.type !== 'class' && hit.type !== 'branch')) {
       return null;
     }
@@ -1785,7 +1806,7 @@ export class CedarEmbeddableTermPicker {
   }
 
   /** The same, for whatever is currently selected, which is what the bar is about. */
-  protected selectionBlocked(): string | null {
+  protected selectionBlocked(): Message | null {
     return this.unrecordable(this.picked());
   }
 
@@ -1829,14 +1850,14 @@ export class CedarEmbeddableTermPicker {
     if (action) {
       if (hit.type !== 'class') return;
       if (action === 'move' && (!Number.isInteger(this.actionPosition()) || this.actionPosition() < 0)) {
-        this.error.set('Use a non-negative whole number for the result position.');
+        this.error.set(phrase('errors.positionNotWhole'));
         return;
       }
       const target = this.draft().constraints[this.actionConstraint()];
       // The same question the constraint row asks, so it is asked in one place.
       const sourceUri = target === undefined ? undefined : this.constraintUri(target);
       if (!sourceUri) {
-        this.error.set('Choose a constraint with a source identifier for this action.');
+        this.error.set(phrase('errors.actionNeedsSource'));
         return;
       }
       this.draft.update((d) => ({
@@ -1858,12 +1879,10 @@ export class CedarEmbeddableTermPicker {
     }
     const maximum = this.maximumTerms();
     if (this.editing() === null && maximum !== undefined && this.draft().constraints.length >= maximum) {
-      this.selectionError.set(
-        `You can select at most ${maximum} terms. Remove an entry from the table to select another.`,
-      );
+      this.selectionProblem.set(phrase('errors.tooManyToAdd', { maximum }));
       return;
     }
-    this.selectionError.set(null);
+    this.selectionProblem.set(null);
     const source = this.sourceOf(hit.sourceAcronym);
     const config = toControlledTermConfig({
       ...hit,
@@ -1873,7 +1892,7 @@ export class CedarEmbeddableTermPicker {
     });
     const index = this.editing();
     if (this.draft().constraints.some((c, i) => i !== index && constraintIdentity(c) === constraintIdentity(config))) {
-      this.selectionError.set('This selection is already in the table.');
+      this.selectionProblem.set(phrase('errors.alreadyInTable'));
       return;
     }
     this.draft.update((d) => ({

@@ -14,14 +14,6 @@ export type SearchKind = (typeof SEARCH_KINDS)[number];
 /** What the tab strip shows, in the order it shows them. */
 export const TAB_ORDER: readonly SearchKind[] = ['class', 'branch', 'ontology', 'valueSet', 'property'];
 
-export const TAB_LABELS: Readonly<Record<SearchKind, string>> = {
-  class: 'terms',
-  branch: 'branches',
-  ontology: 'ontologies',
-  valueSet: 'value sets',
-  property: 'properties',
-};
-
 export interface VersionSelector {
   readonly id: string;
 }
@@ -205,8 +197,17 @@ export interface TypeResults {
   readonly collection: readonly Hit[];
 }
 
+/**
+ * Why one kind of result is missing: a sentence the server wrote, or a phrase of the picker's own
+ * identified by its translation key.
+ *
+ * The same shape as the picker's `Message`, stated here rather than imported because this file is
+ * compiled into the published declarations on its own.
+ */
+export type ResultsMissing = string | { readonly key: string; readonly params?: Readonly<Record<string, unknown>> };
+
 export interface SearchResponse {
-  readonly errors?: Partial<Record<SearchKind, string>>;
+  readonly errors?: Partial<Record<SearchKind, ResultsMissing>>;
   readonly query: string;
   readonly sources: readonly SourceBlock[];
   readonly results: Partial<Record<SearchKind, TypeResults>>;
@@ -297,7 +298,7 @@ export interface Selection {
    * A constraint on one term and a constraint on everything under it are different constraints, and
    * a heading reading only "Selected" left that to be inferred from the phrasing below it.
    */
-  readonly noun: string;
+  readonly noun: 'term' | 'branch' | 'ontology' | 'valueSet' | 'property';
   readonly what: string;
   /** How much a branch or a value set brings with it. Absent for a term and for an ontology. */
   readonly descendants?: number;

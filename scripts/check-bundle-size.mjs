@@ -23,8 +23,15 @@ import { OUT, readManifest } from './make-bundle.mjs';
 // 2026-09-18: shared semantic SVG registry and adapters bring the Angular output
 // to about 480k raw bytes including the distribution wrapper. Keep the compressed ceiling unchanged (230k); this replaces
 // local glyphs and includes only the curated registry, never the full Lucide set.
-const RAW_LIMIT = 490_000;
-const GZIP_LIMIT = 230_000;
+//
+// 2026-09-25: localization. The picker states every string through @ngx-translate/core, the
+// library and major version CEE uses, and compiles the English and Hungarian maps into the script
+// so that nothing is fetched at runtime. Measured on the shipped file, that took it from 477,236
+// to 515,572 raw bytes and from 224,014 to 234,634 gzip-9 bytes: about 13 kB raw for the two maps
+// and the rest for the library and the templates that call it. Both ceilings move by the measured
+// growth and keep roughly the headroom they had.
+const RAW_LIMIT = 530_000;
+const GZIP_LIMIT = 240_000;
 
 const format = (bytes) => `${bytes.toLocaleString('en-US')} bytes`;
 

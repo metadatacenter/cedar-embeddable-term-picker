@@ -23,6 +23,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "isolatedModules": true,
+    /* The translation maps are imported as modules, so both languages are in the bundle. */
+    "resolveJsonModule": true,
     /*
      * No `skipLibCheck`, which CEE also declines: the declarations in node_modules
      * are checked rather than trusted.
