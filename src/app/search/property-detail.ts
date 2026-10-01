@@ -115,40 +115,40 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
       display: block;
       grid-column: 1 / -1;
       min-width: 0;
-      padding: 6px 8px;
+      padding: var(--cedar-space-1) var(--cedar-space-2);
     }
     button {
       font: inherit;
       cursor: pointer;
     }
     p {
-      margin: 4px 0;
+      margin: var(--cedar-space-1) 0;
     }
     .release-toolbar {
       display: flex;
       justify-content: flex-start;
       align-items: center;
-      gap: 8px;
+      gap: var(--cedar-space-2);
       font-size: var(--cetp-font-size-small);
       color: var(--cetp-color-muted);
-      margin-bottom: 4px;
+      margin-bottom: var(--cedar-space-1);
     }
     .release-toggle {
       border: 0;
       background: transparent;
       color: var(--cetp-color-primary);
-      padding: 0 4px;
+      padding: 0 var(--cedar-space-1);
     }
     .releases {
-      padding: 4px;
+      padding: var(--cedar-space-1);
       background: var(--cetp-color-tint);
     }
     .release {
       display: flex;
       justify-content: space-between;
-      gap: 12px;
+      gap: var(--cedar-space-3);
       width: 100%;
-      padding: 4px 8px;
+      padding: var(--cedar-space-1) var(--cedar-space-2);
       border: 0;
       background: transparent;
       text-align: left;
@@ -163,22 +163,22 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
-      gap: 8px;
+      gap: var(--cedar-space-2);
     }
     .tree {
       list-style: none;
       margin: 0;
-      padding: 4px 6px;
+      padding: var(--cedar-space-1) var(--cedar-space-1);
       max-height: 14rem;
       overflow: auto;
       background: white;
       border: 1px solid var(--cetp-color-border);
-      border-radius: 3px;
+      border-radius: var(--cedar-radius);
     }
     .node {
       display: flex;
       align-items: baseline;
-      gap: 3px;
+      gap: var(--cedar-space-1);
     }
     .twist {
       flex: 0 0 tokens.$icon-size-small;
@@ -191,7 +191,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
       background: transparent;
       text-align: left;
       color: inherit;
-      padding: 0 2px;
+      padding: 0 calc(var(--cedar-space-1) / 2);
       overflow-wrap: anywhere;
     }
     button.term:hover {
@@ -205,9 +205,9 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
     .use {
       background: var(--cetp-color-primary);
       color: var(--cetp-color-on-primary);
-      padding: 4px 10px;
+      padding: var(--cedar-space-1) var(--cedar-space-2);
       border: 0;
-      border-radius: 3px;
+      border-radius: var(--cedar-radius);
     }
     button:disabled {
       opacity: 0.4;
@@ -219,7 +219,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
       overflow-wrap: anywhere;
     }
     [role='alert'] {
-      color: tokens.$color-warn;
+      color: tokens.$status-error-text;
     }
   `,
 })

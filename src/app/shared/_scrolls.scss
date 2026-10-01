@@ -32,7 +32,7 @@
     background: var(--cetp-color-border);
     background-clip: content-box;
     border: 3px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--cedar-radius);
   }
 
   &:hover::-webkit-scrollbar-thumb {

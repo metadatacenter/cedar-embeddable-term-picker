@@ -6,22 +6,22 @@
 }
 
 .constraint-set {
-  padding: 8px 14px;
+  padding: var(--cedar-space-2) var(--cedar-space-3);
   border-bottom: 1px solid var(--cetp-color-border);
   max-height: 38vh;
   @include scrolls.scrolls;
   h2 {
     margin: 0;
-    font-size: var(--cetp-font-size-lead);
+    font-size: var(--cetp-font-size);
     font-weight: var(--cedar-font-weight-medium, 500);
   }
   h3 {
-    margin: 18px 0 6px;
+    margin: var(--cedar-space-4) 0 var(--cedar-space-1);
     font-size: var(--cetp-font-size);
     font-weight: var(--cedar-font-weight-medium, 500);
   }
   p {
-    margin: 6px 0 12px;
+    margin: var(--cedar-space-1) 0 var(--cedar-space-3);
     color: var(--cetp-color-muted);
   }
   p,
@@ -32,10 +32,10 @@
   }
   button {
     margin: 0;
-    padding: 4px 8px;
+    padding: var(--cedar-space-1) var(--cedar-space-2);
     cursor: pointer;
     border: 1px solid var(--cetp-color-border);
-    border-radius: 3px;
+    border-radius: var(--cedar-radius);
     background: white;
     color: var(--cetp-color-primary);
   }
@@ -52,18 +52,18 @@
   }
   input {
     width: 80px;
-    padding: 5px;
+    padding: var(--cedar-space-1);
     border: 1px solid var(--cetp-color-border);
   }
   select {
-    padding: 6px;
+    padding: var(--cedar-space-1);
     max-width: 100%;
   }
   dt {
     font-weight: var(--cedar-font-weight-medium, 500);
   }
   dd {
-    margin: 4px 0 10px;
+    margin: var(--cedar-space-1) 0 var(--cedar-space-2);
     overflow-wrap: anywhere;
   }
   .use {
@@ -79,7 +79,7 @@
   border-collapse: collapse;
   table-layout: fixed;
   th {
-    padding: tokens.$table-cell-padding-block-authoring tokens.$table-cell-padding-inline-authoring;
+    padding: calc(#{tokens.$space-1} / 2) tokens.$space-2;
     color: var(--cetp-color-muted);
     font-size: var(--cetp-font-size-small);
     font-weight: var(--cedar-font-weight-medium, 500);
@@ -93,10 +93,10 @@
   }
   td {
     box-sizing: border-box;
-    line-height: tokens.$form-help-line-height;
-    padding: tokens.$table-cell-padding-block-authoring tokens.$table-cell-padding-inline-authoring;
+    line-height: tokens.$control-line-height-authoring;
+    padding: calc(#{tokens.$space-1} / 2) tokens.$space-2;
     border-top: 1px solid var(--cetp-color-border);
-    height: tokens.$table-row-height-authoring;
+    height: tokens.$row-height-compact;
     font-size: var(--cetp-font-size);
     vertical-align: middle;
     overflow-wrap: anywhere;
@@ -133,7 +133,7 @@
   }
   .constraint-empty {
     color: var(--cetp-color-muted);
-    padding: 8px 10px;
+    padding: var(--cedar-space-2) var(--cedar-space-2);
   }
 }
 
@@ -141,25 +141,25 @@
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
   background: var(--cetp-color-surface);
-  border-radius: 3px;
-  padding: 2px 5px;
-  margin-right: 5px;
+  border-radius: var(--cedar-radius);
+  padding: calc(var(--cedar-space-1) / 2) var(--cedar-space-1);
+  margin-right: var(--cedar-space-1);
 }
 
 .constraint-heading {
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: var(--cedar-space-1);
   .use {
     margin: 0;
   }
 }
 
 .constraint-table + .constraint-table {
-  margin-top: 6px;
+  margin-top: var(--cedar-space-1);
 }
 
 .saved-actions {
-  margin-top: 6px;
+  margin-top: var(--cedar-space-1);
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
   summary {
@@ -177,8 +177,8 @@
   dl {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
-    gap: 2px 10px;
-    margin: 4px 0 0;
+    gap: calc(var(--cedar-space-1) / 2) var(--cedar-space-2);
+    margin: var(--cedar-space-1) 0 0;
     line-height: 1.35;
   }
   dt {
@@ -199,13 +199,13 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  gap: 12px;
+  gap: var(--cedar-space-3);
 }
 
 .constraint-table-controls {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--cedar-space-1);
   align-items: stretch;
   button {
     width: 100%;
@@ -219,5 +219,5 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--cedar-space-1);
 }
