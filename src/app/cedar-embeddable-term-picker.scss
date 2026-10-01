@@ -1194,8 +1194,11 @@ mark {
   .chosen.awaiting {
     display: none;
   }
+  // A tighter gap keeps the four tabs on one row while few of them carry a count. A count on every
+  // tab still wraps the row at phone width, at any gap.
   .tabs {
     flex-wrap: wrap;
+    column-gap: var(--cedar-space-3);
   }
 }
 
