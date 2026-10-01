@@ -1,4 +1,5 @@
 @use '@org.metadatacenter/cedar-design-tokens/motion';
+@use '@org.metadatacenter/cedar-design-tokens/icon-contract';
 @use '@org.metadatacenter/cedar-design-tokens/controls';
 @use './shared/scrolls';
 // CEDAR's design values, from the package that holds them for every component that
@@ -19,6 +20,7 @@
 // ordinary. CEE reached the same rule from the other direction: its Material internals are not host
 // API. Adding a property here is a change to a public contract, not a tweak.
 :host {
+  --cedar-color-primary: var(--cetp-color-primary);
   --cetp-color-primary: #{tokens.$color-primary};
   --cetp-color-on-primary: #{tokens.$color-on-primary};
   --cetp-color-heading: #{tokens.$color-component-title};
@@ -227,6 +229,7 @@ button {
   border: 1px solid var(--cetp-color-primary);
   border-radius: tokens.$control-radius-default;
   background: var(--cetp-color-primary);
+  --cedar-icon-color: var(--cetp-color-on-primary);
   color: var(--cetp-color-on-primary);
   cursor: pointer;
   white-space: nowrap;
@@ -864,6 +867,7 @@ mark {
 
   &.warn {
     background: tokens.$status-warning-surface;
+    --cedar-icon-color: var(--cetp-color-warning);
     color: var(--cetp-color-warning);
   }
 
@@ -903,6 +907,7 @@ mark {
 // A pin naming an extraction a later one corrected. Marked rather than alarming: the pin resolves,
 // and an author may well have meant that exact reading.
 .stale {
+  --cedar-icon-color: var(--cetp-color-warning);
   color: var(--cetp-color-warning);
   font-style: italic;
 }
@@ -991,6 +996,7 @@ mark {
   margin: 0.5rem 0 0.25rem;
   padding: 0.25rem 0.75rem;
   font: inherit;
+  --cedar-icon-color: var(--cetp-color-on-primary);
   color: var(--cetp-color-on-primary);
   background: var(--cetp-color-primary);
   border: 1px solid transparent;
@@ -1116,6 +1122,7 @@ mark {
     grid-row: 1;
     margin: 0 6px 0 0;
     background: var(--cetp-color-primary);
+    --cedar-icon-color: var(--cetp-color-on-primary);
     color: var(--cetp-color-on-primary);
   }
   .use:disabled {
@@ -1149,6 +1156,7 @@ mark {
 }
 
 .selection-error {
+  --cedar-icon-color: #{tokens.$color-warn};
   color: tokens.$color-warn;
   margin: 0;
   padding: 4px 16px;
@@ -1194,3 +1202,5 @@ mark {
 textarea {
   resize: none;
 }
+
+@include icon-contract.styles;
