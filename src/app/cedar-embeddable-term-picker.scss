@@ -92,6 +92,11 @@
   align-items: start;
 }
 
+// Both search fields clear with the registry's close glyph, not the browser's blue cross.
+input[type='search'] {
+  @include controls.search-clear-indicator;
+}
+
 .search {
   display: flex;
   flex-direction: column;
