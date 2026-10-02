@@ -1,5 +1,9 @@
+@use '@org.metadatacenter/cedar-design-tokens/spacing';
 @use '@org.metadatacenter/cedar-design-tokens/motion';
+@use '@org.metadatacenter/cedar-design-tokens/icon-contract';
 @use '@org.metadatacenter/cedar-design-tokens/controls';
+@use '@org.metadatacenter/cedar-design-tokens/custom-properties';
+@use '@org.metadatacenter/cedar-design-tokens/patterns';
 @use './shared/scrolls';
 // CEDAR's design values, from the package that holds them for every component that
 // draws CEDAR. `node_modules` is on the Sass load path for this — angular.json says
@@ -19,31 +23,42 @@
 // ordinary. CEE reached the same rule from the other direction: its Material internals are not host
 // API. Adding a property here is a change to a public contract, not a tweak.
 :host {
+  // The shared roles, so the shared recipes resolve inside this shadow root, then re-pointed at
+  // the host contract below: a recipe follows what an embedder sets, exactly as this file does.
+  @include custom-properties.declare;
+  --cedar-color-primary: var(--cetp-color-primary);
+  --cedar-color-on-primary: var(--cetp-color-on-primary);
+  --cedar-text-title: var(--cetp-color-heading);
+  --cedar-text-primary: var(--cetp-color-text);
+  --cedar-text-muted: var(--cetp-color-muted);
+  --cedar-surface-subtle: var(--cetp-color-surface);
+  --cedar-border-rule: var(--cetp-color-border);
+  --cedar-status-warning-text: var(--cetp-color-warning);
+  --cedar-font-family: var(--cetp-font-family);
+  --cedar-font-size: var(--cetp-font-size);
+  --cedar-font-size-small: var(--cetp-font-size-small);
+
   --cetp-color-primary: #{tokens.$color-primary};
   --cetp-color-on-primary: #{tokens.$color-on-primary};
-  --cetp-color-heading: #{tokens.$color-component-title};
+  --cetp-color-heading: #{tokens.$text-title};
   --cetp-color-text: #{tokens.$text-primary};
   --cetp-color-muted: #{tokens.$text-muted};
-  --cetp-color-surface: #{tokens.$surface-panel};
+  --cetp-color-surface: #{tokens.$surface-subtle};
   --cetp-color-border: #{tokens.$border-rule};
   --cetp-color-warning: #{tokens.$status-warning-text};
   --cetp-font-family: #{tokens.$font-family};
   --cetp-font-size: #{tokens.$font-size};
 
-  // Derived, not settable. The type scale is CEDAR's — 14 for the body, 12 for what supports it,
-  // 15 for what leads — and it moves with the base a host sets rather than being pinned beside it,
-  // so `--cetp-font-size: 16px` reads as a larger component and not a broken one.
+  // Derived, not settable. The type scale is CEDAR's — 14 for the body, 12 for what supports it —
+  // and it moves with the base a host sets rather than being pinned beside it, so
+  // `--cetp-font-size: 16px` reads as a larger component and not a broken one.
   --cetp-font-size-small: calc(var(--cetp-font-size) + #{tokens.$font-size-small - tokens.$font-size});
-  --cetp-font-size-lead: calc(var(--cetp-font-size) + #{tokens.$font-size-lead - tokens.$font-size});
 
   // Derived from the brand, so a host that re-points the primary colour gets a tint that matches it
   // rather than one left behind. A chip and a pinned version share this; the panel behind expanded
   // rows is the neutral surface, and the two have to stay distinguishable.
-  --cetp-color-tint: color-mix(
-    in srgb,
-    var(--cetp-color-primary) #{tokens.$selection-tint-percentage},
-    #{tokens.$surface-raised}
-  );
+  // At the default primary this is the shared selected surface.
+  --cetp-color-tint: color-mix(in srgb, var(--cetp-color-primary) 12%, #{tokens.$surface-raised});
 
   display: block;
   container-type: inline-size;
@@ -74,14 +89,19 @@
 // selection's caption rode above the search's by however tall its own contents happened to be.
 .bar {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--cedar-space-3);
   align-items: start;
+}
+
+// Both search fields clear with the registry's close glyph, not the browser's blue cross.
+input[type='search'] {
+  @include controls.search-clear-indicator;
 }
 
 .search {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--cedar-space-1);
   // Half the bar rather than all of it: the other half says what has been found. Both halves keep
   // their width whether or not anything is selected, so marking a row does not move the input.
   flex: 1 1 50%;
@@ -97,11 +117,11 @@
 
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--cedar-space-1);
   flex: 1 1 50%;
   min-width: 0;
   // Clear of the corner the dismiss now occupies.
-  padding-right: 1.6rem;
+  padding-right: var(--cedar-space-6);
 
   .phrase,
   .about,
@@ -130,7 +150,7 @@
     color: var(--cetp-color-muted);
     line-height: 1.5;
     height: 1.5em;
-    padding-bottom: 0.35rem;
+    padding-bottom: var(--cedar-space-1);
   }
 
   // The IRI itself, in the face the hash already uses on the line above. The namespace gives way
@@ -166,18 +186,18 @@
 
   // Sits on the input's baseline opposite it, rather than floating clear of its own caption.
   .phrase {
-    padding: 0.45rem 0 0;
+    padding: var(--cedar-space-2) 0 0;
   }
 
   .about {
-    padding: 0.1rem 0 0.2rem;
+    @include spacing.apply(padding, compact-break);
   }
 
   // Why the selection cannot be recorded. Quiet, at the size of the rest of the bar's detail: it
   // states a condition of the release the author chose, not a mistake they made, and the sentence
   // it carries comes from the store.
   .blocked {
-    padding: 0.1rem 0 0.2rem;
+    @include spacing.apply(padding, compact-break);
     font-size: var(--cetp-font-size-small);
     color: var(--cetp-color-muted);
   }
@@ -198,7 +218,7 @@ input {
   min-height: tokens.$control-height-default;
   padding: tokens.$space-2;
   border: 1px solid tokens.$control-border-default;
-  border-radius: tokens.$control-radius-default;
+  border-radius: tokens.$radius;
   font: inherit;
   color: inherit;
   min-width: 0;
@@ -223,10 +243,11 @@ button {
   // Sized so a row carrying buttons is the same height as a row without: the ontology rows stood a
   // third taller than the folded term rows, which is the vertical creep this component keeps
   // attracting.
-  padding: 0.2rem 0.6rem;
+  padding: var(--cedar-space-1) var(--cedar-space-2);
   border: 1px solid var(--cetp-color-primary);
-  border-radius: tokens.$control-radius-default;
+  border-radius: tokens.$radius;
   background: var(--cetp-color-primary);
+  --cedar-icon-color: var(--cetp-color-on-primary);
   color: var(--cetp-color-on-primary);
   cursor: pointer;
   white-space: nowrap;
@@ -241,18 +262,18 @@ button {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-top: 0.6rem;
+  gap: var(--cedar-space-1);
+  margin-top: var(--cedar-space-2);
 }
 
 .chip.removable {
   border: none;
   cursor: pointer;
-  padding: 0.1rem 0.45rem;
+  @include spacing.apply(padding, compact-row);
 
   .x {
     color: var(--cetp-color-muted);
-    margin-left: 0.15rem;
+    @include spacing.apply(margin-left, compact);
   }
 }
 
@@ -263,7 +284,7 @@ button {
   border: 1px dashed var(--cetp-color-border);
   color: var(--cetp-color-primary);
   cursor: pointer;
-  padding: 0.1rem 0.45rem;
+  @include spacing.apply(padding, compact-row);
 }
 
 // A control with no box. For the reset beside the chips, which is worth having once several
@@ -271,7 +292,7 @@ button {
 .quiet {
   background: transparent;
   border: none;
-  padding: 0.1rem 0.2rem;
+  @include spacing.apply(padding, compact-cell);
   color: var(--cetp-color-muted);
   cursor: pointer;
   text-decoration: underline;
@@ -286,8 +307,8 @@ button {
 .finder {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.4rem;
+  gap: var(--cedar-space-2);
+  margin-top: var(--cedar-space-1);
 
   input {
     // Sized to what is typed into it — an acronym or a word of a name — rather than to the panel.
@@ -295,9 +316,9 @@ button {
     min-width: 0;
     height: tokens.$control-height-default;
     font-size: var(--cetp-font-size-small);
-    padding: 0 0.45rem;
+    padding: 0 var(--cedar-space-2);
     border: 1px solid tokens.$control-border-default;
-    border-radius: tokens.$control-radius-default;
+    border-radius: tokens.$radius;
     background: tokens.$surface-raised;
     color: inherit;
   }
@@ -308,9 +329,9 @@ button {
 .candidates-head {
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
-  margin: 0.5rem 0 0.15rem;
-  padding: 0 0.4rem;
+  gap: var(--cedar-space-2);
+  @include spacing.apply(margin, compact-footer);
+  padding: 0 var(--cedar-space-1);
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
 
@@ -324,25 +345,25 @@ button {
 .candidates {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.15rem 0.5rem;
+  @include spacing.apply(gap, compact-row);
   max-height: 11rem;
   @include scrolls.scrolls;
-  margin-top: 0.4rem;
-  padding: 0.35rem;
+  margin-top: var(--cedar-space-1);
+  padding: var(--cedar-space-1);
   background: var(--cetp-color-surface);
-  border-radius: tokens.$control-radius-default;
+  border-radius: tokens.$radius;
 }
 
 .candidate {
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
+  gap: var(--cedar-space-1);
   background: transparent;
   border: none;
-  border-radius: tokens.$control-radius-authoring;
+  border-radius: tokens.$radius;
   color: inherit;
   text-align: left;
-  padding: 0.2rem 0.3rem;
+  padding: var(--cedar-space-1) var(--cedar-space-1);
   min-width: 0;
 
   &.on {
@@ -356,38 +377,24 @@ button {
 }
 
 .tabs {
-  display: flex;
+  @include patterns.tabs;
   align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.75rem;
-  border-bottom: 1px solid var(--cetp-color-border);
+  margin-top: var(--cedar-space-3);
 }
 
 .tab {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  color: var(--cetp-color-muted);
-  font-size: var(--cetp-font-size);
-  padding: 0.4rem 0.6rem;
-
-  &.active {
-    color: var(--cetp-color-heading);
-    border-bottom-color: var(--cetp-color-primary);
-    font-weight: var(--cedar-font-weight-medium, 500);
-  }
+  @include patterns.tab;
 }
 
 .badge {
-  margin-left: 0.35rem;
+  margin-left: var(--cedar-space-1);
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
 }
 
 .working {
   margin: 0;
-  padding: 0.35rem 0.2rem 0;
+  padding: var(--cedar-space-1) var(--cedar-space-1) 0;
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
 
@@ -404,7 +411,7 @@ button {
 .results {
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
-  column-gap: 0.75rem;
+  column-gap: var(--cedar-space-3);
 
   // The list scrolls and grows as it is scrolled, rather than paging. A common query matches ten
   // thousand distinct labels; page numbers over a count that stops at a cap said "400+" and asked
@@ -416,7 +423,7 @@ button {
 // What the bottom of the list is doing: fetching, finished, or neither.
 .tail {
   margin: 0;
-  padding: 0.4rem 0.2rem 0;
+  padding: var(--cedar-space-1) var(--cedar-space-1) 0;
   min-height: 1.6rem;
   color: var(--cetp-color-muted);
   font-size: var(--cetp-font-size-small);
@@ -428,7 +435,7 @@ button {
   display: grid;
   grid-template-columns: subgrid;
   align-items: center;
-  padding: 0.35rem 0.2rem;
+  padding: var(--cedar-space-1) var(--cedar-space-1);
   border-bottom: 1px solid var(--cetp-color-border);
 
   &.group {
@@ -464,11 +471,11 @@ button {
   right: 0.35rem;
   background: transparent;
   border: none;
-  border-radius: tokens.$control-radius-default;
+  border-radius: tokens.$radius;
   color: var(--cetp-color-muted);
-  font-size: var(--cetp-font-size-lead);
+  font-size: var(--cetp-font-size);
   line-height: 1;
-  padding: 0.2rem 0.4rem;
+  padding: var(--cedar-space-1) var(--cedar-space-1);
 
   &:hover {
     color: var(--cetp-color-heading);
@@ -484,14 +491,14 @@ button {
 .of {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--cedar-space-1);
   background: transparent;
   border: none;
-  border-radius: tokens.$control-radius-default;
+  border-radius: tokens.$radius;
   color: var(--cetp-color-primary);
   font-size: var(--cetp-font-size-small);
   white-space: nowrap;
-  padding: 0 0.2rem;
+  padding: 0 var(--cedar-space-1);
   text-align: left;
 
   &:hover {
@@ -516,19 +523,19 @@ button {
 // tinted, and two tinted blocks running together were hard to tell apart.
 .tree {
   list-style: none;
-  margin: 0 0 0.2rem;
-  padding: 0.25rem 0.35rem;
+  margin: 0 0 var(--cedar-space-1);
+  padding: var(--cedar-space-1) var(--cedar-space-1);
   max-height: 14rem;
   background: tokens.$surface-raised;
   border: 1px solid var(--cetp-color-border);
-  border-radius: tokens.$control-radius-default;
+  border-radius: tokens.$radius;
   @include scrolls.scrolls;
 }
 
 .node {
   display: flex;
   align-items: baseline;
-  gap: 0.2rem;
+  gap: var(--cedar-space-1);
   color: var(--cetp-color-muted);
   white-space: nowrap;
 
@@ -552,7 +559,7 @@ button {
     flex: 0 0 tokens.$icon-size-small;
     background: transparent;
     border: none;
-    border-radius: tokens.$control-radius-authoring;
+    border-radius: tokens.$radius;
     padding: 0;
     color: var(--cetp-color-primary);
     font-size: 0.85em;
@@ -566,8 +573,8 @@ button {
     text-overflow: ellipsis;
     background: transparent;
     border: none;
-    border-radius: tokens.$control-radius-authoring;
-    padding: 0 0.15rem;
+    border-radius: tokens.$radius;
+    @include spacing.apply(padding, inline-mark);
     color: inherit;
     font-size: inherit;
     text-align: left;
@@ -586,13 +593,13 @@ button {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   align-items: baseline;
-  gap: 0.15rem 0.75rem;
+  @include spacing.apply(gap, search-hit-gap);
   // Tight against whatever it follows. Below the release list these were stacking — that margin,
   // this one and this padding — into a finger's width of nothing above the tree.
-  margin: 0 0 0.35rem 0;
-  padding: 0 0.6rem 0.3rem;
+  margin: 0 0 var(--cedar-space-1) 0;
+  padding: 0 var(--cedar-space-2) var(--cedar-space-1);
   background: var(--cetp-color-surface);
-  border-radius: tokens.$control-radius-default;
+  border-radius: tokens.$radius;
   font-size: var(--cetp-font-size-small);
 
   dt {
@@ -613,7 +620,7 @@ button {
   .meaning {
     white-space: normal;
     line-height: 1.4;
-    padding-bottom: 0.15rem;
+    @include spacing.apply(padding-bottom, compact);
     color: var(--cetp-color-text);
   }
 
@@ -633,8 +640,8 @@ button {
 .history {
   grid-column: 1 / -1;
   background: var(--cetp-color-surface);
-  border-radius: tokens.$control-radius-default;
-  margin: 0.15rem 0 0 0;
+  border-radius: tokens.$radius;
+  @include spacing.apply(margin, compact-status);
   max-height: 11rem;
   margin-bottom: 0;
 
@@ -650,9 +657,9 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 7.5em 7.5em 4em;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--cedar-space-3);
   margin: 0;
-  padding: 0.3rem 0.6rem;
+  padding: var(--cedar-space-1) var(--cedar-space-2);
   background: var(--cetp-color-surface);
   border-bottom: 1px solid var(--cetp-color-border);
   color: var(--cetp-color-muted);
@@ -671,14 +678,14 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 7.5em 7.5em 4em;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--cedar-space-3);
   width: 100%;
   background: transparent;
   border: none;
   border-radius: 0;
   color: inherit;
   text-align: left;
-  padding: 0.25rem 0.6rem;
+  padding: var(--cedar-space-1) var(--cedar-space-2);
   font-size: var(--cetp-font-size-small);
 
   &:hover {
@@ -716,7 +723,7 @@ button {
 .rowhead {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--cedar-space-2);
   width: 100%;
   background: transparent;
   border: none;
@@ -724,7 +731,7 @@ button {
   color: inherit;
   text-align: left;
   // Room before the twist. At 0.2rem a group's label began three pixels from the panel edge.
-  padding: 0.35rem 0.55rem;
+  padding: var(--cedar-space-1) var(--cedar-space-2);
   font-size: var(--cetp-font-size);
 }
 
@@ -740,7 +747,7 @@ button {
 }
 
 .title {
-  font-size: var(--cetp-font-size-lead);
+  font-size: var(--cetp-font-size);
   font-weight: var(--cedar-font-weight-medium, 500);
 
   &.obsolete {
@@ -749,7 +756,7 @@ button {
 }
 
 .who {
-  margin-left: 0.4rem;
+  margin-left: var(--cedar-space-1);
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-heading);
 }
@@ -758,7 +765,7 @@ button {
 // two elements, so without a margin the separator hugs the word before it — "BioAssay Ontology·
 // BioPortal". The one exception carries no separator and needs no room.
 .dim:not(.ellipsis) {
-  margin-left: 0.25rem;
+  margin-left: var(--cedar-space-1);
 }
 
 .dim {
@@ -768,7 +775,7 @@ button {
 // The compact group heading. Shorter than a row, but starting where one does: at 0.2rem its twist
 // sat three pixels from the panel edge, and the tint behind a selected row began there too.
 .oneline {
-  padding: 0.25rem 0.55rem;
+  padding: var(--cedar-space-1) var(--cedar-space-2);
 }
 
 .ellipsis {
@@ -829,7 +836,7 @@ mark {
   display: block;
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
-  margin-top: 0.15rem;
+  @include spacing.apply(margin-top, compact);
 }
 
 .path {
@@ -848,9 +855,9 @@ mark {
   border: 1px solid var(--cetp-color-border);
   color: var(--cetp-color-muted);
   font-size: var(--cetp-font-size-small);
-  padding: 0.02rem 0.35rem;
-  border-radius: tokens.$control-radius-default;
-  margin-right: 0.35rem;
+  @include spacing.apply(padding, compact-cell);
+  border-radius: tokens.$radius;
+  margin-right: var(--cedar-space-1);
 }
 
 .chip {
@@ -858,12 +865,13 @@ mark {
   background: var(--cetp-color-tint);
   color: var(--cetp-color-heading);
   font-size: var(--cetp-font-size-small);
-  padding: 0.05rem 0.4rem;
-  border-radius: tokens.$control-radius-default;
-  margin-right: 0.35rem;
+  @include spacing.apply(padding, compact-cell);
+  border-radius: tokens.$radius;
+  margin-right: var(--cedar-space-1);
 
   &.warn {
     background: tokens.$status-warning-surface;
+    --cedar-icon-color: var(--cetp-color-warning);
     color: var(--cetp-color-warning);
   }
 
@@ -872,14 +880,14 @@ mark {
   // the term and the annotation, so this one carries the least padding that still keeps its text
   // off the edge.
   &.attached {
-    padding-left: 0.2rem;
-    padding-right: 0.25rem;
+    padding-left: var(--cedar-space-1);
+    padding-right: var(--cedar-space-1);
   }
 }
 
 .children {
   background: var(--cetp-color-surface);
-  padding: 0.1rem 0.5rem 0.2rem 1.6rem;
+  @include spacing.apply(padding, nested-search-hit);
 }
 
 // The children of one group get the same treatment among themselves. They cannot take the outer
@@ -888,7 +896,7 @@ mark {
 .children {
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
-  column-gap: 0.75rem;
+  column-gap: var(--cedar-space-3);
 }
 
 // The counts run right against their column, so "terms" and "descendants" line up down the list
@@ -903,6 +911,7 @@ mark {
 // A pin naming an extraction a later one corrected. Marked rather than alarming: the pin resolves,
 // and an author may well have meant that exact reading.
 .stale {
+  --cedar-icon-color: var(--cetp-color-warning);
   color: var(--cetp-color-warning);
   font-style: italic;
 }
@@ -911,7 +920,7 @@ mark {
   color: var(--cetp-color-primary);
   font-size: var(--cetp-font-size-small);
   flex: 0 0 auto;
-  padding-right: 0.35rem;
+  padding-right: var(--cedar-space-1);
   // Rotate the same square shared icon without shifting the text column.
   display: inline-block;
   transition: transform tokens.$motion-duration-fast tokens.$motion-ease-standard;
@@ -941,7 +950,7 @@ mark {
   align-items: center;
   // Room before the first glyph, matching the group head above it. At zero a child's tint and its
   // opening mark began hard against the panel edge.
-  padding: 0.3rem 0.55rem;
+  padding: var(--cedar-space-1) var(--cedar-space-2);
   border-bottom: 1px solid var(--cetp-color-border);
 
   &:last-child {
@@ -960,8 +969,8 @@ mark {
   &.pinned {
     background: var(--cetp-color-tint);
     color: var(--cetp-color-heading);
-    border-radius: tokens.$control-radius-default;
-    padding: 0 0.25rem;
+    border-radius: tokens.$radius;
+    padding: 0 var(--cedar-space-1);
     font-weight: var(--cedar-font-weight-medium, 500);
   }
 }
@@ -971,14 +980,14 @@ mark {
   border-left: 3px solid var(--cetp-color-warning);
   color: var(--cetp-color-muted);
   font-size: var(--cetp-font-size-small);
-  padding: 0.5rem 0.6rem;
-  margin: 0.75rem 0 0;
+  padding: var(--cedar-space-2) var(--cedar-space-2);
+  margin: var(--cedar-space-3) 0 0;
 }
 
 .empty {
   color: var(--cetp-color-muted);
   font-size: var(--cetp-font-size-small);
-  padding: 1rem 0.2rem;
+  padding: var(--cedar-space-4) var(--cedar-space-1);
 }
 
 /* The commit, reachable by keyboard: a marked row opens its detail, and the detail carries the
@@ -988,13 +997,14 @@ mark {
   min-height: tokens.$control-height-default;
   display: block;
   width: fit-content;
-  margin: 0.5rem 0 0.25rem;
-  padding: 0.25rem 0.75rem;
+  margin: var(--cedar-space-2) 0 var(--cedar-space-1);
+  padding: var(--cedar-space-1) var(--cedar-space-3);
   font: inherit;
+  --cedar-icon-color: var(--cetp-color-on-primary);
   color: var(--cetp-color-on-primary);
   background: var(--cetp-color-primary);
   border: 1px solid transparent;
-  border-radius: tokens.$control-radius-default;
+  border-radius: tokens.$radius;
   cursor: pointer;
 }
 
@@ -1017,26 +1027,26 @@ mark {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--cedar-space-1);
 }
 
 .term-action-controls {
-  margin-top: 6px;
+  margin-top: var(--cedar-space-1);
 }
 
 .picker.set-mode {
-  padding: 8px 14px;
+  padding: var(--cedar-space-2) var(--cedar-space-3);
   .chosen.awaiting {
     display: none;
   }
   .search {
-    padding-right: 24px;
+    padding-right: var(--cedar-space-6);
   }
   .narrowing {
-    margin-top: 6px;
+    margin-top: var(--cedar-space-1);
   }
   .tabs {
-    margin-top: 4px;
+    margin-top: var(--cedar-space-1);
   }
   .working.idle {
     display: none;
@@ -1046,7 +1056,7 @@ mark {
   }
   .empty {
     margin: 0;
-    padding: 10px 2px;
+    @include spacing.apply(padding, search-chip);
   }
 }
 
@@ -1054,7 +1064,7 @@ mark {
   .chosen {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    gap: 2px 8px;
+    @include spacing.apply(gap, compact-row);
     .label {
       grid-column: 1 / -1;
     }
@@ -1081,7 +1091,7 @@ mark {
     padding-bottom: 0;
   }
   .use {
-    margin: 4px 0;
+    margin: var(--cedar-space-1) 0;
   }
 }
 
@@ -1089,7 +1099,7 @@ mark {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--cedar-space-2);
   grid-column: 1 / -1;
   button:disabled {
     opacity: tokens.$control-disabled-opacity;
@@ -1105,7 +1115,7 @@ mark {
   grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: var(--cedar-space-2);
   background: var(--cetp-color-surface);
   .detail {
     grid-column: 1;
@@ -1114,8 +1124,9 @@ mark {
   .use {
     grid-column: 2;
     grid-row: 1;
-    margin: 0 6px 0 0;
+    margin: 0 var(--cedar-space-1) 0 0;
     background: var(--cetp-color-primary);
+    --cedar-icon-color: var(--cetp-color-on-primary);
     color: var(--cetp-color-on-primary);
   }
   .use:disabled {
@@ -1131,7 +1142,7 @@ mark {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: var(--cedar-space-2);
   > div {
     min-width: 0;
   }
@@ -1149,14 +1160,15 @@ mark {
 }
 
 .selection-error {
-  color: tokens.$color-warn;
+  --cedar-icon-color: #{tokens.$status-error-text};
+  color: tokens.$status-error-text;
   margin: 0;
-  padding: 4px 16px;
+  padding: var(--cedar-space-1) var(--cedar-space-4);
 }
 
 .scope-selector {
   display: block;
-  padding: 8px 14px;
+  padding: var(--cedar-space-2) var(--cedar-space-3);
   border-bottom: 1px solid var(--cetp-color-border);
 }
 
@@ -1183,8 +1195,11 @@ mark {
   .chosen.awaiting {
     display: none;
   }
+  // A tighter gap keeps the four tabs on one row while few of them carry a count. A count on every
+  // tab still wraps the row at phone width, at any gap.
   .tabs {
     flex-wrap: wrap;
+    column-gap: var(--cedar-space-3);
   }
 }
 
@@ -1194,3 +1209,5 @@ mark {
 textarea {
   resize: none;
 }
+
+@include icon-contract.styles;
