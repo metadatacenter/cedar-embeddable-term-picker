@@ -43,13 +43,6 @@
       "value": "1.5",
       "count": 2
     },
-    "81e173ed609c860021c2": {
-      "file": "src/app/search/property-detail.ts",
-      "rule": "typography",
-      "property": "font-weight",
-      "value": "500",
-      "count": 1
-    },
     "89b7e362c9e43f24dd67": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "spacing",
@@ -113,13 +106,6 @@
       "value": "white",
       "count": 1
     },
-    "c2daf4a15fa2856daecb": {
-      "file": "src/app/search/property-detail.ts",
-      "rule": "typography",
-      "property": "font-size",
-      "value": "0.85em",
-      "count": 1
-    },
     "cd82c6dee3786d63a935": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "geometry",
@@ -132,13 +118,6 @@
       "rule": "typography",
       "property": "line-height",
       "value": "1",
-      "count": 1
-    },
-    "db7025fc795682c5c10a": {
-      "file": "src/app/search/property-detail.ts",
-      "rule": "color",
-      "property": "background",
-      "value": "white",
       "count": 1
     }
   },

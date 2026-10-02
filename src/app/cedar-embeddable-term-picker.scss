@@ -1,3 +1,4 @@
+@use '@org.metadatacenter/cedar-design-tokens/spacing';
 @use '@org.metadatacenter/cedar-design-tokens/motion';
 @use '@org.metadatacenter/cedar-design-tokens/icon-contract';
 @use '@org.metadatacenter/cedar-design-tokens/controls';
@@ -189,14 +190,14 @@ input[type='search'] {
   }
 
   .about {
-    padding: calc(var(--cedar-space-1) / 2) 0 var(--cedar-space-1);
+    @include spacing.apply(padding, compact-break);
   }
 
   // Why the selection cannot be recorded. Quiet, at the size of the rest of the bar's detail: it
   // states a condition of the release the author chose, not a mistake they made, and the sentence
   // it carries comes from the store.
   .blocked {
-    padding: calc(var(--cedar-space-1) / 2) 0 var(--cedar-space-1);
+    @include spacing.apply(padding, compact-break);
     font-size: var(--cetp-font-size-small);
     color: var(--cetp-color-muted);
   }
@@ -268,11 +269,11 @@ button {
 .chip.removable {
   border: none;
   cursor: pointer;
-  padding: calc(var(--cedar-space-1) / 2) var(--cedar-space-2);
+  @include spacing.apply(padding, compact-row);
 
   .x {
     color: var(--cetp-color-muted);
-    margin-left: calc(var(--cedar-space-1) / 2);
+    @include spacing.apply(margin-left, compact);
   }
 }
 
@@ -283,7 +284,7 @@ button {
   border: 1px dashed var(--cetp-color-border);
   color: var(--cetp-color-primary);
   cursor: pointer;
-  padding: calc(var(--cedar-space-1) / 2) var(--cedar-space-2);
+  @include spacing.apply(padding, compact-row);
 }
 
 // A control with no box. For the reset beside the chips, which is worth having once several
@@ -291,7 +292,7 @@ button {
 .quiet {
   background: transparent;
   border: none;
-  padding: calc(var(--cedar-space-1) / 2) var(--cedar-space-1);
+  @include spacing.apply(padding, compact-cell);
   color: var(--cetp-color-muted);
   cursor: pointer;
   text-decoration: underline;
@@ -329,7 +330,7 @@ button {
   display: flex;
   align-items: baseline;
   gap: var(--cedar-space-2);
-  margin: var(--cedar-space-2) 0 calc(var(--cedar-space-1) / 2);
+  @include spacing.apply(margin, compact-footer);
   padding: 0 var(--cedar-space-1);
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
@@ -344,7 +345,7 @@ button {
 .candidates {
   display: grid;
   grid-template-columns: 1fr;
-  gap: calc(var(--cedar-space-1) / 2) var(--cedar-space-2);
+  @include spacing.apply(gap, compact-row);
   max-height: 11rem;
   @include scrolls.scrolls;
   margin-top: var(--cedar-space-1);
@@ -573,7 +574,7 @@ button {
     background: transparent;
     border: none;
     border-radius: tokens.$radius;
-    padding: 0 calc(var(--cedar-space-1) / 2);
+    @include spacing.apply(padding, inline-mark);
     color: inherit;
     font-size: inherit;
     text-align: left;
@@ -592,7 +593,7 @@ button {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   align-items: baseline;
-  gap: calc(var(--cedar-space-1) / 2) var(--cedar-space-3);
+  @include spacing.apply(gap, search-hit-gap);
   // Tight against whatever it follows. Below the release list these were stacking — that margin,
   // this one and this padding — into a finger's width of nothing above the tree.
   margin: 0 0 var(--cedar-space-1) 0;
@@ -619,7 +620,7 @@ button {
   .meaning {
     white-space: normal;
     line-height: 1.4;
-    padding-bottom: calc(var(--cedar-space-1) / 2);
+    @include spacing.apply(padding-bottom, compact);
     color: var(--cetp-color-text);
   }
 
@@ -640,7 +641,7 @@ button {
   grid-column: 1 / -1;
   background: var(--cetp-color-surface);
   border-radius: tokens.$radius;
-  margin: calc(var(--cedar-space-1) / 2) 0 0 0;
+  @include spacing.apply(margin, compact-status);
   max-height: 11rem;
   margin-bottom: 0;
 
@@ -835,7 +836,7 @@ mark {
   display: block;
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
-  margin-top: calc(var(--cedar-space-1) / 2);
+  @include spacing.apply(margin-top, compact);
 }
 
 .path {
@@ -854,7 +855,7 @@ mark {
   border: 1px solid var(--cetp-color-border);
   color: var(--cetp-color-muted);
   font-size: var(--cetp-font-size-small);
-  padding: calc(var(--cedar-space-1) / 2) var(--cedar-space-1);
+  @include spacing.apply(padding, compact-cell);
   border-radius: tokens.$radius;
   margin-right: var(--cedar-space-1);
 }
@@ -864,7 +865,7 @@ mark {
   background: var(--cetp-color-tint);
   color: var(--cetp-color-heading);
   font-size: var(--cetp-font-size-small);
-  padding: calc(var(--cedar-space-1) / 2) var(--cedar-space-1);
+  @include spacing.apply(padding, compact-cell);
   border-radius: tokens.$radius;
   margin-right: var(--cedar-space-1);
 
@@ -886,7 +887,7 @@ mark {
 
 .children {
   background: var(--cetp-color-surface);
-  padding: calc(var(--cedar-space-1) / 2) var(--cedar-space-2) var(--cedar-space-1) var(--cedar-space-6);
+  @include spacing.apply(padding, nested-search-hit);
 }
 
 // The children of one group get the same treatment among themselves. They cannot take the outer
@@ -1055,7 +1056,7 @@ mark {
   }
   .empty {
     margin: 0;
-    padding: var(--cedar-space-2) calc(var(--cedar-space-1) / 2);
+    @include spacing.apply(padding, search-chip);
   }
 }
 
@@ -1063,7 +1064,7 @@ mark {
   .chosen {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    gap: calc(var(--cedar-space-1) / 2) var(--cedar-space-2);
+    @include spacing.apply(gap, compact-row);
     .label {
       grid-column: 1 / -1;
     }

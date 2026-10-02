@@ -1,0 +1,112 @@
+@use '@org.metadatacenter/cedar-design-tokens/spacing';
+@use '@org.metadatacenter/cedar-design-tokens/tokens' as tokens;
+:host {
+  display: block;
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: var(--cedar-space-1) var(--cedar-space-2);
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+p {
+  margin: var(--cedar-space-1) 0;
+}
+.release-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: var(--cedar-space-2);
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
+  margin-bottom: var(--cedar-space-1);
+}
+.release-toggle {
+  border: 0;
+  background: transparent;
+  color: var(--cetp-color-primary);
+  padding: 0 var(--cedar-space-1);
+}
+.releases {
+  padding: var(--cedar-space-1);
+  background: var(--cetp-color-tint);
+}
+.release {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--cedar-space-3);
+  width: 100%;
+  padding: var(--cedar-space-1) var(--cedar-space-2);
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.release.active {
+  background: var(--cetp-color-surface);
+}
+code {
+  overflow-wrap: anywhere;
+}
+.hierarchy-choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--cedar-space-2);
+}
+.tree {
+  list-style: none;
+  margin: 0;
+  padding: var(--cedar-space-1) var(--cedar-space-1);
+  max-height: 14rem;
+  overflow: auto;
+  background: var(--cedar-surface-raised);
+  border: 1px solid var(--cetp-color-border);
+  border-radius: var(--cedar-radius);
+}
+.node {
+  display: flex;
+  align-items: baseline;
+  gap: var(--cedar-space-1);
+}
+.twist {
+  flex: 0 0 tokens.$icon-size-small;
+  color: var(--cetp-color-primary);
+  font-size: var(--cedar-font-size-small);
+}
+.term {
+  font: inherit;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  @include spacing.apply(padding, inline-mark);
+  overflow-wrap: anywhere;
+}
+button.term:hover {
+  background: var(--cetp-color-tint);
+}
+.self .term {
+  background: var(--cetp-color-tint);
+  color: var(--cetp-color-heading);
+  font-weight: var(--cedar-font-weight-medium);
+}
+.use {
+  background: var(--cetp-color-primary);
+  color: var(--cetp-color-on-primary);
+  padding: var(--cedar-space-1) var(--cedar-space-2);
+  border: 0;
+  border-radius: var(--cedar-radius);
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.description {
+  font-size: var(--cetp-font-size-small);
+  color: var(--cetp-color-muted);
+  overflow-wrap: anywhere;
+}
+[role='alert'] {
+  color: tokens.$status-error-text;
+}
