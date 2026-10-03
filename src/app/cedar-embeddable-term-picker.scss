@@ -702,8 +702,13 @@ button {
 
   .hash {
     color: var(--cetp-color-muted);
-    font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
   }
+}
+
+// A release hash is set in the shared monospace face wherever it appears: the release list, the
+// selection bar and the comparison rows alike.
+code.hash {
+  font-family: var(--cedar-font-family-monospace);
 }
 
 .rowhead {
