@@ -15,13 +15,6 @@
       "value": "1.6rem",
       "count": 1
     },
-    "10adef74ed2e843b3f32": {
-      "file": "src/app/search/constraint-table.scss",
-      "rule": "color",
-      "property": "color",
-      "value": "#000",
-      "count": 1
-    },
     "4410c24ad335fcce4f36": {
       "file": "src/app/search/property-detail.ts",
       "rule": "dynamic-style",
@@ -62,20 +55,6 @@
       "rule": "spacing",
       "property": "padding",
       "value": "0 1px",
-      "count": 1
-    },
-    "91c05f39fa07d69d4e23": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "typography",
-      "property": "font-size",
-      "value": "1.5em",
-      "count": 1
-    },
-    "a34ac5bfc7b22d275021": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "typography",
-      "property": "font-size",
-      "value": "0.85em",
       "count": 1
     },
     "a6031c000393660bbf44": {
