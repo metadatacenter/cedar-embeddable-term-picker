@@ -1,6 +1,13 @@
 {
   "schema": 1,
   "findings": {
+    "045321ca56e5e0e97377": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "color",
+      "property": "--cetp-color-tint",
+      "value": "color-mix(in srgb, var(--cetp-color-primary) 12%, tokens.$surface-raised )",
+      "count": 1
+    },
     "05531533e511bddb9881": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "geometry",
@@ -13,6 +20,13 @@
       "rule": "color",
       "property": "color",
       "value": "#000",
+      "count": 1
+    },
+    "1971ba06b5866f827f9c": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "geometry",
+      "property": "outline-offset",
+      "value": "2px",
       "count": 1
     },
     "4410c24ad335fcce4f36": {
@@ -42,6 +56,13 @@
       "property": "line-height",
       "value": "1.5",
       "count": 2
+    },
+    "7824f0855a10378ee658": {
+      "file": "src/app/search/property-detail.scss",
+      "rule": "geometry",
+      "property": "opacity",
+      "value": "0.4",
+      "count": 1
     },
     "89b7e362c9e43f24dd67": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
@@ -119,8 +140,15 @@
       "property": "line-height",
       "value": "1",
       "count": 1
+    },
+    "f79b2b9729a864ab3590": {
+      "file": "src/app/cedar-embeddable-term-picker.scss",
+      "rule": "geometry",
+      "property": "outline",
+      "value": "2px solid var(--cetp-color-primary)",
+      "count": 1
     }
   },
   "exceptions": {},
-  "policy": 2
+  "policy": 3
 }
