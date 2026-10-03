@@ -878,15 +878,6 @@ mark {
   column-gap: var(--cedar-space-3);
 }
 
-// The counts run right against their column, so "terms" and "descendants" line up down the list
-// rather than starting wherever the number before them happens to end.
-.row > .meta.inline,
-// That a row opens onto something. In the primary colour and at the head of the row, under the
-// twist of the group heading it sits below, so the two read as the same sign at the same depth —
-// these rows had nothing at all.
-
-
-
 // A pin naming an extraction a later one corrected. Marked rather than alarming: the pin resolves,
 // and an author may well have meant that exact reading.
 .stale {
@@ -895,6 +886,9 @@ mark {
   font-style: italic;
 }
 
+// That a row opens onto something. In the primary colour and at the head of the row, under the
+// twist of the group heading it sits below, so the two read as the same sign at the same depth —
+// these rows had nothing at all.
 .opener {
   color: var(--cetp-color-primary);
   font-size: var(--cetp-font-size-small);
@@ -918,6 +912,9 @@ mark {
   white-space: nowrap;
 }
 
+// The counts run right against their column, so "terms" and "descendants" line up down the list
+// rather than starting wherever the number before them happens to end.
+.row > .meta.inline,
 .child > .meta.inline {
   text-align: right;
 }

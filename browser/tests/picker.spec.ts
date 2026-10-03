@@ -214,6 +214,42 @@ test('an ontology row shows what the query matched, or nothing but its count', a
   await expect(rows.filter({ hasText: 'NCIT' }).locator('mark')).toHaveCount(0);
 });
 
+test('an ontology row states its count as plain muted text, not as a warning', async ({ page }) => {
+  await stubSearch(page, () => MELANOMA);
+  await openPicker(page);
+  await search(page, 'melanoma');
+  await page.locator('cedar-embeddable-term-picker .tab').nth(2).click();
+
+  // The count once shared the rule that marks a superseded pin, so every count on the ontology and
+  // value-set tabs read as a warning. Both roles are resolved inside the picker, so the comparison
+  // follows whatever a host has set them to.
+  const count = page
+    .locator('cedar-embeddable-term-picker .row.oneline')
+    .filter({ hasText: 'NCIT' })
+    .locator(':scope > .meta.inline');
+  await expect(count).toContainText('950 terms');
+  const drawn = await count.evaluate((element) => {
+    const role = (property: string) => {
+      const probe = document.createElement('span');
+      probe.style.color = `var(${property})`;
+      element.parentElement!.append(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
+    };
+    const style = getComputedStyle(element);
+    return {
+      color: style.color,
+      fontStyle: style.fontStyle,
+      muted: role('--cedar-text-muted'),
+      warning: role('--cedar-status-warning-text'),
+    };
+  });
+  expect(drawn.muted).not.toBe(drawn.warning);
+  expect(drawn.color).toBe(drawn.muted);
+  expect(drawn.fontStyle).toBe('normal');
+});
+
 test('every result row is one line', async ({ page }) => {
   await stubSearch(page, () => MELANOMA);
   await openPicker(page);
