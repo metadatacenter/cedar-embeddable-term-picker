@@ -135,7 +135,6 @@
     "searchFailed": "A keresés sikertelen.",
     "actionNeedsTerm": "A művelethez válasszon egy egyedi fogalmat.",
     "typeNotEnabled": "Ez a fogalomtípus nincs engedélyezve.",
-    "defaultNeedsTerm": "Az alapértelmezett értékhez egyetlen fogalmat válasszon.",
     "outsideFieldVocabulary": "A mező szótárából válasszon fogalmat.",
     "positionNotWhole": "A találati pozíció nemnegatív egész szám legyen.",
     "actionNeedsSource": "Ehhez a művelethez forrásazonosítóval rendelkező megkötést válasszon.",

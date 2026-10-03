@@ -135,7 +135,6 @@
     "searchFailed": "The search failed.",
     "actionNeedsTerm": "Choose an individual term for the action.",
     "typeNotEnabled": "This term type is not enabled.",
-    "defaultNeedsTerm": "Choose a single term for the default value.",
     "outsideFieldVocabulary": "Choose a term from the field vocabulary.",
     "positionNotWhole": "Use a non-negative whole number for the result position.",
     "actionNeedsSource": "Choose a constraint with a source identifier for this action.",

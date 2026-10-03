@@ -60,7 +60,6 @@ import {
   TermRef,
   TreeRow,
   SelectedConstraint,
-  ValueSetHit,
   VersionInfo,
   isBranchHit,
   isClassHit,
@@ -1160,8 +1159,6 @@ export class CedarEmbeddableTermPicker {
     return [text.slice(0, at), text.slice(at, at + query.length), text.slice(at + query.length)];
   }
 
-  /** The range a folded branch covers, so the row says what it holds without listing its positions. */
-
   /**
    * Shortens a long label from the middle, keeping both ends.
    *
@@ -1273,10 +1270,6 @@ export class CedarEmbeddableTermPicker {
 
   protected sourceIriOf(hit: Hit): string {
     return this.sourceOf(hit.sourceAcronym)?.sourceIri ?? '';
-  }
-
-  protected sourceAcronym(hit: Hit): string {
-    return hit.sourceAcronym;
   }
 
   /**
@@ -1568,10 +1561,6 @@ export class CedarEmbeddableTermPicker {
     return `${acronym}\u0000${iri}\u0000${this.hierarchyVersion(acronym) ?? ''}`;
   }
 
-  protected isNodeOpen(acronym: string, iri: string): boolean {
-    return this.openNodes().has(this.nodeKey(acronym, iri));
-  }
-
   /**
    * Opens or closes a node of the tree, reading its children the first time it opens.
    *
@@ -1787,8 +1776,6 @@ export class CedarEmbeddableTermPicker {
     if (hit && this.actionMode() && hit.type !== 'class') return phrase('errors.actionNeedsTerm');
     if (hit && !this.tabs().includes(hit.type)) return phrase('errors.typeNotEnabled');
     if (this.configurationError()) return this.configurationError();
-    if (hit && this.termTypes() === undefined && this.selectionMode() === 'term' && hit.type !== 'class')
-      return phrase('errors.defaultNeedsTerm');
     if (
       hit &&
       this.effectiveSources().length &&
@@ -1905,17 +1892,5 @@ export class CedarEmbeddableTermPicker {
 
   protected onCancel(): void {
     this.cancelled.emit();
-  }
-
-  protected asBranch(hit: Hit): BranchHit {
-    return hit as BranchHit;
-  }
-
-  protected asOntology(hit: Hit): OntologyHit {
-    return hit as OntologyHit;
-  }
-
-  protected asValueSet(hit: Hit): ValueSetHit {
-    return hit as ValueSetHit;
   }
 }

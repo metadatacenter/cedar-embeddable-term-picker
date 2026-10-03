@@ -27,7 +27,6 @@
                 <dt>{{ 'table.versionPin' | translate }}</dt>
                 <dd>{{ c.version?.id || ('table.latest' | translate) }} {{ c.version?.effectiveDate }}</dd>
               </dl>
-              @if (c.sourceType === 'ontology-branch') {
               <label
                 >{{ 'table.maximumDepth' | translate }}
                 <input
@@ -38,7 +37,6 @@
                   [value]="c.searchDepth"
                   (change)="changeDepth(i, $event)"
               /></label>
-              }
             </details>
             } @else {
             <span
