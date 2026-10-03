@@ -85,13 +85,6 @@
       "value": "1.35",
       "count": 1
     },
-    "b5f0ea510beb30da0f95": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "typography",
-      "property": "line-height",
-      "value": "1",
-      "count": 2
-    },
     "c21be31bd6f5fa1cb0f1": {
       "file": "src/app/search/constraint-table.scss",
       "rule": "geometry",
@@ -103,13 +96,6 @@
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "geometry",
       "property": "z-index",
-      "value": "1",
-      "count": 1
-    },
-    "cf4366ae5022a62fe57d": {
-      "file": "src/app/search/constraint-table.scss",
-      "rule": "typography",
-      "property": "line-height",
       "value": "1",
       "count": 1
     }

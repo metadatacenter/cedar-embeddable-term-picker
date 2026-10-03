@@ -113,7 +113,7 @@
     margin: 0 0 0 auto;
     background: transparent;
     color: var(--cetp-color-text);
-    line-height: 1;
+    line-height: var(--cedar-line-height-tight);
     &:hover:enabled {
       background: transparent;
       color: #000;

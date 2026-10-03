@@ -469,7 +469,7 @@ button {
   border-radius: tokens.$radius;
   color: var(--cetp-color-muted);
   font-size: var(--cetp-font-size);
-  line-height: 1;
+  line-height: var(--cedar-line-height-tight);
   padding: var(--cedar-space-1) var(--cedar-space-1);
 
   &:hover {
@@ -505,7 +505,7 @@ button {
 // version, and an author has no reason to click the one thing on the row that opens.
 .caret {
   font-size: 1.5em;
-  line-height: 1;
+  line-height: var(--cedar-line-height-tight);
 }
 
 // What the marked row is offering, under the row itself. A definition list rather than a table:
