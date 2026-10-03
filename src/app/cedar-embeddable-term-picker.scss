@@ -504,7 +504,7 @@ button {
 // The caret carries the affordance. Without it the count reads as another muted figure beside the
 // version, and an author has no reason to click the one thing on the row that opens.
 .caret {
-  font-size: var(--cedar-font-size-heading);
+  font-size: var(--cedar-font-size-large);
   line-height: var(--cedar-line-height-tight);
 }
 
