@@ -92,13 +92,6 @@
       "value": "1.35",
       "count": 1
     },
-    "b238d9ca4f9de82ffd63": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "typography",
-      "property": "line-height",
-      "value": "1.4",
-      "count": 1
-    },
     "b5f0ea510beb30da0f95": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "typography",

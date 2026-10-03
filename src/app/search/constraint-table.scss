@@ -16,11 +16,6 @@
     font-size: var(--cetp-font-size);
     font-weight: var(--cedar-font-weight-medium, 500);
   }
-  h3 {
-    margin: var(--cedar-space-4) 0 var(--cedar-space-1);
-    font-size: var(--cetp-font-size);
-    font-weight: var(--cedar-font-weight-medium, 500);
-  }
   p {
     margin: var(--cedar-space-1) 0 var(--cedar-space-3);
     color: var(--cetp-color-muted);
@@ -40,10 +35,6 @@
     background: tokens.$surface-raised;
     color: var(--cetp-color-primary);
   }
-  button:disabled {
-    opacity: tokens.$control-disabled-opacity;
-    cursor: default;
-  }
   button:hover:enabled {
     background: var(--cetp-color-surface);
     &.use {
@@ -55,10 +46,6 @@
     width: 80px;
     padding: var(--cedar-space-1);
     border: 1px solid var(--cetp-color-border);
-  }
-  select {
-    padding: var(--cedar-space-1);
-    max-width: 100%;
   }
   dt {
     font-weight: var(--cedar-font-weight-medium, 500);
@@ -150,13 +137,6 @@
 .constraint-heading {
   justify-content: space-between;
   margin-bottom: var(--cedar-space-1);
-  .use {
-    margin: 0;
-  }
-}
-
-.constraint-table + .constraint-table {
-  margin-top: var(--cedar-space-1);
 }
 
 .saved-actions {
@@ -169,9 +149,6 @@
 }
 
 .constraint-table {
-  td {
-    vertical-align: middle;
-  }
   tr:has(details[open]) td {
     vertical-align: top;
   }

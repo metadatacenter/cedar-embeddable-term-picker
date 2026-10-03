@@ -251,11 +251,6 @@ button {
   color: var(--cetp-color-on-primary);
   cursor: pointer;
   white-space: nowrap;
-
-  &.ghost {
-    background: transparent;
-    color: var(--cetp-color-primary);
-  }
 }
 
 .narrowing {
@@ -615,15 +610,6 @@ button {
 
   // The tree has no term to define, so it takes the whole width rather than sitting in the value
   // column with an empty label beside it.
-  // Prose, so it wraps and reads as a sentence — every other cell here is a name or a figure and
-  // is kept to one line.
-  .meaning {
-    white-space: normal;
-    line-height: 1.4;
-    @include spacing.apply(padding-bottom, compact);
-    color: var(--cetp-color-text);
-  }
-
   .wide {
     grid-column: 1 / -1;
   }
@@ -831,18 +817,11 @@ mark {
   padding: 0 1px;
 }
 
-.sub,
 .meta {
   display: block;
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
   @include spacing.apply(margin-top, compact);
-}
-
-.path {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 // A term's other names. Outlined and muted, not tinted: the tint is what marks a selection
@@ -1021,18 +1000,6 @@ mark {
   white-space: nowrap;
 }
 
-// CEE's compact specification rows: inline controls, details only when present.
-.term-action-controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--cedar-space-1);
-}
-
-.term-action-controls {
-  margin-top: var(--cedar-space-1);
-}
-
 .picker.set-mode {
   padding: var(--cedar-space-2) var(--cedar-space-3);
   .chosen.awaiting {
@@ -1080,9 +1047,6 @@ mark {
       display: none;
     }
   }
-  .chosen.awaiting {
-    display: none;
-  }
   .tree {
     max-height: 8rem;
   }
@@ -1100,10 +1064,6 @@ mark {
   justify-content: space-between;
   gap: var(--cedar-space-2);
   grid-column: 1 / -1;
-  button:disabled {
-    opacity: tokens.$control-disabled-opacity;
-    cursor: default;
-  }
 }
 
 .selection-detail {
