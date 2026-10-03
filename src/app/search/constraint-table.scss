@@ -67,7 +67,7 @@
   border-collapse: collapse;
   table-layout: fixed;
   th {
-    @include spacing.apply(padding, constraint-row);
+    @include spacing.apply(padding, compact-row);
     color: var(--cetp-color-muted);
     font-size: var(--cetp-font-size-small);
     font-weight: var(--cedar-font-weight-medium, 500);
@@ -82,7 +82,7 @@
   td {
     box-sizing: border-box;
     line-height: tokens.$control-line-height-authoring;
-    @include spacing.apply(padding, constraint-row);
+    @include spacing.apply(padding, compact-row);
     border-top: 1px solid var(--cetp-color-border);
     height: tokens.$row-height-compact;
     font-size: var(--cetp-font-size);
