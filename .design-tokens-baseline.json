@@ -22,13 +22,6 @@
       "value": "#000",
       "count": 1
     },
-    "1971ba06b5866f827f9c": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "geometry",
-      "property": "outline-offset",
-      "value": "2px",
-      "count": 1
-    },
     "4410c24ad335fcce4f36": {
       "file": "src/app/search/property-detail.ts",
       "rule": "dynamic-style",
@@ -120,13 +113,6 @@
       "value": "22px",
       "count": 1
     },
-    "c291c7bbb8945e7ad9b8": {
-      "file": "src/app/search/constraint-table.scss",
-      "rule": "color",
-      "property": "background",
-      "value": "white",
-      "count": 1
-    },
     "cd82c6dee3786d63a935": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "geometry",
@@ -139,13 +125,6 @@
       "rule": "typography",
       "property": "line-height",
       "value": "1",
-      "count": 1
-    },
-    "f79b2b9729a864ab3590": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "geometry",
-      "property": "outline",
-      "value": "2px solid var(--cetp-color-primary)",
       "count": 1
     }
   },

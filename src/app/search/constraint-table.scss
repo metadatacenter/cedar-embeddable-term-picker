@@ -37,7 +37,7 @@
     cursor: pointer;
     border: 1px solid var(--cetp-color-border);
     border-radius: var(--cedar-radius);
-    background: white;
+    background: tokens.$surface-raised;
     color: var(--cetp-color-primary);
   }
   button:disabled {
