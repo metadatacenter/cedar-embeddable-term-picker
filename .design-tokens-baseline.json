@@ -71,13 +71,6 @@
       "value": "1.5em",
       "count": 1
     },
-    "9c6d5fcb0941e9f38ece": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "geometry",
-      "property": "height",
-      "value": "1px",
-      "count": 1
-    },
     "a34ac5bfc7b22d275021": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "typography",
