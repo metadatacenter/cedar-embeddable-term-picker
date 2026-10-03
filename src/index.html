@@ -7,15 +7,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <style>
+      /* This page stands in for a host. The shared roles resolve here from the token package's
+         custom-properties.css, which the development build links. The body's margin and padding
+         together keep the 32px gutter at which the picker's visual baselines are recorded. */
       body {
-        margin: 0;
-        padding: 2rem;
-        font-family: system-ui, sans-serif;
-        background: #f6f8f9;
+        margin: var(--cedar-space-2);
+        padding: var(--cedar-space-6);
+        font-family: var(--cedar-font-family);
+        background: var(--cedar-surface-subtle);
       }
       h1 {
-        font-size: 1rem;
-        font-weight: var(--cedar-font-weight-medium, 500);
+        margin: 0 0 var(--cedar-space-4);
+        font-size: var(--cedar-font-size-heading);
+        font-weight: var(--cedar-font-weight-medium);
+        line-height: var(--cedar-line-height-heading);
       }
     </style>
   </head>
