@@ -10,6 +10,7 @@ import {
   VersionInfo,
 } from './search-types';
 import { Message, MessageError, messageOf, phrase } from '../i18n/localization';
+import { validHierarchy, validSearchResponse } from './response-validation';
 
 /**
  * The picker's one call to the terminology server.
@@ -89,7 +90,8 @@ export class TerminologyClient {
     if (!response.ok) {
       throw new MessageError(refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }));
     }
-    return body as SearchResponse;
+    if (!validSearchResponse(body)) throw new MessageError(phrase('errors.invalidResponse'));
+    return body;
   }
 
   private propertyEndpoint(): string {
@@ -210,7 +212,9 @@ export class TerminologyClient {
         reason: refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }),
       };
     }
-    return { kind: 'found', hierarchy: body as Hierarchy };
+    if (!validHierarchy(body, sourceAcronym, termIri))
+      return { kind: 'failed', reason: phrase('errors.invalidResponse') };
+    return { kind: 'found', hierarchy: body };
   }
 }
 

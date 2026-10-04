@@ -647,6 +647,24 @@ describe('CedarEmbeddableTermPicker', () => {
     picker['choose'](term);
     expect(picker['draft']().constraints).toHaveLength(2);
     picker['pinned'].set(new Map([['NCIT', { id: 'another-release' }]]));
+    // A pinned term must first be verified in that release.
+    picker['hierarchies'].set(
+      new Map([
+        [
+          `${picker['keyOf'](term)}\u0000another-release`,
+          {
+            kind: 'found',
+            hierarchy: {
+              sourceAcronym: 'NCIT',
+              termIri: term.termIri,
+              termLabel: 'Dog',
+              childCount: 0,
+              descendantCount: 0,
+            },
+          },
+        ],
+      ]),
+    );
     picker['choose'](term);
     expect(picker['draft']().constraints).toHaveLength(3);
   });

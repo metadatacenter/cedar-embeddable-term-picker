@@ -1,8 +1,8 @@
-@if (selectionMode() === 'term' && sources().length > 1) {
+@if (selectionMode() === 'term' && safeSources().length > 1) {
 <label class="scope-selector"
   >{{ 'scope.label' | translate }}
   <select [value]="scopeIndex()" (change)="scopeIndex.set(numberOf($event))">
-    @for (source of sources(); track $index) {
+    @for (source of safeSources(); track $index) {
     <option [value]="$index">
       {{ source.sourceSystem || 'bioportal' }} · {{ source.sourceAcronym }} · {{ source.version === 'latest' ?
       ('common.latest' | translate) : source.version?.id || ('common.latest' | translate) }}
@@ -12,15 +12,18 @@
 </label>
 } @if (tableMode()) {
 <cetp-constraint-table
-  [set]="draft()"
+  [set]="displayedDraft()"
   [maximumTerms]="maximumTerms()"
   [hashes]="constraintHashes()"
   (removed)="removeConstraint($event)"
+  (actionRemoved)="removeAction($event)"
   (depthChanged)="updateBranchDepth($event.index, $event.depth)"
   (applied)="applyConstraints()"
   (cancelled)="onCancel()"
 />
 } @if (configurationError(); as message) {
+<p class="selection-error" role="alert">{{ localizer.say(message) }}</p>
+} @if (draftError(); as message) {
 <p class="selection-error" role="alert">{{ localizer.say(message) }}</p>
 } @if (selectionError(); as message) {
 <p class="selection-error" role="alert">{{ message }}</p>
@@ -159,7 +162,7 @@
             -->
           <span class="meta inline"
             >{{ refusal.answered ? localizer.say(refusal.reason) : ('tree.unreadable' | translate: { reason:
-              localizer.say(refusal.reason) }) }}</span
+            localizer.say(refusal.reason) }) }}</span
           >
           } @else {
           <span class="meta inline">{{ 'common.reading' | translate }}</span>
@@ -328,14 +331,13 @@
         <span class="release-part meta inline">{{ elide(chosen.version, 20, 8) }}</span> } @if (chosen.effectiveDate &&
         chosen.effectiveDate !== chosen.version) {
         <span class="release-part meta inline">{{ chosen.effectiveDate }}</span> } @if (!chosen.version &&
-        !chosen.effectiveDate) { <em class="release-part meta inline">{{ 'common.pinned' | translate }}</em> } @if (chosen.id) {
+        !chosen.effectiveDate) { <em class="release-part meta inline">{{ 'common.pinned' | translate }}</em> } @if
+        (chosen.id) {
         <span class="release-part meta inline"
           ><code class="hash" [title]="chosen.id">{{ shortHash(chosen.id) }}</code></span
         >
         } @if (chosen.superseded) {
-        <span
-          class="release-part meta inline stale"
-          [title]="'selection.supersededTitle' | translate"
+        <span class="release-part meta inline stale" [title]="'selection.supersededTitle' | translate"
           >{{ 'selection.superseded' | translate }}</span
         >
         } } @else {
@@ -344,8 +346,8 @@
         <span class="release-part meta inline"><code class="hash" [title]="hash">{{ shortHash(hash) }}</code></span> } }
         @if (chosen.descendants) {
         <span class="release-part meta inline"
-          >{{ localizer.plural('counts.descendants', chosen.descendants, { count: localizer.number(chosen.descendants) })
-          }}</span
+          >{{ localizer.plural('counts.descendants', chosen.descendants, { count: localizer.number(chosen.descendants)
+          }) }}</span
         >
         }
       </p>
@@ -469,7 +471,9 @@
     >
       <span class="who">{{ candidate.sourceAcronym }}</span>
       <span class="dim ellipsis">{{ sourceNameIfDistinct(candidate.sourceAcronym) }}</span>
-      <span class="meta inline">{{ candidate.matchCount === undefined ? '' : localizer.number(candidate.matchCount) }}</span>
+      <span class="meta inline"
+        >{{ candidate.matchCount === undefined ? '' : localizer.number(candidate.matchCount) }}</span
+      >
     </button>
     } @empty { @if (candidates().length > 0) {
     <p class="empty">{{ 'narrowing.noneByThatName' | translate }}</p>
@@ -505,14 +509,14 @@
     a search runs: rendering it into existence pushed the results down a line at the moment an
     author was reading them.
   -->
-  <p class="working" [class.idle]="!searching()" role="status" aria-live="polite">{{ 'status.searching' | translate }}</p>
+  <p class="working" [class.idle]="!searching()" role="status" aria-live="polite">
+    {{ 'status.searching' | translate }}
+  </p>
 
   @if (error(); as message) {
   <p class="notice">{{ localizer.say(message) }}</p>
   } @for (source of unavailable(); track source.sourceAcronym) {
-  <p class="notice">
-    {{ 'status.unavailable' | translate: { acronym: source.sourceAcronym, reason: source.reason } }}
-  </p>
+  <p class="notice">{{ 'status.unavailable' | translate: { acronym: source.sourceAcronym, reason: source.reason } }}</p>
   }
 
   <div class="results" #list (scroll)="onScroll($event)">
@@ -542,9 +546,7 @@
           >
           }
         </span>
-        <span class="meta inline">
-          {{ localizer.plural('counts.inOntologies', group.hits.length) }}
-        </span>
+        <span class="meta inline"> {{ localizer.plural('counts.inOntologies', group.hits.length) }} </span>
       </button>
       @if (expanded() === group.label) {
       <div class="children">
@@ -634,8 +636,8 @@
             }
           </span>
           <span class="meta inline">
-            {{ localizer.plural('counts.descendants', hit.descendantCount, { count: localizer.number(hit.descendantCount) })
-            }}
+            {{ localizer.plural('counts.descendants', hit.descendantCount, { count:
+            localizer.number(hit.descendantCount) }) }}
           </span>
           <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
         </div>
@@ -692,9 +694,7 @@
           ><cetp-icon size="small" [name]="expanded() === group.label ? 'chevron-down' : 'chevron-right'"
         /></span>
         <span class="grow ellipsis title">{{ group.label }}</span>
-        <span class="meta inline"
-          >{{ localizer.plural('counts.inOntologies', group.hits.length) }}</span
-        >
+        <span class="meta inline">{{ localizer.plural('counts.inOntologies', group.hits.length) }}</span>
       </button>
       @if (expanded() === group.label) {
       <div class="children">

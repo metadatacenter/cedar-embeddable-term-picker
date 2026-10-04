@@ -1,4 +1,6 @@
 import { Icon } from './icon';
+import { PickerCoordinator } from './search/picker-coordinator';
+import { displayConstraints, validateConstraints } from './search/constraint-validation';
 import { hierarchyRows } from './search/hierarchy-rows';
 import { ConstraintTableComponent } from './search/constraint-table';
 import {
@@ -191,6 +193,20 @@ export class CedarEmbeddableTermPicker {
     const types = this.termTypes();
     if (types !== undefined && (!Array.isArray(types) || types.some((type) => !TAB_ORDER.includes(type))))
       return phrase('errors.termTypes');
+    const sources = this.sources();
+    if (
+      !Array.isArray(sources) ||
+      sources.some(
+        (source) =>
+          !source ||
+          typeof source.sourceAcronym !== 'string' ||
+          !source.sourceAcronym.trim() ||
+          (source.version !== undefined &&
+            source.version !== 'latest' &&
+            (!source.version || typeof source.version.id !== 'string' || !source.version.id.trim())),
+      )
+    )
+      return phrase('errors.sources');
     return null;
   });
 
@@ -199,6 +215,22 @@ export class CedarEmbeddableTermPicker {
   readonly constraintsSelected = output<ControlledTermSet>();
   readonly constraintsChanged = output<void>();
   protected readonly draft = linkedSignal(() => structuredClone(this.constraintSet()));
+  protected readonly displayedDraft = computed(() => displayConstraints(this.draft()));
+  readonly validationReport = computed(() => validateConstraints(this.draft(), this.maximumTerms(), this.tabs()));
+  readonly state = new PickerCoordinator();
+  protected readonly draftError = computed(() => {
+    const issue = this.validationReport()[0];
+    if (!issue) return null;
+    if (issue.code === 'maximum') return phrase('errors.tooManyToApply', { maximum: this.maximumTerms() });
+    return phrase(
+      issue.code === 'shape'
+        ? 'errors.constraintShape'
+        : issue.code === 'action'
+          ? 'errors.invalidAction'
+          : 'errors.invalidConstraint',
+      { number: issue.row },
+    );
+  });
   protected readonly editing = signal<number | null>(null);
   protected readonly actionMode = signal<'delete' | 'move' | null>(null);
   protected readonly actionPosition = signal(0);
@@ -227,11 +259,10 @@ export class CedarEmbeddableTermPicker {
    * signature says so and the merge cannot reach another variant.
    */
   protected updateBranchDepth(index: number, searchDepth: number): void {
-    if (!Number.isInteger(searchDepth) || searchDepth < 0) return;
     this.draft.update((d) => ({
       ...d,
       constraints: d.constraints.map((c, i) =>
-        i === index && c.sourceType === 'ontology-branch' ? { ...c, searchDepth } : c,
+        i === index && c?.sourceType === 'ontology-branch' ? { ...c, searchDepth } : c,
       ),
     }));
   }
@@ -274,17 +305,17 @@ export class CedarEmbeddableTermPicker {
   }
 
   protected applyConstraints(): void {
-    if (this.configurationError()) return;
-    const maximum = this.maximumTerms();
-    if (maximum !== undefined && this.draft().constraints.length > maximum) {
-      this.selectionProblem.set(phrase('errors.tooManyToApply', { maximum }));
-      return;
-    }
+    if (!this.state.active || this.configurationError() || this.validationReport().length) return;
     this.constraintsSelected.emit(structuredClone(this.draft()));
   }
 
   /** Optional fixed search scope supplied by a host's field constraint. */
   readonly sources = input<readonly SourceSelector[]>([]);
+  protected readonly safeSources = computed(() =>
+    Array.isArray(this.sources())
+      ? this.sources().filter((source) => source && typeof source.sourceAcronym === 'string')
+      : [],
+  );
 
   protected readonly scopeIndex = linkedSignal(() => {
     this.sources();
@@ -306,7 +337,7 @@ export class CedarEmbeddableTermPicker {
           ]
         : [];
     }
-    const sources = this.sources();
+    const sources = this.safeSources();
     // The search response groups by acronym, so two releases of one source must
     // be browsed separately to keep the hierarchy and selected term unambiguous.
     return sources.length > 1 ? [sources[this.scopeIndex()] ?? sources[0]] : sources;
@@ -461,7 +492,7 @@ export class CedarEmbeddableTermPicker {
           : this.selectionMode() === 'constraint'
             ? TAB_ORDER.filter((type) => type !== 'property')
             : TAB_ORDER
-        : TAB_ORDER.filter((type) => this.termTypes()?.includes(type)),
+        : TAB_ORDER.filter((type) => Array.isArray(this.termTypes()) && this.termTypes()?.includes(type)),
   );
 
   private debounce?: ReturnType<typeof setTimeout>;
@@ -477,6 +508,7 @@ export class CedarEmbeddableTermPicker {
     inject(DestroyRef).onDestroy(() => {
       clearTimeout(this.debounce);
       this.inFlight?.abort();
+      this.state.dispose();
       for (const request of this.nodeInFlight.values()) request.abort();
     });
     effect(() => {
@@ -494,8 +526,20 @@ export class CedarEmbeddableTermPicker {
       this.constraintsChanged.emit();
     });
     effect(() => {
-      this.effectiveSources();
+      this.question();
+      this.state.reset();
+      for (const request of this.nodeInFlight.values()) request.abort();
+      this.nodeInFlight.clear();
       this.inFlight?.abort();
+      this.loadingMore.set(false);
+      this.searching.set(false);
+      this.histories.set(new Map());
+      this.hierarchies.set(new Map());
+      this.nodes.set(new Map());
+      this.openNodes.set(new Set());
+      this.historyFor.set(null);
+      this.error.set(null);
+      this.selectionProblem.set(null);
       this.response.set(null);
       this.picked.set(null);
       this.marked.set(null);
@@ -505,13 +549,25 @@ export class CedarEmbeddableTermPicker {
     // A host that names a terminology server does so before the first search, and
     // may change it; either way the client follows the input rather than reading
     // it once at construction.
-    effect(() => this.client.setBaseUrl(this.terminologyBaseUrl()));
+    effect(() => {
+      this.client.setBaseUrl(this.terminologyBaseUrl());
+      this.pinned.set(new Map());
+    });
+    effect(() => {
+      this.constraintSet();
+      this.editing.set(null);
+      this.actionMode.set(null);
+      this.selectionProblem.set(null);
+    });
 
     // Each picker holds its own translation service, so this changes the language of this element
     // alone. The maps are bundled, so the switch completes before the next render.
     effect(() => this.localizer.use(this.language()));
 
     effect(() => {
+      this.terminologyBaseUrl();
+      this.configurationError();
+      this.narrowedTo();
       const tabs = this.tabs();
       if (!tabs.includes(untracked(() => this.activeTab()))) this.activeTab.set(tabs[0] ?? 'class');
       const query = this.text().trim();
@@ -556,9 +612,27 @@ export class CedarEmbeddableTermPicker {
     return this.text().trim() !== query;
   }
 
+  private question(): string {
+    return JSON.stringify([
+      this.text().trim(),
+      this.terminologyBaseUrl(),
+      this.effectiveSources(),
+      this.tabs(),
+      this.narrowedTo(),
+      this.configurationError(),
+    ]);
+  }
+
+  private treeQuestion(acronym: string): string {
+    return JSON.stringify([this.question(), this.hierarchyVersion(acronym)]);
+  }
+
   private async run(query: string, keepCandidates = false): Promise<void> {
     // Cancel rather than let a slower earlier query land on top of a faster later one.
     this.inFlight?.abort();
+    if (!this.state.active) return;
+    const operation = this.state.begin('search', () => this.question());
+    this.loadingMore.set(false);
     if (query.length === 0 || this.configurationError() || !this.tabs().length) {
       this.response.set(null);
       this.error.set(null);
@@ -581,6 +655,8 @@ export class CedarEmbeddableTermPicker {
         },
         controller.signal,
       );
+      if (!operation.current() || controller.signal.aborted) return;
+      operation.finish();
       this.response.set(response);
       // The candidates rank against the query, so a new query invalidates them — but changing the
       // filter re-runs the same query, and clearing them there would empty the panel the author is
@@ -599,13 +675,14 @@ export class CedarEmbeddableTermPicker {
         void this.loadCandidates();
       }
     } catch (failure: unknown) {
-      if (controller.signal.aborted) {
+      if (!operation.current() || controller.signal.aborted) {
         return;
       }
+      operation.fail();
       this.response.set(null);
       this.error.set(messageOf(failure, phrase('errors.searchFailed')));
     } finally {
-      if (!controller.signal.aborted) {
+      if (operation.current() && !controller.signal.aborted) {
         this.searching.set(false);
       }
     }
@@ -796,6 +873,7 @@ export class CedarEmbeddableTermPicker {
     // panel, and a filter over the first page could not find the ontology ranked just past it. The
     // server serves at most 200 a page, so this asks for pages until the list is complete — three
     // requests for a query reaching 448 — and an ontology hit is an acronym and two counts.
+    const operation = this.state.begin('candidates', () => this.question());
     const found: OntologyHit[] = [];
     const signal = this.alongside();
     try {
@@ -810,7 +888,7 @@ export class CedarEmbeddableTermPicker {
           },
           signal,
         );
-        if (this.stale(query)) {
+        if (!operation.current() || signal?.aborted || this.stale(query)) {
           return;
         }
         const batch = (response.results.ontology?.collection ?? []).filter(isOntologyHit);
@@ -826,12 +904,14 @@ export class CedarEmbeddableTermPicker {
     } catch (failure: unknown) {
       // An aborted fetch died with its query; run() refills the panel for the new one. Anything
       // else is a real failure the author should see instead of a panel that quietly stays empty.
-      if (signal?.aborted || this.stale(query)) {
+      if (!operation.current() || signal?.aborted || this.stale(query)) {
         return;
       }
       this.error.set(messageOf(failure, phrase('errors.searchFailed')));
       return;
     }
+    if (!operation.current()) return;
+    operation.finish();
     this.candidates.set(found);
   }
 
@@ -873,6 +953,7 @@ export class CedarEmbeddableTermPicker {
    */
   private topUp(kind: SearchKind): void {
     setTimeout(() => {
+      if (!this.state.active) return;
       const list = this.list()?.nativeElement;
       // A box of no height is one that has not been laid out — a test environment, or a picker in a
       // hidden container. There is nothing to fill, and treating it as unfilled fetches for ever.
@@ -895,6 +976,7 @@ export class CedarEmbeddableTermPicker {
     if (!current || current.errors?.[kind] || query.length === 0 || this.searching() || this.isExhausted(kind)) {
       return;
     }
+    const operation = this.state.begin('page', () => this.question());
     const page = this.pageOf(kind) + 1;
     this.searching.set(true);
     this.loadingMore.set(true);
@@ -910,7 +992,7 @@ export class CedarEmbeddableTermPicker {
         },
         signal,
       );
-      if (this.stale(query)) {
+      if (!operation.current() || signal?.aborted || this.stale(query)) {
         return;
       }
       const results = next.results[kind];
@@ -936,15 +1018,16 @@ export class CedarEmbeddableTermPicker {
       this.pages.update((pages) => ({ ...pages, [kind]: page }));
     } catch (failure: unknown) {
       // An aborted page died with its query, and its rejection is not this query's error.
-      if (signal?.aborted) {
+      if (!operation.current() || signal?.aborted) {
         return;
       }
       this.error.set(messageOf(failure, phrase('errors.searchFailed')));
     } finally {
-      this.loadingMore.set(false);
+      if (operation.current() && !signal?.aborted) this.loadingMore.set(false);
       // The superseding search set `searching` for its own query and owns it now; clearing it here
       // would blank the indicator in the middle of that search.
-      if (!signal?.aborted) {
+      if (operation.current() && !signal?.aborted) {
+        operation.finish();
         this.searching.set(false);
         this.topUp(kind);
       }
@@ -1041,13 +1124,26 @@ export class CedarEmbeddableTermPicker {
     if (held) {
       return held;
     }
-    const response = await this.client.search({
-      query: this.text().trim(),
-      types: ['ontology'],
-      sources: [{ sourceAcronym: acronym }],
-      includeVersions: true,
-      pageSize: 1,
-    });
+    const operation = this.state.begin(`history:${acronym}`, () => this.question());
+    let response: SearchResponse;
+    try {
+      response = await this.client.search(
+        {
+          query: this.text().trim(),
+          types: ['ontology'],
+          sources: [{ sourceAcronym: acronym }],
+          includeVersions: true,
+          pageSize: 1,
+        },
+        operation.signal,
+      );
+    } catch (error) {
+      if (!operation.current()) return [];
+      operation.fail();
+      throw error;
+    }
+    if (!operation.current()) return [];
+    operation.finish();
     const history = response.sources.find((s) => s.sourceAcronym === acronym)?.versions ?? [];
     this.histories.update((map) => new Map(map).set(acronym, history));
     return history;
@@ -1068,7 +1164,12 @@ export class CedarEmbeddableTermPicker {
       return;
     }
     this.historyFor.set(acronym);
-    await this.loadHistory(acronym);
+    try {
+      await this.loadHistory(acronym);
+    } catch (error) {
+      if (this.state.active && this.historyFor() === acronym)
+        this.error.set(messageOf(error, phrase('errors.searchFailed')));
+    }
   }
 
   /** Which release the row is currently reading: the pinned one, else the current one. */
@@ -1120,7 +1221,7 @@ export class CedarEmbeddableTermPicker {
 
   /** Enough of a content hash to tell two releases apart, with the whole of it on hover. */
   protected constraintHash(constraint: ControlledTermConfig): string | undefined {
-    if (constraint.version?.id) return constraint.version.id;
+    if (typeof constraint.version?.id === 'string') return constraint.version.id;
     const acronym = this.constraintAcronym(constraint);
     const source = this.sourceOf(acronym);
     return source && (!constraint.sourceSystem || constraint.sourceSystem === source.sourceSystem)
@@ -1128,7 +1229,9 @@ export class CedarEmbeddableTermPicker {
       : this.observedHashes().get(this.hashKey(constraint.sourceSystem || 'bioportal', acronym));
   }
 
-  protected readonly constraintHashes = computed(() => this.draft().constraints.map((c) => this.constraintHash(c)));
+  protected readonly constraintHashes = computed(() =>
+    this.displayedDraft().constraints.map((c) => this.constraintHash(c)),
+  );
 
   protected shortHash(id: string | undefined): string {
     return id === undefined ? '' : id.slice(0, 12);
@@ -1479,10 +1582,12 @@ export class CedarEmbeddableTermPicker {
     // Keyed by release as well as by term: a hierarchy belongs to a release, so stepping an
     // ontology back asks again rather than redrawing the shape the current one happens to have.
     const key = `${this.keyOf(hit)}\u0000${this.hierarchyVersion(hit.sourceAcronym) ?? ''}`;
-    if (this.hierarchies().has(key)) {
+    if (this.hierarchies().has(key) && this.hierarchies().get(key)?.kind !== 'failed') {
       return;
     }
     const iri = this.termIriOf(hit);
+    const nodeKey = this.nodeKey(hit.sourceAcronym, iri);
+    const operation = this.state.begin(`hierarchy:${key}`, () => this.treeQuestion(hit.sourceAcronym));
     let outcome: HierarchyOutcome;
     try {
       outcome = await this.client.hierarchy(hit.sourceAcronym, iri, this.hierarchyVersion(hit.sourceAcronym));
@@ -1492,6 +1597,8 @@ export class CedarEmbeddableTermPicker {
       // was read, and the row says so instead.
       outcome = { kind: 'failed', reason: messageOf(error, String(error)) };
     }
+    if (!operation.current()) return;
+    operation.finish();
     this.hierarchies.update((held) => new Map(held).set(key, outcome));
     if (outcome.kind !== 'found') {
       return;
@@ -1499,9 +1606,14 @@ export class CedarEmbeddableTermPicker {
     // The term itself opens, since what is under it is the first thing an author looks at. Its
     // ancestors stay closed: opening one shows what else is beside the path, which is a question
     // asked of one ancestor at a time and not of all of them at once.
-    this.openNodes.update((nodes) => new Set(nodes).add(this.nodeKey(hit.sourceAcronym, iri)));
-    this.nodes.update((held) => new Map(held).set(this.nodeKey(hit.sourceAcronym, iri), outcome.hierarchy));
-    afterNextRender(() => this.revealTreeTerm(), { injector: this.injector });
+    this.openNodes.update((nodes) => new Set(nodes).add(nodeKey));
+    this.nodes.update((held) => new Map(held).set(nodeKey, outcome.hierarchy));
+    afterNextRender(
+      () => {
+        if (operation.current()) this.revealTreeTerm();
+      },
+      { injector: this.injector },
+    );
   }
 
   /**
@@ -1606,6 +1718,7 @@ export class CedarEmbeddableTermPicker {
 
   /** Adds the next page of a node's children, keeping the ones already drawn. */
   private async showMore(acronym: string, iri: string): Promise<void> {
+    if (this.nodeInFlight.has(this.nodeKey(acronym, iri))) return;
     const held = this.nodes().get(this.nodeKey(acronym, iri));
     if (!held) {
       return;
@@ -1624,13 +1737,19 @@ export class CedarEmbeddableTermPicker {
     // One read a node: a scroll that reaches the end twice in quick succession would otherwise ask
     // for the same page twice and draw it twice.
     this.nodeInFlight.get(key)?.abort();
+    const operation = this.state.begin(`children:${key}`, () => this.treeQuestion(acronym));
     const attempt = new AbortController();
     this.nodeInFlight.set(key, attempt);
     try {
       const outcome = await this.client.hierarchy(acronym, iri, this.hierarchyVersion(acronym), attempt.signal, offset);
+      if (!operation.current() || attempt.signal.aborted) return;
       if (outcome.kind !== 'found') {
+        operation.fail();
+        this.error.set(outcome.reason);
         return;
       }
+      operation.finish();
+      this.error.set(null);
       const found = outcome.hierarchy;
       this.nodes.update((held) => {
         const previous = held.get(key);
@@ -1639,9 +1758,13 @@ export class CedarEmbeddableTermPicker {
           children: [...(previous?.children ?? []), ...(found.children ?? [])],
         });
       });
-    } catch {
-      // Narrowing is a refinement of what is already on screen. Failing to read it leaves the node
-      // as it was rather than emptying it.
+    } catch (error) {
+      if (operation.current()) {
+        operation.fail();
+        this.error.set(messageOf(error, phrase('errors.searchFailed')));
+      }
+    } finally {
+      if (this.nodeInFlight.get(key) === attempt) this.nodeInFlight.delete(key);
     }
   }
 
@@ -1649,13 +1772,20 @@ export class CedarEmbeddableTermPicker {
   private async openNode(acronym: string, iri: string): Promise<void> {
     const key = this.nodeKey(acronym, iri);
     this.openNodes.update((nodes) => new Set(nodes).add(key));
-    if (this.nodes().has(key)) {
+    if (this.nodes().get(key)) {
       return;
     }
+    const operation = this.state.begin(`node:${key}`, () => this.treeQuestion(acronym));
     try {
       const outcome = await this.client.hierarchy(acronym, iri, this.hierarchyVersion(acronym));
+      if (!operation.current()) return;
+      operation.finish();
+      this.error.set(outcome.kind === 'found' ? null : outcome.reason);
       this.nodes.update((held) => new Map(held).set(key, outcome.kind === 'found' ? outcome.hierarchy : null));
-    } catch {
+    } catch (error) {
+      if (!operation.current()) return;
+      operation.fail();
+      this.error.set(messageOf(error, phrase('errors.searchFailed')));
       this.nodes.update((held) => new Map(held).set(key, null));
     }
   }
@@ -1683,12 +1813,14 @@ export class CedarEmbeddableTermPicker {
     // Read it the way the panel reads any focus term, so the tree the new release draws is held
     // under the same key the panel looks it up by. Fetching it directly here left the re-rooted
     // panel waiting on a read that had already happened and been thrown away.
+    const operation = this.state.begin('follow', () => this.treeQuestion(acronym));
     await this.readHierarchy(picked);
+    if (!operation.current() || this.picked() !== picked || this.marked() !== marked) return;
     const found = this.hierarchyOf(picked);
     if (found === undefined) {
       // The release does not hold the term, or the read failed. Either way the row's own term is
       // the one every release of it has, so the panel falls back to where the author started.
-      this.picked.set(marked);
+      if (this.hierarchyOutcomeOf(picked)?.kind === 'absent') this.picked.set(marked);
       return;
     }
     this.picked.set({ ...picked, termLabel: found.termLabel });
@@ -1789,7 +1921,8 @@ export class CedarEmbeddableTermPicker {
       return null;
     }
     const outcome = this.hierarchyOutcomeOf(hit);
-    return outcome?.kind === 'absent' ? outcome.reason : null;
+    if (!outcome) return phrase('errors.checkingRelease');
+    return outcome.kind === 'found' ? null : outcome.reason;
   }
 
   /** The same, for whatever is currently selected, which is what the bar is about. */
@@ -1820,15 +1953,22 @@ export class CedarEmbeddableTermPicker {
   protected choose(hit: Hit): void {
     // Refused rather than emitted: the bar already says why, so a double-click that does nothing is
     // explained on screen rather than being a control that silently misbehaves.
-    if (this.unrecordable(hit) !== null) {
+    if (
+      !this.state.active ||
+      this.validationReport().some((issue) => issue.code === 'shape') ||
+      this.unrecordable(hit) !== null
+    ) {
       return;
     }
+    const fixedVersion = this.effectiveSources().find((source) => source.sourceAcronym === hit.sourceAcronym)?.version;
     const version =
       hit.type === 'property'
         ? { id: hit.versionId }
         : this.selectionMode() === 'term'
           ? undefined
-          : this.pinned().get(hit.sourceAcronym);
+          : fixedVersion && fixedVersion !== 'latest'
+            ? { id: fixedVersion.id }
+            : this.pinned().get(hit.sourceAcronym);
     if (!this.tableMode()) {
       this.selected.emit(version === undefined ? hit : { ...hit, version });
       return;
@@ -1878,7 +2018,9 @@ export class CedarEmbeddableTermPicker {
       sourceIri: source?.sourceIri,
     });
     const index = this.editing();
-    if (this.draft().constraints.some((c, i) => i !== index && constraintIdentity(c) === constraintIdentity(config))) {
+    if (
+      this.draft().constraints.some((c, i) => i !== index && c && constraintIdentity(c) === constraintIdentity(config))
+    ) {
       this.selectionProblem.set(phrase('errors.alreadyInTable'));
       return;
     }

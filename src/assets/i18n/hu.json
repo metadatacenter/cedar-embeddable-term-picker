@@ -143,7 +143,13 @@
     "propertySearchFailed": "A tulajdonságkeresés sikertelen.",
     "propertyLookupFailed": "A tulajdonság lekérdezése sikertelen ({{status}}).",
     "termNotHeld": "A tárban nincs ilyen fogalom: {{iri}} ({{acronym}}).",
-    "propertyUnreadable": "Ez a tulajdonság nem olvasható be."
+    "propertyUnreadable": "Ez a tulajdonság nem olvasható be.",
+    "constraintShape": "A megadott korlátozáskészlet hiányos. Töltse be újra a gazdaalkalmazásból.",
+    "invalidConstraint": "A(z) {{number}}. korlátozás érvénytelen vagy nem engedélyezett. Javítsa a mélységét, vagy törölje és válassza ki újra.",
+    "invalidAction": "A(z) {{number}}. művelet érvénytelen. Alkalmazás előtt törölje.",
+    "checkingRelease": "Annak ellenőrzése, hogy a kiadás tartalmazza-e a kifejezést.",
+    "invalidResponse": "A terminológiai kiszolgáló hiányos választ adott. Próbálja újra.",
+    "sources": "A megadott szótári hatókör érvénytelen."
   },
   "table": {
     "label": "Mezőmegkötések",
@@ -171,7 +177,8 @@
       "ontology": "Ontológia",
       "valueSet": "Értékkészlet",
       "ontologyProperty": "Tulajdonság"
-    }
+    },
+    "removeAction": "{{number}}. művelet törlése"
   },
   "property": {
     "details": "Tulajdonság részletei",

@@ -143,7 +143,13 @@
     "propertySearchFailed": "Property search failed.",
     "propertyLookupFailed": "Property lookup failed ({{status}}).",
     "termNotHeld": "The store holds no {{iri}} in {{acronym}}.",
-    "propertyUnreadable": "Could not read this property."
+    "propertyUnreadable": "Could not read this property.",
+    "constraintShape": "The supplied constraint set is incomplete. Reload it from the host.",
+    "invalidConstraint": "Constraint {{number}} is invalid or not enabled. Correct its depth or remove it and choose it again.",
+    "invalidAction": "Action {{number}} is invalid. Remove it before applying.",
+    "checkingRelease": "Checking whether this release contains the term.",
+    "invalidResponse": "The terminology server returned an incomplete response. Please retry.",
+    "sources": "The supplied vocabulary scope is invalid."
   },
   "table": {
     "label": "Field constraints",
@@ -171,7 +177,8 @@
       "ontology": "Ontology",
       "valueSet": "Value set",
       "ontologyProperty": "Property"
-    }
+    },
+    "removeAction": "Remove action {{number}}"
   },
   "property": {
     "details": "Property details",

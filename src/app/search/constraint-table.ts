@@ -17,6 +17,7 @@ export class ConstraintTableComponent {
   readonly maximumTerms = input<number>();
   readonly hashes = input<readonly (string | undefined)[]>([]);
   readonly removed = output<number>();
+  readonly actionRemoved = output<number>();
   readonly depthChanged = output<{ index: number; depth: number }>();
   readonly applied = output<void>();
   readonly cancelled = output<void>();
@@ -30,6 +31,6 @@ export class ConstraintTableComponent {
   protected changeDepth(index: number, event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     const depth = value.trim() === '' ? Number.NaN : Number(value);
-    if (Number.isInteger(depth) && depth >= 0) this.depthChanged.emit({ index, depth });
+    this.depthChanged.emit({ index, depth });
   }
 }
