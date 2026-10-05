@@ -1,6 +1,7 @@
 import { Icon } from '../icon';
 import { TranslatePipe } from '@ngx-translate/core';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { Localizer } from '../i18n/localization';
 import type { ControlledTermSet } from './constraint-set';
 import { constraintKind, constraintLabel, constraintUri, constraintAcronym } from './constraint-presentation';
 
@@ -13,6 +14,7 @@ import { constraintKind, constraintLabel, constraintUri, constraintAcronym } fro
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConstraintTableComponent {
+  protected readonly localizer = inject(Localizer);
   readonly set = input.required<ControlledTermSet>();
   readonly maximumTerms = input<number>();
   readonly hashes = input<readonly (string | undefined)[]>([]);

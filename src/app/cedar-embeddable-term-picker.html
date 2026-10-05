@@ -48,7 +48,7 @@
     type="button"
     class="of"
     [attr.aria-expanded]="isHistoryOpen(acronym)"
-    [title]="'stepper.showAllReleases' | translate: { count, acronym }"
+    [title]="localizer.plural('stepper.showAllReleases', count, { acronym })"
     (click)="openHistory(acronym); $event.stopPropagation()"
   >
     {{ 'stepper.of' | translate: { count } }}<span class="caret"
@@ -221,7 +221,7 @@
           It also names the hash column: a bare row of hex beside a date explains nothing.
         -->
     <p class="releases-head">
-      <span class="grow">{{ 'history.count' | translate: { count: releases.length } }}</span>
+      <span class="grow">{{ localizer.plural('history.count', releases.length) }}</span>
       <span class="date">{{ 'history.effectiveDate' | translate }}</span>
       <span class="hash">{{ 'history.contentHash' | translate }}</span>
       <span class="tag"></span>
@@ -456,8 +456,9 @@
     -->
   <p class="candidates-head">
     <span class="grow">
-      @if (narrowingFilter()) { {{ 'narrowing.visibleOf' | translate: { shown: visibleCandidates().length, total:
-      candidates().length } }} } @else { {{ localizer.plural('counts.ontologies', candidates().length) }} }
+      @if (narrowingFilter()) { {{ localizer.plural('narrowing.visibleOf', candidates().length, { shown:
+      visibleCandidates().length, total: candidates().length }) }} } @else { {{ localizer.plural('counts.ontologies',
+      candidates().length) }} }
     </span>
     <span>{{ 'narrowing.matchingTerms' | translate }}</span>
   </p>
@@ -601,9 +602,9 @@
           <span class="title" [title]="group.label">{{ elide(group.label) }}</span>
         </span>
         <span class="meta inline">
-          @if (group.hits.length !== group.ontologyCount) { {{ localizer.plural('counts.branchesInOntologies',
-          group.ontologyCount, { branches: group.hits.length }) }} } @else { {{ localizer.plural('counts.ontologies',
-          group.ontologyCount) }} }
+          @if (group.hits.length !== group.ontologyCount) { {{ localizer.pluralOf('counts.branchesInOntologies',
+          [group.hits.length, group.ontologyCount], { branches: group.hits.length, count: group.ontologyCount }) }} }
+          @else { {{ localizer.plural('counts.ontologies', group.ontologyCount) }} }
         </span>
       </button>
       @if (expanded() === group.label) {
@@ -753,7 +754,7 @@
         <span class="meta inline dim">· {{ matched }}</span>
         }
       </span>
-      <span class="meta inline">{{ 'counts.values' | translate: { count: hit.termCount } }}</span>
+      <span class="meta inline">{{ localizer.plural('counts.values', hit.termCount) }}</span>
       <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
     </div>
     <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />

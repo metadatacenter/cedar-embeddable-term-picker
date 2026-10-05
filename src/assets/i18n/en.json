@@ -10,7 +10,10 @@
   },
   "stepper": {
     "versionTitle": "Version {{version}}",
-    "showAllReleases": "Show all {{count}} releases of {{acronym}}",
+    "showAllReleases": {
+      "one": "Show the {{count}} release of {{acronym}}",
+      "many": "Show all {{count}} releases of {{acronym}}"
+    },
     "of": "of {{count}}"
   },
   "tree": {
@@ -32,7 +35,10 @@
     "useThisTerm": "Use this term"
   },
   "history": {
-    "count": "{{count}} releases, newest first",
+    "count": {
+      "one": "{{count}} release",
+      "many": "{{count}} releases, newest first"
+    },
     "effectiveDate": "effective date",
     "contentHash": "content hash",
     "noDeclaredVersion": "no declared version",
@@ -64,7 +70,10 @@
     "narrowTo": "narrow to…",
     "finderPlaceholder": "Find an ontology by name or acronym; click to select",
     "finderLabel": "Find an ontology to narrow to",
-    "visibleOf": "{{shown}} of {{total}} ontologies",
+    "visibleOf": {
+      "one": "{{shown}} of {{total}} ontology",
+      "many": "{{shown}} of {{total}} ontologies"
+    },
     "matchingTerms": "matching terms",
     "noneByThatName": "No ontology here goes by that.",
     "looking": "Looking…",
@@ -98,14 +107,23 @@
       "many": "in {{count}} ontologies"
     },
     "branchesInOntologies": {
-      "one": "{{branches}} branches in {{count}} ontology",
-      "many": "{{branches}} branches in {{count}} ontologies"
+      "one": {
+        "one": "{{branches}} branch in {{count}} ontology",
+        "many": "{{branches}} branch in {{count}} ontologies"
+      },
+      "many": {
+        "one": "{{branches}} branches in {{count}} ontology",
+        "many": "{{branches}} branches in {{count}} ontologies"
+      }
     },
     "terms": {
       "one": "{{count}} term",
       "many": "{{count}} terms"
     },
-    "values": "{{count}} values"
+    "values": {
+      "one": "{{count}} value",
+      "many": "{{count}} values"
+    }
   },
   "results": {
     "obsolete": "obsolete",
@@ -129,9 +147,18 @@
   "errors": {
     "maximumTerms": "maximumTerms must be a positive whole number, or omitted for no limit.",
     "termTypes": "termTypes must be an array of class, branch, ontology, valueSet or property.",
-    "tooManyToApply": "Select at most {{maximum}} terms. Remove entries from the table before continuing.",
-    "tooManyToAdd": "You can select at most {{maximum}} terms. Remove an entry from the table to select another.",
-    "corpusQueryTooShort": "A corpus-wide search needs at least {{count}} characters. Narrow to an ontology to search it with fewer.",
+    "tooManyToApply": {
+      "one": "Select at most {{maximum}} term. Remove entries from the table before continuing.",
+      "many": "Select at most {{maximum}} terms. Remove entries from the table before continuing."
+    },
+    "tooManyToAdd": {
+      "one": "You can select at most {{maximum}} term. Remove an entry from the table to select another.",
+      "many": "You can select at most {{maximum}} terms. Remove an entry from the table to select another."
+    },
+    "corpusQueryTooShort": {
+      "one": "A corpus-wide search needs at least {{count}} character. Narrow to an ontology to search it with fewer.",
+      "many": "A corpus-wide search needs at least {{count}} characters. Narrow to an ontology to search it with fewer."
+    },
     "searchFailed": "The search failed.",
     "actionNeedsTerm": "Choose an individual term for the action.",
     "typeNotEnabled": "This term type is not enabled.",
@@ -170,7 +197,10 @@
     "empty": "No terms selected. Search below to add one.",
     "done": "Done",
     "cancel": "Cancel",
-    "savedActions": "{{count}} saved term actions",
+    "savedActions": {
+      "one": "{{count}} saved term action",
+      "many": "{{count}} saved term actions"
+    },
     "position": "position {{position}}",
     "kind": {
       "ontologyTerm": "term",

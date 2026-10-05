@@ -38,6 +38,7 @@ import {
   DEFAULT_LANGUAGE,
   Localizer,
   Message,
+  countKey,
   languageOf,
   messageOf,
   phrase,
@@ -221,7 +222,8 @@ export class CedarEmbeddableTermPicker {
   protected readonly draftError = computed(() => {
     const issue = this.validationReport()[0];
     if (!issue) return null;
-    if (issue.code === 'maximum') return phrase('errors.tooManyToApply', { maximum: this.maximumTerms() });
+    if (issue.code === 'maximum')
+      return phrase(countKey('errors.tooManyToApply', this.maximumTerms() ?? 0), { maximum: this.maximumTerms() });
     return phrase(
       issue.code === 'shape'
         ? 'errors.constraintShape'
@@ -593,7 +595,7 @@ export class CedarEmbeddableTermPicker {
     this.inFlight?.abort();
     this.response.set(null);
     this.searching.set(false);
-    this.error.set(phrase('errors.corpusQueryTooShort', { count: MIN_CORPUS_QUERY }));
+    this.error.set(phrase(countKey('errors.corpusQueryTooShort', MIN_CORPUS_QUERY), { count: MIN_CORPUS_QUERY }));
   }
 
   /**
@@ -2006,7 +2008,7 @@ export class CedarEmbeddableTermPicker {
     }
     const maximum = this.maximumTerms();
     if (this.editing() === null && maximum !== undefined && this.draft().constraints.length >= maximum) {
-      this.selectionProblem.set(phrase('errors.tooManyToAdd', { maximum }));
+      this.selectionProblem.set(phrase(countKey('errors.tooManyToAdd', maximum), { maximum }));
       return;
     }
     this.selectionProblem.set(null);

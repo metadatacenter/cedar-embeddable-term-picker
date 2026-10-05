@@ -94,7 +94,7 @@
   </div>
   @if (set().actions.length) {
   <details class="saved-actions">
-    <summary>{{ 'table.savedActions' | translate: { count: set().actions.length } }}</summary>
+    <summary>{{ localizer.plural('table.savedActions', set().actions.length) }}</summary>
     @for (action of set().actions; track $index) {
     <p>
       {{ action.action }} · {{ action.termUri }}@if (action.to !== undefined) { · {{ 'table.position' | translate: {

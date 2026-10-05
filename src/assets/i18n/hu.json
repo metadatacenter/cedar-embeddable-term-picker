@@ -10,7 +10,10 @@
   },
   "stepper": {
     "versionTitle": "Verzió: {{version}}",
-    "showAllReleases": "{{acronym}}: az összes kiadás megjelenítése ({{count}})",
+    "showAllReleases": {
+      "one": "{{acronym}}: az összes kiadás megjelenítése ({{count}})",
+      "many": "{{acronym}}: az összes kiadás megjelenítése ({{count}})"
+    },
     "of": "/ {{count}}"
   },
   "tree": {
@@ -32,7 +35,10 @@
     "useThisTerm": "Fogalom használata"
   },
   "history": {
-    "count": "{{count}} kiadás, a legújabb elöl",
+    "count": {
+      "one": "{{count}} kiadás",
+      "many": "{{count}} kiadás, a legújabb elöl"
+    },
     "effectiveDate": "hatálybalépés dátuma",
     "contentHash": "tartalmi hash",
     "noDeclaredVersion": "nincs megadott verzió",
@@ -64,7 +70,10 @@
     "narrowTo": "szűkítés…",
     "finderPlaceholder": "Ontológia keresése név vagy rövidítés alapján; a kiválasztáshoz kattintson rá",
     "finderLabel": "Ontológia keresése a szűkítéshez",
-    "visibleOf": "{{total}} ontológiából {{shown}}",
+    "visibleOf": {
+      "one": "{{total}} ontológiából {{shown}}",
+      "many": "{{total}} ontológiából {{shown}}"
+    },
     "matchingTerms": "egyező fogalmak",
     "noneByThatName": "A listában nincs ilyen nevű ontológia.",
     "looking": "Keresés…",
@@ -98,14 +107,23 @@
       "many": "{{count}} ontológiában"
     },
     "branchesInOntologies": {
-      "one": "{{branches}} ág {{count}} ontológiában",
-      "many": "{{branches}} ág {{count}} ontológiában"
+      "one": {
+        "one": "{{branches}} ág {{count}} ontológiában",
+        "many": "{{branches}} ág {{count}} ontológiában"
+      },
+      "many": {
+        "one": "{{branches}} ág {{count}} ontológiában",
+        "many": "{{branches}} ág {{count}} ontológiában"
+      }
     },
     "terms": {
       "one": "{{count}} fogalom",
       "many": "{{count}} fogalom"
     },
-    "values": "{{count}} érték"
+    "values": {
+      "one": "{{count}} érték",
+      "many": "{{count}} érték"
+    }
   },
   "results": {
     "obsolete": "elavult",
@@ -129,9 +147,18 @@
   "errors": {
     "maximumTerms": "A maximumTerms értéke pozitív egész szám legyen; korlát nélküli működéshez hagyja el.",
     "termTypes": "A termTypes értéke a class, branch, ontology, valueSet és property értékekből álló tömb legyen.",
-    "tooManyToApply": "Legfeljebb {{maximum}} fogalmat válasszon ki. A folytatás előtt távolítson el bejegyzéseket a táblázatból.",
-    "tooManyToAdd": "Legfeljebb {{maximum}} fogalmat választhat ki. Újabb kiválasztásához távolítson el egy bejegyzést a táblázatból.",
-    "corpusQueryTooShort": "A teljes gyűjteményben való kereséshez legalább {{count}} karakter szükséges. Rövidebb kereséshez szűkítsen egy ontológiára.",
+    "tooManyToApply": {
+      "one": "Legfeljebb {{maximum}} fogalmat válasszon ki. A folytatás előtt távolítson el bejegyzéseket a táblázatból.",
+      "many": "Legfeljebb {{maximum}} fogalmat válasszon ki. A folytatás előtt távolítson el bejegyzéseket a táblázatból."
+    },
+    "tooManyToAdd": {
+      "one": "Legfeljebb {{maximum}} fogalmat választhat ki. Újabb kiválasztásához távolítson el egy bejegyzést a táblázatból.",
+      "many": "Legfeljebb {{maximum}} fogalmat választhat ki. Újabb kiválasztásához távolítson el egy bejegyzést a táblázatból."
+    },
+    "corpusQueryTooShort": {
+      "one": "A teljes gyűjteményben való kereséshez legalább {{count}} karakter szükséges. Rövidebb kereséshez szűkítsen egy ontológiára.",
+      "many": "A teljes gyűjteményben való kereséshez legalább {{count}} karakter szükséges. Rövidebb kereséshez szűkítsen egy ontológiára."
+    },
     "searchFailed": "A keresés sikertelen.",
     "actionNeedsTerm": "A művelethez válasszon egy egyedi fogalmat.",
     "typeNotEnabled": "Ez a fogalomtípus nincs engedélyezve.",
@@ -170,7 +197,10 @@
     "empty": "Nincs kiválasztott fogalom. Hozzáadáshoz keressen alább.",
     "done": "Kész",
     "cancel": "Mégse",
-    "savedActions": "{{count}} mentett fogalomművelet",
+    "savedActions": {
+      "one": "{{count}} mentett fogalomművelet",
+      "many": "{{count}} mentett fogalomművelet"
+    },
     "position": "pozíció: {{position}}",
     "kind": {
       "ontologyTerm": "fogalom",

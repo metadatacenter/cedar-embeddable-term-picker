@@ -11,7 +11,7 @@
     "build": "ng build",
     "build:production": "ng build --configuration=production",
     "test": "ng test && npm run test:i18n",
-    "test:i18n": "node --test scripts/i18n-guard.test.mjs",
+    "test:i18n": "node --test scripts/i18n-guard.test.mjs scripts/count-messages.test.mjs",
     "test:watch": "ng test --watch",
     "lint": "ng lint",
     "typecheck": "tsc -p tsconfig.eslint.json --noEmit",
