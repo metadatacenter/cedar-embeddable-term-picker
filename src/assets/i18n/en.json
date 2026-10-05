@@ -149,7 +149,8 @@
     "invalidAction": "Action {{number}} is invalid. Remove it before applying.",
     "checkingRelease": "Checking whether this release contains the term.",
     "invalidResponse": "The terminology server returned an incomplete response. Please retry.",
-    "sources": "The supplied vocabulary scope is invalid."
+    "sources": "The supplied vocabulary scope is invalid.",
+    "unreachable": "The terminology server could not be reached. Check your connection and try again."
   },
   "table": {
     "label": "Field constraints",

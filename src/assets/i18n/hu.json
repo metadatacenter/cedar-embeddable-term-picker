@@ -149,7 +149,8 @@
     "invalidAction": "A(z) {{number}}. művelet érvénytelen. Alkalmazás előtt törölje.",
     "checkingRelease": "Annak ellenőrzése, hogy a kiadás tartalmazza-e a kifejezést.",
     "invalidResponse": "A terminológiai kiszolgáló hiányos választ adott. Próbálja újra.",
-    "sources": "A megadott szótári hatókör érvénytelen."
+    "sources": "A megadott szótári hatókör érvénytelen.",
+    "unreachable": "A terminológiai kiszolgáló nem érhető el. Ellenőrizze a kapcsolatot, és próbálja újra."
   },
   "table": {
     "label": "Mezőmegkötések",
