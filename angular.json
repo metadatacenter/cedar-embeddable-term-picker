@@ -36,7 +36,9 @@
                 "input": "public"
               }
             ],
-            "styles": []
+            "styles": [
+              "node_modules/@org.metadatacenter/cedar-design-tokens/dist/custom-properties.css"
+            ]
           },
           "configurations": {
             "production": {

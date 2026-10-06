@@ -80,11 +80,11 @@ export async function stubSearch(
 function answer(replied: unknown, body: SearchBody): unknown {
   const asked = pageOf(body);
   if (asked === 1) {
-    return replied;
+    return { query: body.query, ...(replied as object) };
   }
   const results = (replied as { results?: Record<string, { page?: number }> } | undefined)?.results ?? {};
   const matches = Object.values(results).some((result) => (result.page ?? 1) === asked);
-  return matches ? replied : { sources: [], results: {} };
+  return matches ? { query: body.query, ...(replied as object) } : { query: body.query, sources: [], results: {} };
 }
 
 export interface SearchBody {

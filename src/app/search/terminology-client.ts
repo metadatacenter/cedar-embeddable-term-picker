@@ -10,6 +10,21 @@ import {
   VersionInfo,
 } from './search-types';
 import { Message, MessageError, messageOf, phrase } from '../i18n/localization';
+import { validHierarchy, validSearchResponse } from './response-validation';
+
+/**
+ * The server's response, or the reason none arrived. A request that never reached the server
+ * rejects with the browser's own words, "Failed to fetch", which are English whatever the picker
+ * speaks and say nothing an author can act on. A cancellation stays a cancellation.
+ */
+async function reach(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (error) {
+    if ((error as { name?: string } | null)?.name === 'AbortError') throw error;
+    throw new MessageError(phrase('errors.unreachable'));
+  }
+}
 
 /**
  * The picker's one call to the terminology server.
@@ -71,7 +86,7 @@ export class TerminologyClient {
       };
     }
     if (!types.length) return { query: query.query, sources: [], results: {} };
-    const response = await fetch(this.endpoint, {
+    const response = await reach(this.endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -89,7 +104,8 @@ export class TerminologyClient {
     if (!response.ok) {
       throw new MessageError(refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }));
     }
-    return body as SearchResponse;
+    if (!validSearchResponse(body)) throw new MessageError(phrase('errors.invalidResponse'));
+    return body;
   }
 
   private propertyEndpoint(): string {
@@ -97,12 +113,14 @@ export class TerminologyClient {
   }
 
   private async propertyRequest<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(`${this.propertyEndpoint()}${path}`, init);
+    const response = await reach(`${this.propertyEndpoint()}${path}`, init);
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok)
       throw new MessageError(
         refusalMessage(body) ?? phrase('errors.propertyLookupFailed', { status: response.status }),
       );
+    // An answer that was not JSON reads as null, which each caller would otherwise take apart.
+    if (body === null) throw new MessageError(phrase('errors.invalidResponse'));
     return body as T;
   }
 
@@ -196,7 +214,7 @@ export class TerminologyClient {
     if (offset) {
       query.set('offset', String(offset));
     }
-    const response = await fetch(`${this.endpoint}/hierarchy?${query}`, { signal });
+    const response = await reach(`${this.endpoint}/hierarchy?${query}`, { signal });
     const body: unknown = await response.json().catch(() => null);
     if (response.status === 404) {
       return {
@@ -210,7 +228,9 @@ export class TerminologyClient {
         reason: refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }),
       };
     }
-    return { kind: 'found', hierarchy: body as Hierarchy };
+    if (!validHierarchy(body, sourceAcronym, termIri))
+      return { kind: 'failed', reason: phrase('errors.invalidResponse') };
+    return { kind: 'found', hierarchy: body };
   }
 }
 

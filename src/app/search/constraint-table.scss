@@ -16,11 +16,6 @@
     font-size: var(--cetp-font-size);
     font-weight: var(--cedar-font-weight-medium, 500);
   }
-  h3 {
-    margin: var(--cedar-space-4) 0 var(--cedar-space-1);
-    font-size: var(--cetp-font-size);
-    font-weight: var(--cedar-font-weight-medium, 500);
-  }
   p {
     margin: var(--cedar-space-1) 0 var(--cedar-space-3);
     color: var(--cetp-color-muted);
@@ -37,12 +32,8 @@
     cursor: pointer;
     border: 1px solid var(--cetp-color-border);
     border-radius: var(--cedar-radius);
-    background: white;
+    background: tokens.$surface-raised;
     color: var(--cetp-color-primary);
-  }
-  button:disabled {
-    opacity: tokens.$control-disabled-opacity;
-    cursor: default;
   }
   button:hover:enabled {
     background: var(--cetp-color-surface);
@@ -55,10 +46,6 @@
     width: 80px;
     padding: var(--cedar-space-1);
     border: 1px solid var(--cetp-color-border);
-  }
-  select {
-    padding: var(--cedar-space-1);
-    max-width: 100%;
   }
   dt {
     font-weight: var(--cedar-font-weight-medium, 500);
@@ -80,7 +67,7 @@
   border-collapse: collapse;
   table-layout: fixed;
   th {
-    @include spacing.apply(padding, constraint-row);
+    @include spacing.apply(padding, compact-row);
     color: var(--cetp-color-muted);
     font-size: var(--cetp-font-size-small);
     font-weight: var(--cedar-font-weight-medium, 500);
@@ -95,7 +82,7 @@
   td {
     box-sizing: border-box;
     line-height: tokens.$control-line-height-authoring;
-    @include spacing.apply(padding, constraint-row);
+    @include spacing.apply(padding, compact-row);
     border-top: 1px solid var(--cetp-color-border);
     height: tokens.$row-height-compact;
     font-size: var(--cetp-font-size);
@@ -126,10 +113,9 @@
     margin: 0 0 0 auto;
     background: transparent;
     color: var(--cetp-color-text);
-    line-height: 1;
+    line-height: var(--cedar-line-height-tight);
     &:hover:enabled {
       background: transparent;
-      color: #000;
     }
   }
   .constraint-empty {
@@ -150,13 +136,6 @@
 .constraint-heading {
   justify-content: space-between;
   margin-bottom: var(--cedar-space-1);
-  .use {
-    margin: 0;
-  }
-}
-
-.constraint-table + .constraint-table {
-  margin-top: var(--cedar-space-1);
 }
 
 .saved-actions {
@@ -169,9 +148,6 @@
 }
 
 .constraint-table {
-  td {
-    vertical-align: middle;
-  }
   tr:has(details[open]) td {
     vertical-align: top;
   }
@@ -221,4 +197,9 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--cedar-space-1);
+}
+
+// The constraint's release hash, in the shared monospace face as it is in the picker.
+.hash {
+  font-family: var(--cedar-font-family-monospace);
 }

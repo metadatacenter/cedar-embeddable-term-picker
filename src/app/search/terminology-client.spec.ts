@@ -20,7 +20,7 @@ it('searches properties locally with the requested ontology pin and merges them 
                   },
                 ],
               }
-            : { query: 'part', sources: [], results: { class: { collection: [] } } },
+            : { query: 'part', sources: [], results: { class: { totalCount: 0, collection: [] } } },
         ),
         { status: 200 },
       ),
@@ -65,8 +65,22 @@ it('keeps class results when a historical snapshot has no extracted properties',
         ? new Response(JSON.stringify({ message: 'Properties were not extracted' }), { status: 503 })
         : new Response(
             JSON.stringify({
+              query: 'part',
               sources: [],
-              results: { class: { collection: [{ type: 'class', termIri: 'urn:old' }] } },
+              results: {
+                class: {
+                  totalCount: 1,
+                  collection: [
+                    {
+                      type: 'class',
+                      termIri: 'urn:old',
+                      termLabel: 'Old',
+                      sourceSystem: 'bioportal',
+                      sourceAcronym: 'TEST',
+                    },
+                  ],
+                },
+              },
             }),
             { status: 200 },
           ),

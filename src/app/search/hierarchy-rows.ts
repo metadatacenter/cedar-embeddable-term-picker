@@ -10,16 +10,19 @@ export function hierarchyRows(
 ): readonly TreeRow[] {
   const spine = [...(tree.path ?? []).map((step) => step.termIri), tree.termIri];
   const rows: TreeRow[] = [];
+  const visited = new Set<string>();
 
   // `known` is what the node's parent already said about it, which is everything a row needs to
   // draw before the node is opened: reading the node to learn whether it can be opened would make
   // a closed tree fetch every branch of itself.
   const walk = (iri: string, label: string, depth: number, onSpine: boolean, known?: HierarchyChild): void => {
     const key = nodeKey(iri);
+    if (visited.has(key)) return;
+    visited.add(key);
     // The node's own entry first, and the tree only as the term's opening state: narrowing or
     // extending a node writes to `nodes`, and reading the marked term from `tree` instead left
     // the one node an author is most likely to narrow showing what it held before they did.
-    const held = nodes.get(key) ?? (iri === tree.termIri ? tree : undefined);
+    const held = nodes.has(key) ? nodes.get(key) : iri === tree.termIri ? tree : undefined;
     const children = held === undefined ? undefined : (held?.children ?? []);
     const open = openNodes.has(key);
     rows.push({

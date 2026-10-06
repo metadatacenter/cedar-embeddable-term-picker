@@ -251,11 +251,6 @@ button {
   color: var(--cetp-color-on-primary);
   cursor: pointer;
   white-space: nowrap;
-
-  &.ghost {
-    background: transparent;
-    color: var(--cetp-color-primary);
-  }
 }
 
 .narrowing {
@@ -474,7 +469,7 @@ button {
   border-radius: tokens.$radius;
   color: var(--cetp-color-muted);
   font-size: var(--cetp-font-size);
-  line-height: 1;
+  line-height: var(--cedar-line-height-tight);
   padding: var(--cedar-space-1) var(--cedar-space-1);
 
   &:hover {
@@ -509,8 +504,8 @@ button {
 // The caret carries the affordance. Without it the count reads as another muted figure beside the
 // version, and an author has no reason to click the one thing on the row that opens.
 .caret {
-  font-size: 1.5em;
-  line-height: 1;
+  font-size: var(--cedar-font-size-large);
+  line-height: var(--cedar-line-height-tight);
 }
 
 // What the marked row is offering, under the row itself. A definition list rather than a table:
@@ -562,7 +557,7 @@ button {
     border-radius: tokens.$radius;
     padding: 0;
     color: var(--cetp-color-primary);
-    font-size: 0.85em;
+    font-size: var(--cetp-font-size-small);
     text-align: center;
   }
 
@@ -615,15 +610,6 @@ button {
 
   // The tree has no term to define, so it takes the whole width rather than sitting in the value
   // column with an empty label beside it.
-  // Prose, so it wraps and reads as a sentence — every other cell here is a name or a figure and
-  // is kept to one line.
-  .meaning {
-    white-space: normal;
-    line-height: 1.4;
-    @include spacing.apply(padding-bottom, compact);
-    color: var(--cetp-color-text);
-  }
-
   .wide {
     grid-column: 1 / -1;
   }
@@ -716,8 +702,13 @@ button {
 
   .hash {
     color: var(--cetp-color-muted);
-    font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
   }
+}
+
+// A release hash is set in the shared monospace face wherever it appears: the release list, the
+// selection bar and the comparison rows alike.
+code.hash {
+  font-family: var(--cedar-font-family-monospace);
 }
 
 .rowhead {
@@ -831,18 +822,11 @@ mark {
   padding: 0 1px;
 }
 
-.sub,
 .meta {
   display: block;
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
   @include spacing.apply(margin-top, compact);
-}
-
-.path {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 // A term's other names. Outlined and muted, not tinted: the tint is what marks a selection
@@ -899,15 +883,6 @@ mark {
   column-gap: var(--cedar-space-3);
 }
 
-// The counts run right against their column, so "terms" and "descendants" line up down the list
-// rather than starting wherever the number before them happens to end.
-.row > .meta.inline,
-// That a row opens onto something. In the primary colour and at the head of the row, under the
-// twist of the group heading it sits below, so the two read as the same sign at the same depth —
-// these rows had nothing at all.
-
-
-
 // A pin naming an extraction a later one corrected. Marked rather than alarming: the pin resolves,
 // and an author may well have meant that exact reading.
 .stale {
@@ -916,6 +891,9 @@ mark {
   font-style: italic;
 }
 
+// That a row opens onto something. In the primary colour and at the head of the row, under the
+// twist of the group heading it sits below, so the two read as the same sign at the same depth —
+// these rows had nothing at all.
 .opener {
   color: var(--cetp-color-primary);
   font-size: var(--cetp-font-size-small);
@@ -939,6 +917,9 @@ mark {
   white-space: nowrap;
 }
 
+// The counts run right against their column, so "terms" and "descendants" line up down the list
+// rather than starting wherever the number before them happens to end.
+.row > .meta.inline,
 .child > .meta.inline {
   text-align: right;
 }
@@ -1009,29 +990,11 @@ mark {
 }
 
 .use:focus-visible {
-  outline: 2px solid var(--cetp-color-primary);
-  outline-offset: 2px;
+  @include controls.focus-ring(var(--cetp-color-primary));
 }
 
 .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-// CEE's compact specification rows: inline controls, details only when present.
-.term-action-controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--cedar-space-1);
-}
-
-.term-action-controls {
-  margin-top: var(--cedar-space-1);
+  @include patterns.visually-hidden;
 }
 
 .picker.set-mode {
@@ -1081,9 +1044,6 @@ mark {
       display: none;
     }
   }
-  .chosen.awaiting {
-    display: none;
-  }
   .tree {
     max-height: 8rem;
   }
@@ -1101,10 +1061,6 @@ mark {
   justify-content: space-between;
   gap: var(--cedar-space-2);
   grid-column: 1 / -1;
-  button:disabled {
-    opacity: tokens.$control-disabled-opacity;
-    cursor: default;
-  }
 }
 
 .selection-detail {

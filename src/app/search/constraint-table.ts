@@ -1,6 +1,7 @@
 import { Icon } from '../icon';
 import { TranslatePipe } from '@ngx-translate/core';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { Localizer } from '../i18n/localization';
 import type { ControlledTermSet } from './constraint-set';
 import { constraintKind, constraintLabel, constraintUri, constraintAcronym } from './constraint-presentation';
 
@@ -13,10 +14,12 @@ import { constraintKind, constraintLabel, constraintUri, constraintAcronym } fro
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConstraintTableComponent {
+  protected readonly localizer = inject(Localizer);
   readonly set = input.required<ControlledTermSet>();
   readonly maximumTerms = input<number>();
   readonly hashes = input<readonly (string | undefined)[]>([]);
   readonly removed = output<number>();
+  readonly actionRemoved = output<number>();
   readonly depthChanged = output<{ index: number; depth: number }>();
   readonly applied = output<void>();
   readonly cancelled = output<void>();
@@ -30,6 +33,6 @@ export class ConstraintTableComponent {
   protected changeDepth(index: number, event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     const depth = value.trim() === '' ? Number.NaN : Number(value);
-    if (Number.isInteger(depth) && depth >= 0) this.depthChanged.emit({ index, depth });
+    this.depthChanged.emit({ index, depth });
   }
 }

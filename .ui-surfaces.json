@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "repo": "cedar-embeddable-term-picker",
+  "browserHelper": "browser/tests/surface-contracts.generated.mjs",
+  "surfaces": [
+    {
+      "id": "cetp.terms",
+      "name": "Term Search",
+      "section": "Term Picker",
+      "source": [
+        {
+          "file": "src/app/cedar-embeddable-term-picker.ts",
+          "anchor": "export class CedarEmbeddableTermPicker"
+        },
+        {
+          "file": "src/app/cedar-embeddable-term-picker.html",
+          "anchor": "<nav class=\"tabs\" role=\"tablist\">"
+        }
+      ],
+      "contract": "page",
+      "scenario": "terms",
+      "selector": "cedar-embeddable-term-picker",
+      "states": [
+        "open"
+      ],
+      "test": "browser/tests/surfaces.spec.ts"
+    },
+    {
+      "id": "cetp.branches",
+      "name": "Branch Search",
+      "section": "Term Picker",
+      "source": [
+        {
+          "file": "src/app/cedar-embeddable-term-picker.html",
+          "anchor": "<nav class=\"tabs\" role=\"tablist\">"
+        }
+      ],
+      "contract": "page",
+      "scenario": "branches",
+      "selector": "cedar-embeddable-term-picker",
+      "states": [
+        "open"
+      ],
+      "test": "browser/tests/surfaces.spec.ts"
+    },
+    {
+      "id": "cetp.ontologies",
+      "name": "Ontology Search",
+      "section": "Term Picker",
+      "source": [
+        {
+          "file": "src/app/cedar-embeddable-term-picker.html",
+          "anchor": "<nav class=\"tabs\" role=\"tablist\">"
+        }
+      ],
+      "contract": "page",
+      "scenario": "ontologies",
+      "selector": "cedar-embeddable-term-picker",
+      "states": [
+        "open"
+      ],
+      "test": "browser/tests/surfaces.spec.ts",
+      "scaleDebt": [
+        {
+          "property": "background-color",
+          "value": "color(srgb 0.887059 0.935529 0.943059)",
+          "reason": "CETP mixes its selection tint from the host's primary colour so a re-pointed theme keeps a matching tint; at the default primary it is within 2/255 of surface-selected."
+        }
+      ]
+    },
+    {
+      "id": "cetp.term-detail",
+      "name": "Term Detail and Hierarchy",
+      "section": "Term Picker",
+      "source": [
+        {
+          "file": "src/app/cedar-embeddable-term-picker.html",
+          "anchor": "<dl class=\"detail\">"
+        }
+      ],
+      "contract": "page",
+      "scenario": "term-detail",
+      "selector": "cedar-embeddable-term-picker",
+      "states": [
+        "open"
+      ],
+      "test": "browser/tests/surfaces.spec.ts",
+      "scaleDebt": [
+        {
+          "property": "background-color",
+          "value": "color(srgb 0.887059 0.935529 0.943059)",
+          "reason": "CETP mixes its selection tint from the host's primary colour so a re-pointed theme keeps a matching tint; at the default primary it is within 2/255 of surface-selected."
+        }
+      ]
+    },
+    {
+      "id": "cetp.constraint-table",
+      "name": "Constraint Table",
+      "section": "Term Picker",
+      "source": [
+        {
+          "file": "src/app/search/constraint-table.ts",
+          "anchor": "export class ConstraintTableComponent"
+        }
+      ],
+      "contract": "page",
+      "scenario": "constraint-table",
+      "selector": "cedar-embeddable-term-picker",
+      "states": [
+        "open"
+      ],
+      "test": "browser/tests/surfaces.spec.ts"
+    }
+  ]
+}

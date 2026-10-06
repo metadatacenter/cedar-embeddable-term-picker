@@ -11,9 +11,6 @@
  * the mapper narrows on `type` and reads nothing a hit of that type lacks.
  */
 
-/** The tag the host is expected to have registered. */
-export const CETP_TAG = 'cedar-embeddable-term-picker';
-
 /**
  * The snapshot an author pinned, where they pinned one.
  *

@@ -79,6 +79,16 @@ export class MessageError extends Error {
   }
 }
 
+/**
+ * The key of a counted phrase's form: one segment per count, `one` for one and `many` otherwise,
+ * so a phrase counting two things chooses on both ("1 branch in 2 ontologies"). Every counted
+ * phrase is chosen here. Hungarian keeps a noun singular after any number, so its forms read alike;
+ * English needs them all.
+ */
+export function countKey(key: string, ...counts: number[]): string {
+  return [key, ...counts.map((count) => (count === 1 ? 'one' : 'many'))].join('.');
+}
+
 /** What a failure tells the author: its own message when it carries one, else the fallback. */
 export function messageOf(failure: unknown, fallback: Message): Message {
   if (failure instanceof MessageError) {
@@ -117,8 +127,14 @@ export class Localizer {
   }
 
   /** A phrase whose English differs between one and many; Hungarian keeps both keys alike. */
-  plural(key: string, count: number, params?: InterpolationParameters): string {
-    return this.t(`${key}.${count === 1 ? 'one' : 'many'}`, { count, ...params });
+  plural(key: string, count: number | undefined, params?: InterpolationParameters): string {
+    // An absent count takes the form that reads for any number, and is passed on as it came.
+    return this.t(countKey(key, count ?? 0), { count, ...params });
+  }
+
+  /** A phrase counting several things, its form chosen on each count in order. */
+  pluralOf(key: string, counts: readonly number[], params?: InterpolationParameters): string {
+    return this.t(countKey(key, ...counts), params);
   }
 
   say(message: Message): string {

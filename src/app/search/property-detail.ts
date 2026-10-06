@@ -60,7 +60,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
                     {{ parent.label }}
                   </button>
                 } @else {
-                  <span class="missing">{{ 'property.notHeld' | translate: { iri } }}</span>
+                  <span>{{ 'property.notHeld' | translate: { iri } }}</span>
                 }
               </li>
             }

@@ -1,9 +1,9 @@
 /**
  * Locate the built element in `dist/` and say how to turn it into one file.
  *
- * The single place that knows anything about builder output. The bundle step,
- * the size gate and the freshness guard all read it from here, so a change in
- * what Angular emits is a change in one file rather than in three.
+ * The single place that knows anything about builder output. The bundle step
+ * reads it from here, and the size gate reads it through the bundle step, so a
+ * change in what Angular emits is a change in one file.
  *
  * Angular's `application` builder emits an ES module graph: the entry and the
  * polyfills are separate modules whose top-level declarations are module-scoped
@@ -11,7 +11,7 @@
  * and then fails inside Angular, because two modules that never shared a scope
  * are suddenly sharing one. Each is flattened to its own IIFE instead.
  */
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -64,10 +64,4 @@ export function resolveBuildOutput(dist = DEFAULT_DIST) {
   }
 
   return { dir, inputs, entry: inputs.find((input) => input.role === 'entry').path };
-}
-
-/** The most recent modification time across the build's inputs. */
-export function newestInput(dist = DEFAULT_DIST) {
-  const { inputs } = resolveBuildOutput(dist);
-  return Math.max(...inputs.map((input) => statSync(input.path).mtimeMs));
 }
