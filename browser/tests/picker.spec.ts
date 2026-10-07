@@ -701,20 +701,42 @@ test('a node bigger than one read scrolls on rather than ending early', async ({
 
 test('a marked term shows what it is offering', async ({ page }) => {
   await stubSearch(page, () => MELANOMA);
-  await stubHierarchy(page, (query) => ({
-    sourceAcronym: query.get('sourceAcronym'),
-    termIri: query.get('termIri'),
-    termLabel: query.get('termIri') === 'http://ncit/Neoplasm' ? 'Neoplasm' : 'Melanoma',
-    path: [
-      { termIri: 'http://ncit/Neoplasm', termLabel: 'Neoplasm' },
-      { termIri: 'http://ncit/Melanocytic', termLabel: 'Melanocytic Neoplasm' },
-    ],
-    children: [
-      { termIri: 'http://ncit/Amelanotic', termLabel: 'Amelanotic Melanoma', hasChildren: false, descendantCount: 0 },
-    ],
-    childCount: 4,
-    descendantCount: 321,
-  }));
+  // Each node answers with its own children, as the server does: Neoplasm holds the path's next
+  // step beside a sibling, and Melanoma holds the term below it.
+  await stubHierarchy(page, (query) => {
+    const neoplasm = query.get('termIri') === 'http://ncit/Neoplasm';
+    return {
+      sourceAcronym: query.get('sourceAcronym'),
+      termIri: query.get('termIri'),
+      termLabel: neoplasm ? 'Neoplasm' : 'Melanoma',
+      path: neoplasm
+        ? []
+        : [
+            { termIri: 'http://ncit/Neoplasm', termLabel: 'Neoplasm' },
+            { termIri: 'http://ncit/Melanocytic', termLabel: 'Melanocytic Neoplasm' },
+          ],
+      children: neoplasm
+        ? [
+            { termIri: 'http://ncit/Benign', termLabel: 'Benign Neoplasm', hasChildren: false, descendantCount: 0 },
+            {
+              termIri: 'http://ncit/Melanocytic',
+              termLabel: 'Melanocytic Neoplasm',
+              hasChildren: true,
+              descendantCount: 2,
+            },
+          ]
+        : [
+            {
+              termIri: 'http://ncit/Amelanotic',
+              termLabel: 'Amelanotic Melanoma',
+              hasChildren: false,
+              descendantCount: 0,
+            },
+          ],
+      childCount: 4,
+      descendantCount: 321,
+    };
+  });
   await openPicker(page);
   await search(page, 'melanoma');
   await page.locator('cedar-embeddable-term-picker .rowhead').first().click();
@@ -733,8 +755,9 @@ test('a marked term shows what it is offering', async ({ page }) => {
   // An ancestor opens where it stands, showing what else is beside the path rather than replacing
   // the tree with a different one.
   await tree.first().locator('.twist').click();
-  await expect(detail.locator('.tree .node')).toContainText([
+  await expect(tree).toHaveText([
     /Neoplasm/,
+    /Benign Neoplasm/,
     /Melanocytic Neoplasm/,
     /Melanoma/,
     /Amelanotic Melanoma/,
