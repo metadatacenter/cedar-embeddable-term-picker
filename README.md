@@ -59,7 +59,7 @@ cedar-embeddable-term-picker {
   --cetp-color-surface: #f5f5f5; /* the panel behind expanded rows */
   --cetp-color-border: #d7e0df;
   --cetp-color-warning: #b45309; /* obsolete terms, sources that were not searched */
-  --cetp-font-family: 'CEE Roboto', 'Helvetica Neue', sans-serif;
+  --cetp-font-family: 'CEDAR Roboto', 'Helvetica Neue', sans-serif;
   --cetp-font-size: 14px;
 }
 ```
