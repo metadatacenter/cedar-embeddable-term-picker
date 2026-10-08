@@ -162,8 +162,3 @@
 .constraint-kind.term-kind {
   font-style: italic;
 }
-
-// The constraint's release hash, in the shared monospace face as it is in the picker.
-.hash {
-  font-family: var(--cedar-font-family-monospace);
-}

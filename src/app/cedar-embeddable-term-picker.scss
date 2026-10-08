@@ -80,6 +80,11 @@
   box-sizing: inherit;
 }
 
+// CEDAR has no monospace face: code is set in the body font rather than the browser's monospace.
+code {
+  font-family: inherit;
+}
+
 .picker {
   position: relative;
   border: 0;
@@ -156,20 +161,16 @@ input[type='search'] {
     padding-bottom: var(--cedar-space-1);
   }
 
-  // The IRI itself, in the face the hash already uses on the line above. The namespace gives way
-  // and the local name does not: an ellipsis at the end of the line would eat the only part of an
-  // IRI that identifies the term.
+  // The IRI itself. The namespace gives way and the local name does not: an ellipsis at the end of
+  // the line would eat the only part of an IRI that identifies the term.
   .iri {
     display: flex;
-    // Tall enough for what is in it, and the same box as the line below. A monospace face wants more
-    // than 1.25 line boxes, and at 1.25 the fixed height that keeps the bar still was clipping the
-    // descenders off the namespace.
+    // Tall enough for what is in it, and the same box as the line below.
     font-size: var(--cetp-font-size-small);
     line-height: 1.5;
     height: 1.5em;
 
     code {
-      font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
       color: var(--cetp-color-muted);
     }
 
@@ -180,8 +181,8 @@ input[type='search'] {
       white-space: nowrap;
     }
 
-    // Held whole while the namespace is elided. Drawn no differently: in a monospace face the darker
-    // colour read as weight, and an IRI is one string rather than a phrase with a stressed half.
+    // Held whole while the namespace is elided, and drawn no differently: an IRI is one string rather
+    // than a phrase with a stressed half.
     .local {
       flex: 0 0 auto;
     }
@@ -620,9 +621,9 @@ button {
     grid-column: 1 / -1;
   }
 
-  // The IRI is the value a template records, so it is shown whole and set apart from the prose.
+  // The IRI is the value a template records, so it is shown whole, in the heading colour that sets
+  // it apart from the prose.
   .iri {
-    font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
     color: var(--cetp-color-heading);
   }
 }
@@ -709,12 +710,6 @@ button {
   .hash {
     color: var(--cetp-color-muted);
   }
-}
-
-// A release hash is set in the shared monospace face wherever it appears: the release list, the
-// selection bar and the comparison rows alike.
-code.hash {
-  font-family: var(--cedar-font-family-monospace);
 }
 
 .rowhead {
