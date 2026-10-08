@@ -159,7 +159,7 @@ describe('CedarEmbeddableTermPicker', () => {
     const tabs = [...shadow(fixture).querySelectorAll('.tab')].map(
       (tab) => (tab.textContent ?? '').trim().split(/\s+/)[0],
     );
-    expect(tabs).toEqual(TAB_ORDER.map((kind) => (kind === 'valueSet' ? 'value' : tabsLabel(kind))));
+    expect(tabs).toEqual(TAB_ORDER.map((kind) => (kind === 'valueSet' ? 'Value' : tabsLabel(kind))));
   });
 
   it('collapses identical labels into one row, counting the ontologies that offer it', async () => {
@@ -676,8 +676,8 @@ describe('CedarEmbeddableTermPicker', () => {
     await fixture.whenStable();
     const picker = fixture.componentInstance;
     expect([...shadow(fixture).querySelectorAll('.tab')].map((tab) => tab.textContent?.trim())).toEqual([
-      'ontologies',
-      'properties',
+      'Ontologies',
+      'Properties',
     ]);
     const ontology = { type: 'ontology' as const, sourceAcronym: 'RO', sourceSystem: 'bioportal' };
     const property = {
@@ -740,10 +740,10 @@ describe('CedarEmbeddableTermPicker', () => {
 
 function tabsLabel(kind: string): string {
   return kind === 'property'
-    ? 'properties'
+    ? 'Properties'
     : kind === 'class'
-      ? 'terms'
+      ? 'Terms'
       : kind === 'branch'
-        ? 'branches'
-        : 'ontologies';
+        ? 'Branches'
+        : 'Ontologies';
 }

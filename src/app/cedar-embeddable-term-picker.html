@@ -13,13 +13,10 @@
 } @if (tableMode()) {
 <cetp-constraint-table
   [set]="displayedDraft()"
-  [maximumTerms]="maximumTerms()"
   [hashes]="constraintHashes()"
   (removed)="removeConstraint($event)"
   (actionRemoved)="removeAction($event)"
   (depthChanged)="updateBranchDepth($event.index, $event.depth)"
-  (applied)="applyConstraints()"
-  (cancelled)="onCancel()"
 />
 } @if (configurationError(); as message) {
 <p class="selection-error" role="alert">{{ localizer.say(message) }}</p>
@@ -410,11 +407,10 @@
     </button>
     }
     <!--
-        Shaped like the chips beside it rather than as a button: adding an ontology and removing one
-        are the same kind of act on the same strip, and two outlined boxes at the end of a row of
-        chips read as controls of their own rather than as part of it.
+        A text action, as the designer's "Edit" is, rather than a box. A dashed chip here was one
+        more button size on a screen that already had three.
       -->
-    <button type="button" class="chip adder" (click)="openNarrowing()">
+    <button type="button" class="adder" (click)="openNarrowing()">
       {{ (choosingNarrowing() ? 'narrowing.done' : 'narrowing.addOntology') | translate }}
     </button>
     <!--
@@ -429,7 +425,7 @@
     <button type="button" class="quiet" (click)="clearNarrowing()">{{ 'narrowing.clear' | translate }}</button>
     } } @else {
     <span class="meta inline">{{ 'narrowing.searchingEvery' | translate }}</span>
-    <button type="button" class="chip adder" (click)="openNarrowing()">
+    <button type="button" class="adder" (click)="openNarrowing()">
       {{ (choosingNarrowing() ? 'narrowing.done' : 'narrowing.narrowTo') | translate }}
     </button>
     }
@@ -773,3 +769,14 @@
     pageOf(activeTab()) > 1) { {{ 'status.noMore' | translate }} }
   </p>
 </section>
+@if (tableMode()) {
+<!--
+  Cancel and Done at the bottom right, as in the designer's and Workspace's dialogs, and held in view
+  while the results scroll under them. Beside the table they sat at the top of a long dialog, in two
+  sizes, away from where an author finishes choosing.
+-->
+<footer class="actions">
+  <button type="button" (click)="onCancel()">{{ 'table.cancel' | translate }}</button>
+  <button type="button" class="primary" (click)="applyConstraints()">{{ 'table.done' | translate }}</button>
+</footer>
+}

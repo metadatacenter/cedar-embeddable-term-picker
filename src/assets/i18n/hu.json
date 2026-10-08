@@ -81,11 +81,11 @@
     "nothingYet": "Nincs mire szűkíteni — előbb keressen valamire."
   },
   "tabs": {
-    "class": "fogalmak",
-    "branch": "ágak",
-    "ontology": "ontológiák",
-    "valueSet": "értékkészletek",
-    "property": "tulajdonságok"
+    "class": "Fogalmak",
+    "branch": "Ágak",
+    "ontology": "Ontológiák",
+    "valueSet": "Értékkészletek",
+    "property": "Tulajdonságok"
   },
   "status": {
     "searching": "keresés…",
