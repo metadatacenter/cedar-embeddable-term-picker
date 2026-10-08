@@ -1294,4 +1294,6 @@ test('constraint table typography and actions follow the host styling contract',
     'rgb(80, 20, 120)',
   );
   await expect(page.getByRole('button', { name: 'Done', exact: true })).toHaveCSS('color', 'rgb(255, 255, 200)');
+  // The remove glyph sits on an unfilled button, so it takes the brand rather than the on-primary white.
+  await expect(page.locator('.constraint-row-actions svg')).toHaveCSS('color', 'rgb(80, 20, 120)');
 });

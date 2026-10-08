@@ -35,6 +35,9 @@
     border-radius: var(--cedar-radius);
     background: tokens.$surface-raised;
     color: var(--cetp-color-primary);
+    // The picker's base button is filled, so its icons are white. These are not, and their trash
+    // glyph was white on white. It takes the theme colour, as in Workspace's tables.
+    --cedar-icon-color: var(--cetp-color-primary);
   }
   button:hover:enabled {
     background: var(--cetp-color-surface);
