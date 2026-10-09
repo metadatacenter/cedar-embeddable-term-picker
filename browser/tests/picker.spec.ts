@@ -1287,10 +1287,13 @@ test('constraint table typography and actions follow the host styling contract',
   });
   await expect(page.locator('.constraint-table td').first()).toHaveCSS('font-size', '16px');
   await expect(page.locator('.constraint-kind')).toHaveCSS('font-size', '14px');
-  await expect(page.locator('.constraint-set h2')).toHaveCSS('font-size', '16px');
+  // A section heading is the large step, which moves with the host's base as the others do.
+  await expect(page.locator('.constraint-set h2')).toHaveCSS('font-size', '20px');
   await expect(page.getByRole('button', { name: 'Done', exact: true })).toHaveCSS(
     'background-color',
     'rgb(80, 20, 120)',
   );
   await expect(page.getByRole('button', { name: 'Done', exact: true })).toHaveCSS('color', 'rgb(255, 255, 200)');
+  // The remove glyph sits on an unfilled button, so it takes the brand rather than the on-primary white.
+  await expect(page.locator('.constraint-row-actions svg')).toHaveCSS('color', 'rgb(80, 20, 120)');
 });

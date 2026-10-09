@@ -1,3 +1,4 @@
+@use '@org.metadatacenter/cedar-design-tokens/patterns';
 @use '@org.metadatacenter/cedar-design-tokens/spacing';
 @use '@org.metadatacenter/cedar-design-tokens/tokens';
 @use '../shared/scrolls';
@@ -11,10 +12,10 @@
   border-bottom: 1px solid var(--cetp-color-border);
   max-height: 38vh;
   @include scrolls.scrolls;
+  // A section heading, as Workspace's dialogs head theirs.
   h2 {
-    margin: 0;
-    font-size: var(--cetp-font-size);
-    font-weight: var(--cedar-font-weight-medium, 500);
+    @include patterns.section-heading;
+    margin: 0 0 var(--cedar-space-2);
   }
   p {
     margin: var(--cedar-space-1) 0 var(--cedar-space-3);
@@ -34,13 +35,12 @@
     border-radius: var(--cedar-radius);
     background: tokens.$surface-raised;
     color: var(--cetp-color-primary);
+    // The picker's base button is filled, so its icons are white. These are not, and their trash
+    // glyph was white on white. It takes the theme colour, as in Workspace's tables.
+    --cedar-icon-color: var(--cetp-color-primary);
   }
   button:hover:enabled {
     background: var(--cetp-color-surface);
-    &.use {
-      background: var(--cetp-color-primary);
-      filter: brightness(0.95);
-    }
   }
   input {
     width: 80px;
@@ -54,11 +54,6 @@
     margin: var(--cedar-space-1) 0 var(--cedar-space-2);
     overflow-wrap: anywhere;
   }
-  .use {
-    background: var(--cetp-color-primary);
-    --cedar-icon-color: var(--cetp-color-on-primary);
-    color: var(--cetp-color-on-primary);
-  }
 }
 
 .constraint-table {
@@ -66,10 +61,11 @@
   border: 1px solid var(--cetp-color-border);
   border-collapse: collapse;
   table-layout: fixed;
+  // Column names at the body size, muted, as in Workspace's tables.
   th {
     @include spacing.apply(padding, compact-row);
     color: var(--cetp-color-muted);
-    font-size: var(--cetp-font-size-small);
+    font-size: var(--cetp-font-size);
     font-weight: var(--cedar-font-weight-medium, 500);
     text-align: left;
   }
@@ -133,11 +129,6 @@
   margin-right: var(--cedar-space-1);
 }
 
-.constraint-heading {
-  justify-content: space-between;
-  margin-bottom: var(--cedar-space-1);
-}
-
 .saved-actions {
   margin-top: var(--cedar-space-1);
   font-size: var(--cetp-font-size-small);
@@ -170,36 +161,4 @@
 
 .constraint-kind.term-kind {
   font-style: italic;
-}
-
-.constraint-table-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: var(--cedar-space-3);
-}
-
-.constraint-table-controls {
-  display: flex;
-  flex-direction: column;
-  gap: var(--cedar-space-1);
-  align-items: stretch;
-  button {
-    width: 100%;
-  }
-  .use {
-    margin: 0;
-  }
-}
-
-.constraint-heading {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--cedar-space-1);
-}
-
-// The constraint's release hash, in the shared monospace face as it is in the picker.
-.hash {
-  font-family: var(--cedar-font-family-monospace);
 }

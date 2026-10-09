@@ -70,22 +70,22 @@ describe('the language input', () => {
     fixture.componentRef.setInput('query', 'melanoma');
     await settle(fixture);
     expect(text(fixture, '.search .label')).toBe('Find terms');
-    expect(text(fixture, '.tab')).toBe('terms 12,552');
+    expect(text(fixture, '.tab')).toBe('Terms 12,552');
 
     fixture.componentRef.setInput('language', 'hu');
     await fixture.whenStable();
     expect(text(fixture, '.search .label')).toBe('Fogalmak keresése');
     // Hungarian groups digits with a no-break space, where English uses a comma.
-    expect(text(fixture, '.tab')).toBe('fogalmak 12 552');
+    expect(text(fixture, '.tab')).toBe('Fogalmak 12 552');
     expect(text(fixture, '.results .rowhead')).toContain('1 ontológiában');
-    expect(shadow(fixture).querySelector('.constraint-table-controls .use')?.textContent?.trim()).toBe('Kész');
+    expect(shadow(fixture).querySelector('.actions .primary')?.textContent?.trim()).toBe('Kész');
 
     fixture.componentRef.setInput('language', 'en');
     await fixture.whenStable();
     expect(text(fixture, '.search .label')).toBe('Find terms');
-    expect(text(fixture, '.tab')).toBe('terms 12,552');
+    expect(text(fixture, '.tab')).toBe('Terms 12,552');
     expect(text(fixture, '.results .rowhead')).toContain('in 1 ontology');
-    expect(shadow(fixture).querySelector('.constraint-table-controls .use')?.textContent?.trim()).toBe('Done');
+    expect(shadow(fixture).querySelector('.actions .primary')?.textContent?.trim()).toBe('Done');
   });
 
   it('redraws a message already on screen in the new language', async () => {

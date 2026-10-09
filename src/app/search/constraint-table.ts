@@ -5,7 +5,7 @@ import { Localizer } from '../i18n/localization';
 import type { ControlledTermSet } from './constraint-set';
 import { constraintKind, constraintLabel, constraintUri, constraintAcronym } from './constraint-presentation';
 
-/** Displays a draft and emits editing intents; the picker owns application and cancellation. */
+/** Displays a draft and emits editing intents; the picker owns application and cancellation, and their buttons. */
 @Component({
   imports: [Icon, TranslatePipe],
   selector: 'cetp-constraint-table',
@@ -16,13 +16,10 @@ import { constraintKind, constraintLabel, constraintUri, constraintAcronym } fro
 export class ConstraintTableComponent {
   protected readonly localizer = inject(Localizer);
   readonly set = input.required<ControlledTermSet>();
-  readonly maximumTerms = input<number>();
   readonly hashes = input<readonly (string | undefined)[]>([]);
   readonly removed = output<number>();
   readonly actionRemoved = output<number>();
   readonly depthChanged = output<{ index: number; depth: number }>();
-  readonly applied = output<void>();
-  readonly cancelled = output<void>();
   protected readonly constraintKind = constraintKind;
   protected readonly constraintLabel = constraintLabel;
   protected readonly constraintUri = constraintUri;

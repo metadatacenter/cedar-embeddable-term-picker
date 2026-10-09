@@ -2,6 +2,7 @@
 @use '@org.metadatacenter/cedar-design-tokens/motion';
 @use '@org.metadatacenter/cedar-design-tokens/icon-contract';
 @use '@org.metadatacenter/cedar-design-tokens/controls';
+@use '@org.metadatacenter/cedar-design-tokens/authoring';
 @use '@org.metadatacenter/cedar-design-tokens/custom-properties';
 @use '@org.metadatacenter/cedar-design-tokens/patterns';
 @use './shared/scrolls';
@@ -37,6 +38,7 @@
   --cedar-font-family: var(--cetp-font-family);
   --cedar-font-size: var(--cetp-font-size);
   --cedar-font-size-small: var(--cetp-font-size-small);
+  --cedar-font-size-large: var(--cetp-font-size-large);
 
   --cetp-color-primary: #{tokens.$color-primary};
   --cetp-color-on-primary: #{tokens.$color-on-primary};
@@ -49,10 +51,11 @@
   --cetp-font-family: #{tokens.$font-family};
   --cetp-font-size: #{tokens.$font-size};
 
-  // Derived, not settable. The type scale is CEDAR's — 14 for the body, 12 for what supports it —
-  // and it moves with the base a host sets rather than being pinned beside it, so
-  // `--cetp-font-size: 16px` reads as a larger component and not a broken one.
+  // Derived, not settable. The type scale is CEDAR's — 14 for the body, 12 for what supports it,
+  // 18 for a section heading — and it moves with the base a host sets rather than being pinned
+  // beside it, so `--cetp-font-size: 16px` reads as a larger component and not a broken one.
   --cetp-font-size-small: calc(var(--cetp-font-size) + #{tokens.$font-size-small - tokens.$font-size});
+  --cetp-font-size-large: calc(var(--cetp-font-size) + #{tokens.$font-size-large - tokens.$font-size});
 
   // Derived from the brand, so a host that re-points the primary colour gets a tint that matches it
   // rather than one left behind. A chip and a pinned version share this; the panel behind expanded
@@ -75,6 +78,11 @@
 *::before,
 *::after {
   box-sizing: inherit;
+}
+
+// CEDAR has no monospace face: code is set in the body font rather than the browser's monospace.
+code {
+  font-family: inherit;
 }
 
 .picker {
@@ -153,20 +161,16 @@ input[type='search'] {
     padding-bottom: var(--cedar-space-1);
   }
 
-  // The IRI itself, in the face the hash already uses on the line above. The namespace gives way
-  // and the local name does not: an ellipsis at the end of the line would eat the only part of an
-  // IRI that identifies the term.
+  // The IRI itself. The namespace gives way and the local name does not: an ellipsis at the end of
+  // the line would eat the only part of an IRI that identifies the term.
   .iri {
     display: flex;
-    // Tall enough for what is in it, and the same box as the line below. A monospace face wants more
-    // than 1.25 line boxes, and at 1.25 the fixed height that keeps the bar still was clipping the
-    // descenders off the namespace.
+    // Tall enough for what is in it, and the same box as the line below.
     font-size: var(--cetp-font-size-small);
     line-height: 1.5;
     height: 1.5em;
 
     code {
-      font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
       color: var(--cetp-color-muted);
     }
 
@@ -177,8 +181,8 @@ input[type='search'] {
       white-space: nowrap;
     }
 
-    // Held whole while the namespace is elided. Drawn no differently: in a monospace face the darker
-    // colour read as weight, and an IRI is one string rather than a phrase with a stressed half.
+    // Held whole while the namespace is elided, and drawn no differently: an IRI is one string rather
+    // than a phrase with a stressed half.
     .local {
       flex: 0 0 auto;
     }
@@ -208,10 +212,10 @@ input[type='search'] {
   }
 }
 
+// The search's caption and the selection's heading head the two halves of the bar, in the heading
+// that "Selected terms" carries above them. Workspace's dialogs head each section the same way.
 .label {
-  font-size: var(--cetp-font-size);
-  font-weight: tokens.$font-weight-medium;
-  color: var(--cetp-color-heading);
+  @include patterns.section-heading;
 }
 
 input {
@@ -272,14 +276,17 @@ button {
   }
 }
 
-// The way in, wearing the shape of what it adds. Outlined rather than filled, so a strip of chips
-// reads as the ontologies chosen plus one empty slot rather than as one more of them.
-.chip.adder {
-  background: transparent;
-  border: 1px dashed var(--cetp-color-border);
-  color: var(--cetp-color-primary);
-  cursor: pointer;
-  @include spacing.apply(padding, compact-row);
+// The way in, as a text action at the size of the sentence it ends.
+.adder {
+  @include authoring.text-action;
+  padding: 0;
+}
+
+// The strip reads as one sentence, "Searching every ontology narrow to…", at the body size Workspace
+// gives the help under a heading.
+.narrowing > .meta.inline,
+.narrowing > .quiet {
+  font-size: var(--cetp-font-size);
 }
 
 // A control with no box. For the reset beside the chips, which is worth having once several
@@ -614,9 +621,9 @@ button {
     grid-column: 1 / -1;
   }
 
-  // The IRI is the value a template records, so it is shown whole and set apart from the prose.
+  // The IRI is the value a template records, so it is shown whole, in the heading colour that sets
+  // it apart from the prose.
   .iri {
-    font-family: var(--cedar-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
     color: var(--cetp-color-heading);
   }
 }
@@ -703,12 +710,6 @@ button {
   .hash {
     color: var(--cetp-color-muted);
   }
-}
-
-// A release hash is set in the shared monospace face wherever it appears: the release list, the
-// selection bar and the comparison rows alike.
-code.hash {
-  font-family: var(--cedar-font-family-monospace);
 }
 
 .rowhead {
@@ -956,13 +957,10 @@ mark {
   }
 }
 
+// The shared warning notice, for a source that was not searched or a search that failed.
 .notice {
-  background: var(--cetp-color-surface);
-  border-left: 3px solid var(--cetp-color-warning);
-  color: var(--cetp-color-muted);
-  font-size: var(--cetp-font-size-small);
-  padding: var(--cedar-space-2) var(--cedar-space-2);
-  margin: var(--cedar-space-3) 0 0;
+  @include patterns.notice(warning, $inset: var(--cedar-space-3), $boxed: true);
+  margin-top: var(--cedar-space-3);
 }
 
 .empty {
@@ -975,18 +973,34 @@ mark {
    control that writes the constraint. A double click still commits for a mouse, which is quicker
    for someone who can already see what they are choosing. */
 .use {
-  min-height: tokens.$control-height-default;
+  @include controls.secondary-action;
+  @include controls.primary-action;
   display: block;
   width: fit-content;
   margin: var(--cedar-space-2) 0 var(--cedar-space-1);
-  padding: var(--cedar-space-1) var(--cedar-space-3);
-  font: inherit;
-  --cedar-icon-color: var(--cetp-color-on-primary);
-  color: var(--cetp-color-on-primary);
-  background: var(--cetp-color-primary);
-  border: 1px solid transparent;
-  border-radius: tokens.$radius;
-  cursor: pointer;
+  border-color: transparent;
+  font-size: var(--cetp-font-size);
+}
+
+// Cancel and Done take the shared control height and type size. Done is the filled primary.
+.actions {
+  @include patterns.dialog-actions;
+  position: sticky;
+  bottom: 0;
+  z-index: var(--cedar-layer-sticky);
+  padding: var(--cedar-space-3);
+  border-top: 1px solid var(--cetp-color-border);
+  background: tokens.$surface-raised;
+
+  button {
+    @include controls.secondary-action;
+    white-space: nowrap;
+  }
+
+  .primary {
+    @include controls.primary-action;
+    border-color: transparent;
+  }
 }
 
 .use:focus-visible {
@@ -999,6 +1013,8 @@ mark {
 
 .picker.set-mode {
   padding: var(--cedar-space-2) var(--cedar-space-3);
+  // The footer's rule closes the picker.
+  border-bottom: 0;
   .chosen.awaiting {
     display: none;
   }
@@ -1081,13 +1097,6 @@ mark {
     grid-column: 2;
     grid-row: 1;
     margin: 0 var(--cedar-space-1) 0 0;
-    background: var(--cetp-color-primary);
-    --cedar-icon-color: var(--cetp-color-on-primary);
-    color: var(--cetp-color-on-primary);
-  }
-  .use:disabled {
-    opacity: tokens.$control-disabled-opacity;
-    cursor: default;
   }
 }
 

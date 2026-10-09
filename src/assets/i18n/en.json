@@ -81,11 +81,11 @@
     "nothingYet": "Nothing to narrow to — search for something first."
   },
   "tabs": {
-    "class": "terms",
-    "branch": "branches",
-    "ontology": "ontologies",
-    "valueSet": "value sets",
-    "property": "properties"
+    "class": "Terms",
+    "branch": "Branches",
+    "ontology": "Ontologies",
+    "valueSet": "Value sets",
+    "property": "Properties"
   },
   "status": {
     "searching": "searching…",
