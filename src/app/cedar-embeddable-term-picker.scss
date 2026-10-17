@@ -90,10 +90,10 @@
   min-height: 0;
 }
 
-// At least a few rows however tall the table above grows. It holds up to 38vh of its own.
+// At least five rows however tall the table above grows. It holds up to 38vh of its own.
 :host(.cetp-table-mode) .results {
   flex: 1 1 auto;
-  min-height: 12rem;
+  min-height: calc(5 * var(--cedar-control-height-default));
 }
 
 *,
