@@ -20,9 +20,7 @@
       "contract": "page",
       "scenario": "terms",
       "selector": "cedar-embeddable-term-picker",
-      "states": [
-        "open"
-      ],
+      "states": ["open"],
       "test": "browser/tests/surfaces.spec.ts"
     },
     {
@@ -38,9 +36,7 @@
       "contract": "page",
       "scenario": "branches",
       "selector": "cedar-embeddable-term-picker",
-      "states": [
-        "open"
-      ],
+      "states": ["open"],
       "test": "browser/tests/surfaces.spec.ts"
     },
     {
@@ -56,9 +52,7 @@
       "contract": "page",
       "scenario": "ontologies",
       "selector": "cedar-embeddable-term-picker",
-      "states": [
-        "open"
-      ],
+      "states": ["open"],
       "test": "browser/tests/surfaces.spec.ts",
       "scaleDebt": [
         {
@@ -81,9 +75,7 @@
       "contract": "page",
       "scenario": "term-detail",
       "selector": "cedar-embeddable-term-picker",
-      "states": [
-        "open"
-      ],
+      "states": ["open"],
       "test": "browser/tests/surfaces.spec.ts",
       "scaleDebt": [
         {
@@ -106,10 +98,25 @@
       "contract": "page",
       "scenario": "constraint-table",
       "selector": "cedar-embeddable-term-picker",
-      "states": [
-        "open"
-      ],
+      "states": ["open"],
       "test": "browser/tests/surfaces.spec.ts"
+    },
+    {
+      "id": "cetp.ontology-filter",
+      "name": "Ontology Filter",
+      "section": "Term Picker",
+      "source": [
+        {
+          "file": "src/app/cedar-embeddable-term-picker.html",
+          "anchor": "class=\"filter-popover\""
+        }
+      ],
+      "contract": "dialog",
+      "scenario": "ontology-filter",
+      "selector": "cedar-embeddable-term-picker .filter-popover",
+      "states": ["open"],
+      "test": "browser/tests/surfaces.spec.ts",
+      "parent": "cetp.terms"
     }
   ]
 }

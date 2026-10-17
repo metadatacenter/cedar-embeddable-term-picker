@@ -63,12 +63,10 @@
   },
   "narrowing": {
     "searchingOnly": "Keresés csak ezekben:",
-    "done": "kész",
-    "addOntology": "+ ontológia",
-    "clear": "törlés",
-    "searchingEvery": "Keresés minden ontológiában",
-    "narrowTo": "szűkítés…",
-    "finderPlaceholder": "Ontológia keresése név vagy rövidítés alapján; a kiválasztáshoz kattintson rá",
+    "chip": "Ontológiák",
+    "clearChip": "Szűrő törlése: ontológiák",
+    "panelLabel": "Keresés szűkítése ontológiákra",
+    "finderPlaceholder": "Ontológia keresése név vagy rövidítés alapján",
     "finderLabel": "Ontológia keresése a szűkítéshez",
     "visibleOf": {
       "one": "{{total}} ontológiából {{shown}}",
@@ -78,7 +76,10 @@
     "noneByThatName": "A listában nincs ilyen nevű ontológia.",
     "looking": "Keresés…",
     "noneHoldsMatch": "Egyik ontológia sem tartalmaz a keresésnek megfelelő fogalmat.",
-    "nothingYet": "Nincs mire szűkíteni — előbb keressen valamire."
+    "nothingYet": "Nincs mire szűkíteni — előbb keressen valamire.",
+    "clearAll": "Összes törlése",
+    "cancel": "Mégse",
+    "apply": "Alkalmaz"
   },
   "tabs": {
     "class": "Fogalmak",

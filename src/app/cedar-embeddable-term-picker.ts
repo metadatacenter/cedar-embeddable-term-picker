@@ -102,6 +102,9 @@ const PAGE_SIZE = 25;
 const NARROWING_LIMIT = 1000;
 const NARROWING_PAGE = 200;
 
+/** How many of them the narrowing panel shows before its list scrolls. */
+const NARROWING_ROWS = 10;
+
 /** How many of a term's other names a panel shows before saying how many are left. */
 const NAME_LIMIT = 8;
 
@@ -153,6 +156,8 @@ export interface LabelGroup {
   styleUrl: './cedar-embeddable-term-picker.scss',
   encapsulation: ViewEncapsulation.ShadowDom,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Lets the table mode fill a host that gives it a fixed height; see the stylesheet.
+  host: { '[class.cetp-table-mode]': 'tableMode()' },
 })
 export class CedarEmbeddableTermPicker {
   private readonly client = inject(TerminologyClient);
@@ -372,6 +377,8 @@ export class CedarEmbeddableTermPicker {
   protected readonly text = linkedSignal(() => this.query());
   protected readonly activeTab = signal<SearchKind>('class');
   protected readonly response = signal<SearchResponse | null>(null);
+  /** The question `response` answers, which is not the one being asked while a search is under way. */
+  private readonly answered = signal<string | null>(null);
   protected readonly error = signal<Message | null>(null);
   protected readonly searching = signal(false);
 
@@ -432,6 +439,22 @@ export class CedarEmbeddableTermPicker {
   /** The narrowing panel's candidates, ranked by matching terms rather than by name. */
   protected readonly candidates = signal<readonly OntologyHit[]>([]);
 
+  /** The text the candidates were ranked against, so the panel knows when they are stale. */
+  private candidatesFor: string | null = null;
+
+  /** The candidates' source blocks, which name them. */
+  private readonly candidateSources = signal<ReadonlyMap<string, SourceBlock>>(new Map());
+
+  /** Whether a ranking is on its way, which the panel says rather than claiming no ontology matched. */
+  protected readonly loadingCandidates = signal(false);
+  private candidateTicket = 0;
+
+  /** What the panel has ticked, which becomes the filter on Apply and is dropped on Cancel. */
+  protected readonly narrowingDraft = signal<readonly string[]>([]);
+
+  private readonly narrowingChip = viewChild<ElementRef<HTMLElement>>('narrowingChip');
+  private readonly narrowingPopover = viewChild<ElementRef<HTMLElement>>('narrowingPopover');
+
   /** What the narrowing panel's list is being narrowed to, by acronym or by name. */
   protected readonly narrowingFilter = signal('');
 
@@ -449,11 +472,22 @@ export class CedarEmbeddableTermPicker {
       return this.candidates();
     }
     return this.candidates().filter((candidate) => {
-      const name = this.sourceName(candidate.sourceAcronym);
+      const name = this.candidateName(candidate.sourceAcronym);
       return candidate.sourceAcronym.toLocaleLowerCase().includes(wanted) || name.toLocaleLowerCase().includes(wanted);
     });
   });
   protected readonly choosingNarrowing = signal(false);
+
+  /**
+   * Empty rows that hold the narrowing list at the height of its whole ranking, up to the rows it
+   * shows before it scrolls, whatever the finder hides. Without them the panel's foot rose and fell
+   * with every keystroke typed into the finder. A message in place of the rows takes one of them.
+   */
+  protected readonly reservedRows = computed<readonly number[]>(() => {
+    const held = Math.min(NARROWING_ROWS, this.candidates().length);
+    const shown = Math.max(this.visibleCandidates().length, 1);
+    return Array.from({ length: Math.max(0, held - shown) }, (_, i) => i);
+  });
 
   /**
    * The version an author has stepped an ontology to, keyed by acronym.
@@ -510,6 +544,7 @@ export class CedarEmbeddableTermPicker {
     inject(DestroyRef).onDestroy(() => {
       clearTimeout(this.debounce);
       this.inFlight?.abort();
+      document.removeEventListener('scroll', this.placeOnScroll, true);
       this.state.dispose();
       for (const request of this.nodeInFlight.values()) request.abort();
     });
@@ -527,6 +562,10 @@ export class CedarEmbeddableTermPicker {
       this.draft();
       this.constraintsChanged.emit();
     });
+    // A new question cancels whatever the last one still has in the air, and nothing more. What
+    // the last one answered stays on screen until this one is answered (`settle`): emptying the
+    // list on every keystroke collapsed the dialog around it, said "No terms match" before anything
+    // was asked, and rebuilt every row a quarter of a second later.
     effect(() => {
       this.question();
       this.state.reset();
@@ -534,18 +573,6 @@ export class CedarEmbeddableTermPicker {
       this.nodeInFlight.clear();
       this.inFlight?.abort();
       this.loadingMore.set(false);
-      this.searching.set(false);
-      this.histories.set(new Map());
-      this.hierarchies.set(new Map());
-      this.nodes.set(new Map());
-      this.openNodes.set(new Set());
-      this.historyFor.set(null);
-      this.error.set(null);
-      this.selectionProblem.set(null);
-      this.response.set(null);
-      this.picked.set(null);
-      this.marked.set(null);
-      this.expanded.set(null);
     });
 
     // A host that names a terminology server does so before the first search, and
@@ -593,9 +620,41 @@ export class CedarEmbeddableTermPicker {
    */
   private declineCorpusWide(): void {
     this.inFlight?.abort();
-    this.response.set(null);
+    this.settle(null);
     this.searching.set(false);
     this.error.set(phrase(countKey('errors.corpusQueryTooShort', MIN_CORPUS_QUERY), { count: MIN_CORPUS_QUERY }));
+  }
+
+  /**
+   * Puts the answer to the current question on screen, and forgets everything the last one was about.
+   *
+   * The rows, the open group, the marked row and its panels belong to the answer rather than to the
+   * question, so they go when it is replaced and not when the text changes.
+   */
+  private settle(response: SearchResponse | null): void {
+    this.histories.set(new Map());
+    this.hierarchies.set(new Map());
+    this.nodes.set(new Map());
+    this.openNodes.set(new Set());
+    this.historyFor.set(null);
+    this.selectionProblem.set(null);
+    this.picked.set(null);
+    this.marked.set(null);
+    this.expanded.set(null);
+    this.pages.set({});
+    this.exhausted.set({});
+    this.response.set(response);
+    this.answered.set(this.question());
+  }
+
+  /**
+   * Whether the rows on screen answer the question now being asked.
+   *
+   * They do not while a new search is on its way, and a page fetched then would be the next page of
+   * a query nobody is asking any more.
+   */
+  private answerIsCurrent(): boolean {
+    return this.answered() === this.question();
   }
 
   /**
@@ -629,14 +688,14 @@ export class CedarEmbeddableTermPicker {
     return JSON.stringify([this.question(), this.hierarchyVersion(acronym)]);
   }
 
-  private async run(query: string, keepCandidates = false): Promise<void> {
+  private async run(query: string): Promise<void> {
     // Cancel rather than let a slower earlier query land on top of a faster later one.
     this.inFlight?.abort();
     if (!this.state.active) return;
     const operation = this.state.begin('search', () => this.question());
     this.loadingMore.set(false);
     if (query.length === 0 || this.configurationError() || !this.tabs().length) {
-      this.response.set(null);
+      this.settle(null);
       this.error.set(null);
       this.searching.set(false);
       return;
@@ -659,21 +718,13 @@ export class CedarEmbeddableTermPicker {
       );
       if (!operation.current() || controller.signal.aborted) return;
       operation.finish();
-      this.response.set(response);
-      // The candidates rank against the query, so a new query invalidates them — but changing the
-      // filter re-runs the same query, and clearing them there would empty the panel the author is
-      // choosing from.
-      if (!keepCandidates) {
-        this.candidates.set([]);
-        this.narrowingFilter.set('');
-      }
-      this.pages.set({});
-      this.exhausted.set({});
-      this.expanded.set(null);
+      this.settle(response);
       this.topUp(this.activeTab());
       this.error.set(null);
-      // The panel offers what this query reaches, so a query that has just changed has to refill it.
-      if (this.choosingNarrowing()) {
+      // The ontologies on offer rank against the text, so new text makes them stale. An open panel
+      // refills in place, keeping its rows until the new ones arrive; a closed one asks again when it
+      // next opens. Narrowing re-asks with the same text, and leaves them as they are.
+      if (this.choosingNarrowing() && this.candidatesFor !== query) {
         void this.loadCandidates();
       }
     } catch (failure: unknown) {
@@ -681,7 +732,7 @@ export class CedarEmbeddableTermPicker {
         return;
       }
       operation.fail();
-      this.response.set(null);
+      this.settle(null);
       this.error.set(messageOf(failure, phrase('errors.searchFailed')));
     } finally {
       if (operation.current() && !controller.signal.aborted) {
@@ -817,58 +868,169 @@ export class CedarEmbeddableTermPicker {
     return acronyms.length === 0 ? undefined : acronyms.map((sourceAcronym) => ({ sourceAcronym }));
   }
 
-  /** Adds an ontology to the filter, or removes it if it is already there. */
-  protected toggleNarrowing(acronym: string): void {
-    this.narrowedTo.update((current) =>
+  /**
+   * Adds an ontology to the panel's choice, or takes it out. Nothing is searched until Apply, so a
+   * run of clicks is one question rather than one per click.
+   */
+  protected toggleCandidate(acronym: string): void {
+    this.narrowingDraft.update((current) =>
       current.includes(acronym) ? current.filter((a) => a !== acronym) : [...current, acronym],
     );
-    void this.rerun();
   }
 
+  protected isDrafted(acronym: string): boolean {
+    return this.narrowingDraft().includes(acronym);
+  }
+
+  /** The panel's Clear all: empties the choice, which Apply then makes the filter. */
+  protected clearDraft(): void {
+    this.narrowingDraft.set([]);
+  }
+
+  /** Makes the panel's choice the filter. A changed filter is a new question, which re-runs the search. */
+  protected applyNarrowing(): void {
+    const chosen = this.narrowingDraft();
+    this.closeNarrowing();
+    const current = this.narrowedTo();
+    if (chosen.length !== current.length || chosen.some((acronym, i) => acronym !== current[i])) {
+      this.narrowedTo.set(chosen);
+    }
+  }
+
+  /** The chip's clearing segment: searches every ontology again, at once. */
   protected clearNarrowing(): void {
+    this.closeNarrowing();
     this.narrowedTo.set([]);
-    void this.rerun();
-  }
-
-  protected isNarrowedTo(acronym: string): boolean {
-    return this.narrowedTo().includes(acronym);
-  }
-
-  /** Re-runs the current query from page one, which a changed filter is a new question for. */
-  private async rerun(): Promise<void> {
-    this.pages.set({});
-    this.expanded.set(null);
-    await this.run(this.text().trim(), true);
   }
 
   /**
-   * Opens the narrowing panel, fetching the ontologies ranked by how much of the query they hold.
+   * Opens the narrowing panel, or closes it, fetching the ontologies ranked by how much of the query
+   * they hold.
    *
    * A different order from the ontologies tab, because it answers a different question. That tab
    * leads with a vocabulary named after the query — right for "is there an ontology about this",
    * wrong for "where are the terms". For melanoma the tab leads with MELO, aptly named and holding
    * 38 terms, while the useful thing to narrow to is NCIT with 950.
+   *
+   * The panel floats over the results rather than taking a place above them, so opening it, typing
+   * in its finder and closing it again move nothing under it. It opens on the filter as it stands,
+   * and what is clicked inside is a draft until Apply.
    */
   protected async openNarrowing(): Promise<void> {
-    this.choosingNarrowing.update((open) => !open);
-    if (!this.choosingNarrowing() || this.candidates().length > 0) {
+    if (this.choosingNarrowing()) {
+      this.closeNarrowing();
       return;
     }
+    this.narrowingDraft.set(this.narrowedTo());
+    this.narrowingFilter.set('');
+    this.choosingNarrowing.set(true);
+    setTimeout(() => this.showNarrowing());
+    if (this.candidatesFor === this.text().trim()) {
+      return;
+    }
+    // Ranked for other text, so not worth showing even for the moment the new ranking takes.
+    this.candidates.set([]);
     await this.loadCandidates();
+  }
+
+  /** Closes the panel without applying its choice, and returns focus to the chip unless a click elsewhere took it. */
+  protected closeNarrowing(restoreFocus = true): void {
+    if (!this.choosingNarrowing()) return;
+    this.choosingNarrowing.set(false);
+    document.removeEventListener('scroll', this.placeOnScroll, true);
+    if (restoreFocus) this.narrowingChip()?.nativeElement.querySelector('button')?.focus();
+  }
+
+  /**
+   * Shows the panel in the top layer, under its chip, and moves focus into it.
+   *
+   * The top layer, because the panel has to escape two clips: the host's dialog scrolls, and the
+   * picker's own inline-size containment would otherwise hold a fixed-position panel inside it.
+   */
+  private showNarrowing(): void {
+    const popover = this.narrowingPopover()?.nativeElement;
+    if (!popover) return;
+    if (typeof popover.showPopover === 'function' && !popover.matches(':popover-open')) popover.showPopover();
+    this.placeNarrowing();
+    document.addEventListener('scroll', this.placeOnScroll, { capture: true, passive: true });
+    popover.querySelector<HTMLElement>('input')?.focus();
+  }
+
+  private readonly placeOnScroll = (): void => this.placeNarrowing();
+
+  /**
+   * Hangs the panel under its chip, and tells it how much room is left below.
+   *
+   * Again on a resize and on any scroll outside the picker, since the chip moves with the host page
+   * and the panel, in the top layer, does not.
+   */
+  @HostListener('window:resize')
+  protected placeNarrowing(): void {
+    const popover = this.narrowingPopover()?.nativeElement;
+    const chip = this.narrowingChip()?.nativeElement;
+    if (!popover || !chip) return;
+    const anchor = chip.getBoundingClientRect();
+    const gap = parseFloat(getComputedStyle(popover).getPropertyValue('--cedar-space-2')) || 8;
+    const top = anchor.bottom + gap;
+    const left = Math.max(gap, Math.min(anchor.left, window.innerWidth - popover.offsetWidth - gap));
+    popover.style.setProperty('--cetp-popover-top', `${top}px`);
+    popover.style.setProperty('--cetp-popover-left', `${left}px`);
+    popover.style.setProperty('--cetp-popover-available', `${Math.max(0, window.innerHeight - top - gap)}px`);
+  }
+
+  /** Escape closes the panel and nothing else, and Tab stays inside it, as Workspace's filters do. */
+  protected onNarrowingKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.closeNarrowing();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const popover = event.currentTarget as HTMLElement;
+    const controls = [...popover.querySelectorAll<HTMLElement>('input, button:not(:disabled)')];
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    const active = this.host.nativeElement.shadowRoot?.activeElement;
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  }
+
+  /** A click anywhere but the panel and its chip closes the panel, as it does in Workspace. */
+  @HostListener('document:click', ['$event'])
+  protected onDocumentClick(event: MouseEvent): void {
+    if (!this.choosingNarrowing()) return;
+    const path = event.composedPath();
+    const popover = this.narrowingPopover()?.nativeElement;
+    const chip = this.narrowingChip()?.nativeElement;
+    if ((popover && path.includes(popover)) || (chip && path.includes(chip))) return;
+    this.closeNarrowing(false);
+  }
+
+  /** What the narrowing panel calls an ontology, from the ranking that offered it. */
+  protected candidateName(acronym: string): string {
+    const name = this.candidateSources().get(acronym)?.sourceName ?? this.sourceOf(acronym)?.sourceName;
+    return name === undefined || name === acronym ? '' : name;
   }
 
   /**
    * The ontologies the current query reaches, for the narrowing panel to offer.
    *
    * Its own method because two things need it: opening the panel, and a search finishing while the
-   * panel is already open. The candidates rank against the query, so a new query discards them —
-   * and with the panel open and nothing refilling it, an author watched it empty itself and say
-   * there was no search, in the middle of one.
+   * panel is already open. The candidates rank against the text, so new text makes them stale; an
+   * open panel keeps the rows it has until the new ones arrive, because emptying it first had an
+   * author watch it collapse to one line and say no ontology held a match, in the middle of a search.
    */
   private async loadCandidates(): Promise<void> {
     const query = this.text().trim();
     if (query.length === 0) {
       this.candidates.set([]);
+      this.candidatesFor = query;
       return;
     }
     // Every ontology the query reaches, not the first page of them: the list is filtered in the
@@ -877,7 +1039,10 @@ export class CedarEmbeddableTermPicker {
     // requests for a query reaching 448 — and an ontology hit is an acronym and two counts.
     const operation = this.state.begin('candidates', () => this.question());
     const found: OntologyHit[] = [];
+    const named = new Map<string, SourceBlock>();
     const signal = this.alongside();
+    const ticket = ++this.candidateTicket;
+    this.loadingCandidates.set(true);
     try {
       for (let page = 1; found.length < NARROWING_LIMIT; page++) {
         const response = await this.client.search(
@@ -895,6 +1060,7 @@ export class CedarEmbeddableTermPicker {
         }
         const batch = (response.results.ontology?.collection ?? []).filter(isOntologyHit);
         found.push(...batch);
+        for (const source of response.sources) named.set(source.sourceAcronym, source);
         this.response.update((current) =>
           current === null ? current : { ...current, sources: mergeSources(current.sources, response.sources) },
         );
@@ -911,10 +1077,17 @@ export class CedarEmbeddableTermPicker {
       }
       this.error.set(messageOf(failure, phrase('errors.searchFailed')));
       return;
+    } finally {
+      // A later load owns the flag once it has started; this one only clears its own.
+      if (ticket === this.candidateTicket) this.loadingCandidates.set(false);
     }
     if (!operation.current()) return;
     operation.finish();
+    // The names travel with the ranking: the search envelope is replaced by the next answer, and
+    // a narrowed answer names only the ontologies it was narrowed to.
+    this.candidateSources.set(named);
     this.candidates.set(found);
+    this.candidatesFor = query;
   }
 
   protected pageOf(kind: SearchKind): number {
@@ -975,7 +1148,14 @@ export class CedarEmbeddableTermPicker {
   protected async loadMore(kind: SearchKind): Promise<void> {
     const current = this.response();
     const query = this.text().trim();
-    if (!current || current.errors?.[kind] || query.length === 0 || this.searching() || this.isExhausted(kind)) {
+    if (
+      !current ||
+      !this.answerIsCurrent() ||
+      current.errors?.[kind] ||
+      query.length === 0 ||
+      this.searching() ||
+      this.isExhausted(kind)
+    ) {
       return;
     }
     const operation = this.state.begin('page', () => this.question());

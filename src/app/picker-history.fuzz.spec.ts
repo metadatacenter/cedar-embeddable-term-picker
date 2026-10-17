@@ -124,12 +124,17 @@ async function replay(history: Command[]) {
     picker.constraintsSelected.subscribe((value) => emitted.push(value));
     await sync();
   };
+  // A new question owns the requests from here on, but the rows and tree pages on screen are the
+  // last answer's until a reply to this one is accepted (`settle`). Until then they stay, and an
+  // author can still act on them.
   const resetQuestion = () => {
     epoch++;
-    rows = [];
+    newest.clear();
+  };
+  const settle = (accepted: ClassHit[]) => {
+    rows = accepted;
     nodes.clear();
     outcomes.clear();
-    newest.clear();
   };
   const snapshot = () =>
     JSON.stringify({
@@ -224,8 +229,8 @@ async function replay(history: Command[]) {
           results: { class: { collection, totalCount: 200, countCapped: false, page: request.offset, pageSize: 25 } },
         } satisfies SearchResponse);
       if (live) {
-        if (outcome !== 1) rows = request.kind === 'search' ? collection : [...rows, ...collection];
-        else if (request.kind === 'search') rows = [];
+        if (request.kind === 'search') settle(outcome === 1 ? [] : collection);
+        else if (outcome !== 1) rows = [...rows, ...collection];
       }
     }
     await sync();
@@ -260,17 +265,22 @@ async function replay(history: Command[]) {
       } else if (command.op === 6 && rows.length) {
         picker['mark'](rows[0]);
       } else if (command.op === 7 && rows.length) {
+        // The row's own source, which is not the one being asked for while the last answer is on screen.
+        const held = rows[0].sourceAcronym;
         const version = command.b % 3;
-        if (version) pins.set(source, `release${version}`);
-        else pins.delete(source);
+        if (version) pins.set(held, `release${version}`);
+        else pins.delete(held);
         picker['pinTo'](rows[0], { id: version ? `release${version}` : 'current' }, version);
       } else if (command.op === 8 && rows.length) {
-        void picker['showMore'](source, rows[0].termIri);
+        void picker['showMore'](rows[0].sourceAcronym, rows[0].termIri);
       } else if (command.op === 9 && rows.length) {
-        const version = pins.get(source);
-        const choice: Choice = { sourceType: 'ontology-term', source, iri: rows[0].termIri, version };
+        const held = rows[0].sourceAcronym;
+        const version = pins.get(held);
+        const choice: Choice = { sourceType: 'ontology-term', source: held, iri: rows[0].termIri, version };
+        // A row left from before the host changed the field's source is outside the field's vocabulary.
         const allowed =
-          (!version || outcomes.get(nodeId(source, rows[0].termIri, version)) === 'found') &&
+          held === source &&
+          (!version || outcomes.get(nodeId(held, rows[0].termIri, version)) === 'found') &&
           !choices.some((held) => JSON.stringify(held) === JSON.stringify(choice));
         picker['choose'](rows[0]);
         if (allowed) choices.push(choice);
@@ -289,6 +299,7 @@ async function replay(history: Command[]) {
         pins = new Map();
         choices = [];
         resetQuestion();
+        settle([]);
         await mount();
       } else if (command.op === 12 && choices.length) {
         const index = command.a % choices.length;
