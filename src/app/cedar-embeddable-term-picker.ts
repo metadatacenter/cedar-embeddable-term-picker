@@ -1,3 +1,4 @@
+import { TextPolicy, DisplayText } from 'cedar-model-typescript-library/policy';
 import { Icon } from './icon';
 import { PickerCoordinator } from './search/picker-coordinator';
 import { displayConstraints, validateConstraints } from './search/constraint-validation';
@@ -206,10 +207,10 @@ export class CedarEmbeddableTermPicker {
         (source) =>
           !source ||
           typeof source.sourceAcronym !== 'string' ||
-          !source.sourceAcronym.trim() ||
+          TextPolicy.isBlank(source.sourceAcronym) ||
           (source.version !== undefined &&
             source.version !== 'latest' &&
-            (!source.version || typeof source.version.id !== 'string' || !source.version.id.trim())),
+            (!source.version || typeof source.version.id !== 'string' || TextPolicy.isBlank(source.version.id))),
       )
     )
       return phrase('errors.sources');
@@ -467,13 +468,15 @@ export class CedarEmbeddableTermPicker {
    * running a second search.
    */
   protected readonly visibleCandidates = computed<readonly OntologyHit[]>(() => {
-    const wanted = this.narrowingFilter().trim().toLocaleLowerCase();
+    const wanted = DisplayText.searchKey(this.narrowingFilter().trim());
     if (wanted === '') {
       return this.candidates();
     }
     return this.candidates().filter((candidate) => {
       const name = this.candidateName(candidate.sourceAcronym);
-      return candidate.sourceAcronym.toLocaleLowerCase().includes(wanted) || name.toLocaleLowerCase().includes(wanted);
+      return (
+        DisplayText.searchKey(candidate.sourceAcronym).includes(wanted) || DisplayText.searchKey(name).includes(wanted)
+      );
     });
   });
   protected readonly choosingNarrowing = signal(false);
@@ -781,7 +784,7 @@ export class CedarEmbeddableTermPicker {
     const hits = this.hitsOf('class').filter(isClassHit);
     const groups = new Map<string, ClassHit[]>();
     for (const hit of hits) {
-      const key = hit.termLabel.toLocaleLowerCase();
+      const key = DisplayText.searchKey(hit.termLabel);
       const group = groups.get(key);
       if (group) {
         group.push(hit);
@@ -816,7 +819,7 @@ export class CedarEmbeddableTermPicker {
   protected readonly branchGroups = computed<readonly BranchGroup[]>(() => {
     const groups = new Map<string, BranchHit[]>();
     for (const hit of this.hitsOf('branch').filter(isBranchHit)) {
-      const key = hit.termBaseLabel.toLocaleLowerCase();
+      const key = DisplayText.searchKey(hit.termBaseLabel);
       const group = groups.get(key);
       if (group) {
         group.push(hit);
@@ -837,7 +840,7 @@ export class CedarEmbeddableTermPicker {
   protected readonly propertyGroups = computed(() => {
     const groups = new Map<string, PropertyHit[]>();
     for (const hit of this.properties()) {
-      const key = hit.termLabel.toLocaleLowerCase();
+      const key = DisplayText.searchKey(hit.termLabel);
       const group = groups.get(key);
       if (group) group.push(hit);
       else groups.set(key, [hit]);
@@ -1437,11 +1440,7 @@ export class CedarEmbeddableTermPicker {
 
   /** A string cut around the query: before, the match itself, after. */
   private static split(text: string, query: string): readonly [string, string, string] {
-    const at = text.toLocaleLowerCase().indexOf(query.toLocaleLowerCase());
-    if (at < 0 || query.length === 0) {
-      return [text, '', ''];
-    }
-    return [text.slice(0, at), text.slice(at, at + query.length), text.slice(at + query.length)];
+    return DisplayText.splitMatch(text, query);
   }
 
   /**
@@ -1455,10 +1454,7 @@ export class CedarEmbeddableTermPicker {
    */
   protected elide(text: string | undefined, max = 96, tail = 28): string {
     // A value set's name is optional in the contract, so this takes what the contract gives.
-    if (text === undefined || text.length <= max) {
-      return text ?? '';
-    }
-    return `${text.slice(0, max - tail - 1).trimEnd()}…${text.slice(-tail).trimStart()}`;
+    return DisplayText.elide(text ?? '', max, tail);
   }
 
   protected labelsOf(refs: readonly TermRef[] | undefined, limit = 4): string {

@@ -16,7 +16,7 @@
     "lint": "ng lint",
     "typecheck": "tsc -p tsconfig.eslint.json --noEmit",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
-    "test:ci": "npm run lint && npm run typecheck && npm test && npm run test:packaging && npm run build:production && npm run test:browser:prebuilt && npm run bundle && npm run check:size && npm run package:npm",
+    "test:ci": "npm run lint && npm run typecheck && npm test && npm run test:unicode && npm run test:packaging && npm run build:production && npm run test:browser:prebuilt && npm run bundle && npm run check:size && npm run package:npm",
     "test:browser": "npm run build:production && npm --prefix browser test",
     "test:browser:prebuilt": "npm --prefix browser test",
     "types:public": "tsc -p tsconfig.public-api.json",
@@ -26,7 +26,8 @@
     "check:npm-package": "node scripts/check-npm-package.mjs",
     "test:packaging": "node --test scripts/npm-package.test.mjs",
     "dist": "npm run build:production && npm run bundle && npm run check:size && npm run package:npm",
-    "test:visual": "bash browser/run-visual.sh"
+    "test:visual": "bash browser/run-visual.sh",
+    "test:unicode": "npm --prefix browser run test:unicode"
   },
   "dependencies": {
     "@angular/common": "^22.2.0",
@@ -36,6 +37,7 @@
     "@angular/forms": "^22.2.0",
     "@angular/platform-browser": "^22.2.0",
     "@ngx-translate/core": "^18.0.0",
+    "cedar-model-typescript-library": "npm:@org.metadatacenter/cedar-model-typescript-library@1.0.20-dev.20261018.53a006c",
     "rxjs": "~7.8.0",
     "tslib": "^2.8.1"
   },
