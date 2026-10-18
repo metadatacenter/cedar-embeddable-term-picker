@@ -254,14 +254,8 @@ input {
   }
 }
 
-// One focus ring for everything focusable. Without this a button falls back to the browser's own,
-// which is a blue rectangle in Chrome — beside a component whose every other focus state is the
-// brand colour, and against a host page that may be neither.
-button:focus-visible,
-[tabindex]:focus-visible,
-input:focus-visible {
-  @include controls.focus-ring(var(--cetp-color-primary));
-}
+// One focus ring for everything focusable, in the picker's own primary colour.
+@include controls.focus-states(var(--cetp-color-primary));
 
 button {
   font: inherit;
