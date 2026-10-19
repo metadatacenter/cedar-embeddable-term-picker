@@ -117,7 +117,7 @@ message written outside those files. A deliberate exception goes in
 anything fails too.
 
 GitHub Actions runs the gate and visual baselines on push and pull request. The
-visual runner uses Playwright 1.63.0 on ARM Linux both locally and in CI, with no
+visual runner uses Playwright 1.64.1 on ARM Linux both locally and in CI, with no
 pixel difference allowance. To review an intentional visual change, build first,
 then run `npm run test:visual -- --update-snapshots` and inspect both images. The build is zoneless, so
 change detection runs on signals rather than on `zone.js` patching the browser's

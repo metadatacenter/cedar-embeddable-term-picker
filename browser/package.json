@@ -13,6 +13,6 @@
     "test:unicode": "playwright test --config playwright.unicode.config.ts"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0"
+    "@playwright/test": "1.64.1"
   }
 }
