@@ -80,7 +80,7 @@ API either.
 
 ## Requirements
 
-Node 24.19.0, the version `.nvmrc` pins and CI runs. Angular 22 accepts
+Node 24.22.0, the version `.nvmrc` pins and CI runs. Angular 22 accepts
 `^22.22.3 || ^24.15.0 || >=26`; 24 is the active LTS where 22 is in maintenance.
 Nothing here needs Java, and nothing needs the CEDAR stack running until the
 component starts reading from it.
@@ -117,7 +117,7 @@ message written outside those files. A deliberate exception goes in
 anything fails too.
 
 GitHub Actions runs the gate and visual baselines on push and pull request. The
-visual runner uses Playwright 1.63.0 on ARM Linux both locally and in CI, with no
+visual runner uses Playwright 1.64.1 on ARM Linux both locally and in CI, with no
 pixel difference allowance. To review an intentional visual change, build first,
 then run `npm run test:visual -- --update-snapshots` and inspect both images. The build is zoneless, so
 change detection runs on signals rather than on `zone.js` patching the browser's
