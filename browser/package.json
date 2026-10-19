@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "playwright test",
-    "report": "playwright show-report"
+    "report": "playwright show-report",
+    "test:unicode": "playwright test --config playwright.unicode.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0"

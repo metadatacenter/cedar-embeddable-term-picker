@@ -63,12 +63,10 @@
   },
   "narrowing": {
     "searchingOnly": "Searching only",
-    "done": "done",
-    "addOntology": "+ ontology",
-    "clear": "clear",
-    "searchingEvery": "Searching every ontology",
-    "narrowTo": "narrow to…",
-    "finderPlaceholder": "Find an ontology by name or acronym; click to select",
+    "chip": "Ontologies",
+    "clearChip": "Clear ontologies filter",
+    "panelLabel": "Narrow the search to ontologies",
+    "finderPlaceholder": "Find an ontology by name or acronym",
     "finderLabel": "Find an ontology to narrow to",
     "visibleOf": {
       "one": "{{shown}} of {{total}} ontology",
@@ -78,7 +76,10 @@
     "noneByThatName": "No ontology here goes by that.",
     "looking": "Looking…",
     "noneHoldsMatch": "No ontology holds a term matching that search.",
-    "nothingYet": "Nothing to narrow to — search for something first."
+    "nothingYet": "Nothing to narrow to — search for something first.",
+    "clearAll": "Clear all",
+    "cancel": "Cancel",
+    "apply": "Apply"
   },
   "tabs": {
     "class": "Terms",

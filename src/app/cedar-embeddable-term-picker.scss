@@ -74,6 +74,28 @@
   color: var(--cetp-color-text);
 }
 
+// The table mode as a column, so a host that gives it a fixed height, as the designer's dialog does,
+// gets a picker whose results take the room the table, the search and the footer leave. The dialog
+// then stays one size whatever an answer holds. In a host of no fixed height the column is as tall
+// as its content, as before.
+:host(.cetp-table-mode) {
+  display: flex;
+  flex-direction: column;
+}
+
+:host(.cetp-table-mode) .picker {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+// At least five rows however tall the table above grows. It holds up to 38vh of its own.
+:host(.cetp-table-mode) .results {
+  flex: 1 1 auto;
+  min-height: calc(5 * var(--cedar-control-height-default));
+}
+
 *,
 *::before,
 *::after {
@@ -232,14 +254,8 @@ input {
   }
 }
 
-// One focus ring for everything focusable. Without this a button falls back to the browser's own,
-// which is a blue rectangle in Chrome — beside a component whose every other focus state is the
-// brand colour, and against a host page that may be neither.
-button:focus-visible,
-[tabindex]:focus-visible,
-input:focus-visible {
-  @include controls.focus-ring(var(--cetp-color-primary));
-}
+// One focus ring for everything focusable, in the picker's own primary colour.
+@include controls.focus-states(var(--cetp-color-primary));
 
 button {
   font: inherit;
@@ -265,64 +281,73 @@ button {
   margin-top: var(--cedar-space-2);
 }
 
-.chip.removable {
-  border: none;
-  cursor: pointer;
-  @include spacing.apply(padding, compact-row);
+// The narrowing filter, drawn by the recipes Workspace's listing filters take. Each recipe draws
+// every state itself, which matters here: an ordinary button in this component is a filled one.
+.filter-chip {
+  @include controls.filter-chip;
 
-  .x {
-    color: var(--cetp-color-muted);
-    @include spacing.apply(margin-left, compact);
+  &.active {
+    @include controls.filter-chip-active;
+  }
+
+  > button {
+    @include controls.filter-chip-segment;
+  }
+
+  > .clear {
+    @include controls.filter-chip-clear;
+  }
+
+  // A long choice gives way to an ellipsis rather than widening the strip. The chip's title holds
+  // all of it.
+  .value {
+    min-width: 0;
+    max-width: 24rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
-// The way in, as a text action at the size of the sentence it ends.
-.adder {
-  @include authoring.text-action;
-  padding: 0;
-}
-
-// The strip reads as one sentence, "Searching every ontology narrow to…", at the body size Workspace
+// The strip reads "Searching only NCIT" where a host fixed the sources, at the body size Workspace
 // gives the help under a heading.
-.narrowing > .meta.inline,
-.narrowing > .quiet {
+.narrowing > .meta.inline {
   font-size: var(--cetp-font-size);
 }
 
-// A control with no box. For the reset beside the chips, which is worth having once several
-// ontologies are on and worth nothing before that.
-.quiet {
-  background: transparent;
-  border: none;
-  @include spacing.apply(padding, compact-cell);
-  color: var(--cetp-color-muted);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-
-  &:hover {
-    color: var(--cetp-color-heading);
-  }
+// The panel the chip opens, in the top layer and hung under the chip by `placeNarrowing`. Its width
+// is fixed rather than fitted, so a finder that drops the longest name does not narrow it.
+.filter-popover {
+  @include patterns.filter-popover(var(--cetp-popover-available, 70vh));
+  position: fixed;
+  inset: var(--cetp-popover-top, auto) auto auto var(--cetp-popover-left, auto);
+  margin: 0;
+  width: min(32rem, calc(100vw - 2 * var(--cedar-space-4)));
+  height: fit-content;
+  // The menu surface sets its labels in the theme colour. These rows are the picker's own, in its
+  // text colour, as they were before the panel floated.
+  color: var(--cetp-color-text);
 }
 
-// The finder above the list it filters, sharing its width so the two read as one panel.
+// The finder above the list it filters, at the size of the search it narrows.
 .finder {
   display: flex;
-  align-items: center;
-  gap: var(--cedar-space-2);
-  margin-top: var(--cedar-space-1);
+  @include spacing.apply(padding, compact-cell);
 
   input {
-    // Sized to what is typed into it — an acronym or a word of a name — rather than to the panel.
-    flex: 0 1 22rem;
+    flex: 1 1 auto;
     min-width: 0;
     height: tokens.$control-height-default;
-    font-size: var(--cetp-font-size-small);
     padding: 0 var(--cedar-space-2);
     border: 1px solid tokens.$control-border-default;
     border-radius: tokens.$radius;
     background: tokens.$surface-raised;
     color: inherit;
+
+    // The muted text role, at full strength. The browser's own grey is not a CEDAR colour.
+    &::placeholder {
+      color: var(--cetp-color-muted);
+      opacity: 1;
+    }
   }
 }
 
@@ -332,8 +357,8 @@ button {
   display: flex;
   align-items: baseline;
   gap: var(--cedar-space-2);
-  @include spacing.apply(margin, compact-footer);
-  padding: 0 var(--cedar-space-1);
+  margin: var(--cedar-space-1) 0 0;
+  padding: 0 var(--cedar-space-3);
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
 
@@ -344,29 +369,45 @@ button {
 
 // One a line rather than in columns. Side by side, the eye had to read across as well as down to
 // find a name, and the second column was cut off by the panel's own width more often than not.
+//
+// Every row is one control tall, and the rows the finder hides are held by empty ones, so the list
+// stays the height of the ranking it holds, up to ten rows. It shrinks only where the panel has no
+// more room.
 .candidates {
-  display: grid;
-  grid-template-columns: 1fr;
-  @include spacing.apply(gap, compact-row);
-  max-height: 11rem;
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: calc(10 * var(--cedar-control-height-default) + 2 * var(--cedar-space-1));
   @include scrolls.scrolls;
-  margin-top: var(--cedar-space-1);
-  padding: var(--cedar-space-1);
-  background: var(--cetp-color-surface);
-  border-radius: tokens.$radius;
+  padding: var(--cedar-space-1) 0;
+
+  // A message in place of the rows takes the height of one.
+  .empty {
+    box-sizing: border-box;
+    min-height: var(--cedar-control-height-default);
+    margin: 0;
+    @include spacing.apply(padding, compact-cell);
+  }
+}
+
+// An empty row holding the place of one the finder hides: one line of the candidates' text in the
+// menu's insets, so it is exactly as tall as a candidate.
+.reserved-row {
+  @include patterns.menu-item;
+  display: block;
+  font-size: var(--cetp-font-size-small);
+  visibility: hidden;
 }
 
 .candidate {
+  @include patterns.menu-item;
   display: flex;
-  align-items: baseline;
-  gap: var(--cedar-space-1);
-  background: transparent;
-  border: none;
-  border-radius: tokens.$radius;
+  align-items: center;
+  gap: var(--cedar-space-2);
   color: inherit;
-  text-align: left;
-  padding: var(--cedar-space-1) var(--cedar-space-1);
-  min-width: 0;
+  // The rows keep the size they had as buttons, with the menu's height and insets.
+  font-size: var(--cetp-font-size-small);
+  white-space: nowrap;
+  cursor: pointer;
 
   &.on {
     background: var(--cetp-color-tint);
@@ -375,6 +416,32 @@ button {
 
   .meta.inline {
     margin-left: auto;
+  }
+
+  input[type='checkbox'] {
+    @include controls.native-choice;
+    flex: none;
+    width: var(--cedar-icon-size-small);
+    height: var(--cedar-icon-size-small);
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.filter-popover footer {
+  @include patterns.filter-popover-footer;
+
+  > button {
+    @include controls.plain-action;
+  }
+
+  > .primary {
+    @include controls.primary-action;
+  }
+
+  .grow {
+    flex: 1;
   }
 }
 
@@ -422,8 +489,10 @@ button {
   @include scrolls.scrolls;
 }
 
-// What the bottom of the list is doing: fetching, finished, or neither.
+// What the bottom of the list is doing: fetching, finished, or neither. The list's last line,
+// across all of its columns.
 .tail {
+  grid-column: 1 / -1;
   margin: 0;
   padding: var(--cedar-space-1) var(--cedar-space-1) 0;
   min-height: 1.6rem;
@@ -1026,9 +1095,6 @@ mark {
   }
   .tabs {
     margin-top: var(--cedar-space-1);
-  }
-  .working.idle {
-    display: none;
   }
   .tail:empty {
     display: none;

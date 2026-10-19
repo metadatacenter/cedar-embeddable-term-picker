@@ -120,6 +120,17 @@ describe('CedarEmbeddableTermPicker', () => {
     return fixture.nativeElement.shadowRoot;
   }
 
+  /** Narrows through the panel as an author does: open it, tick the ontology, Apply. */
+  function narrowTo(
+    fixture: ReturnType<typeof TestBed.createComponent<CedarEmbeddableTermPicker>>,
+    acronym: string,
+  ): void {
+    const picker = fixture.componentInstance;
+    void picker['openNarrowing']();
+    picker['toggleCandidate'](acronym);
+    picker['applyNarrowing']();
+  }
+
   async function settle(): Promise<void> {
     // The search is debounced, so a spec has to wait the debounce out rather than the microtask.
     await new Promise((resolve) => setTimeout(resolve, 400));
@@ -355,7 +366,7 @@ describe('CedarEmbeddableTermPicker', () => {
     await settle();
     await fixture.whenStable();
 
-    fixture.componentInstance['toggleNarrowing']('NCIT');
+    narrowTo(fixture, 'NCIT');
     await settle();
     await fixture.whenStable();
 
@@ -368,9 +379,64 @@ describe('CedarEmbeddableTermPicker', () => {
     await settle();
     await fixture.whenStable();
     expect(client.lastQuery?.sources).toBeUndefined();
-    // The bar stays — it carries the way back in — but the chips go with the filter.
-    expect(shadow(fixture).querySelectorAll('.chip.removable').length).toBe(0);
-    expect(shadow(fixture).querySelector('.narrowing')?.textContent).toContain('every ontology');
+    // The chip stays — it is the way back in — but its clearing segment goes with the filter.
+    expect(shadow(fixture).querySelectorAll('.filter-chip .clear').length).toBe(0);
+    expect(shadow(fixture).querySelector('.narrowing')?.textContent).toContain('Ontologies');
+  });
+
+  it('holds what is ticked in the narrowing panel as a draft until Apply', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+    const picker = fixture.componentInstance;
+
+    void picker['openNarrowing']();
+    picker['toggleCandidate']('NCIT');
+    await settle();
+    // Ticked, and nothing asked: a run of clicks is one search, made on Apply.
+    expect(client.lastQuery?.sources).toBeUndefined();
+
+    picker['closeNarrowing']();
+    await settle();
+    await fixture.whenStable();
+    expect(picker['narrowedTo']()).toEqual([]);
+    expect(client.lastQuery?.sources).toBeUndefined();
+
+    // Reopened, the panel starts from the filter as it stands, not from the draft it dropped.
+    void picker['openNarrowing']();
+    expect(picker['narrowingDraft']()).toEqual([]);
+  });
+
+  it('keeps the answered rows on screen while the next search runs', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+    const rows = () => shadow(fixture).querySelectorAll('.rowhead').length;
+    expect(rows()).toBeGreaterThan(0);
+
+    const release = client.holdAnswers();
+    fixture.componentRef.setInput('query', 'melanomas');
+    await fixture.whenStable();
+    // Before the debounce and during the search: the last answer stays until this one replaces it.
+    // Emptying the list here collapsed the dialog around it and said nothing matched.
+    expect(rows()).toBeGreaterThan(0);
+    await settle();
+    await fixture.whenStable();
+    expect(rows()).toBeGreaterThan(0);
+    expect(shadow(fixture).querySelector('.empty')).toBeNull();
+    // Nor is the next page of a query nobody is asking any more appended to it.
+    const asked = client.lastQuery;
+    await fixture.componentInstance['loadMore']('class');
+    expect(client.lastQuery).toBe(asked);
+
+    release();
+    await settle();
+    await fixture.whenStable();
+    expect(rows()).toBeGreaterThan(0);
   });
 
   it('does not search the whole corpus for the characters typed on the way to a word', async () => {
@@ -384,6 +450,8 @@ describe('CedarEmbeddableTermPicker', () => {
 
     expect(client.lastQuery).toBeNull();
     expect(shadow(fixture).querySelector('.notice')?.textContent).toContain('at least 3 characters');
+    // Nothing was searched, so nothing is said to have failed to match.
+    expect(shadow(fixture).querySelector('.empty')).toBeNull();
   });
 
   it('searches a short query once it is narrowed to a source', async () => {
@@ -395,7 +463,7 @@ describe('CedarEmbeddableTermPicker', () => {
     await settle();
     await fixture.whenStable();
 
-    fixture.componentInstance['toggleNarrowing']('NCIT');
+    narrowTo(fixture, 'NCIT');
     fixture.componentRef.setInput('query', 'ce');
     await settle();
     await fixture.whenStable();

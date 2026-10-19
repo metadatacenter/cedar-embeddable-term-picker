@@ -398,90 +398,119 @@
     }
   </div>
   } @else {
+  <!--
+    The ontologies the search is narrowed to, drawn as Workspace's listing filters are: one chip
+    holding the filter's value, which opens a panel to change it, and, once the filter is on, a
+    segment that clears it. The chosen ontologies are named on the chip rather than counted.
+  -->
   <div class="narrowing">
-    @if (narrowedTo().length > 0) {
-    <span class="meta inline">{{ 'narrowing.searchingOnly' | translate }}</span>
-    @for (acronym of narrowedTo(); track acronym) {
-    <button type="button" class="chip removable" (click)="toggleNarrowing(acronym)">
-      {{ acronym }} <span class="x"><cetp-icon name="close" /></span>
-    </button>
-    }
-    <!--
-        A text action, as the designer's "Edit" is, rather than a box. A dashed chip here was one
-        more button size on a screen that already had three.
-      -->
-    <button type="button" class="adder" (click)="openNarrowing()">
-      {{ (choosingNarrowing() ? 'narrowing.done' : 'narrowing.addOntology') | translate }}
-    </button>
-    <!--
-        Removing the last chip already searches everything, so this is a bulk reset and nothing
-        more. Plain text, because it is worth having once several ontologies are on and worth
-        nothing before that.
-
-        Gone while the panel is open: that is where an ontology is added and removed one at a time,
-        and a bulk reset beside the way out of it is a second exit doing something quite different.
-      -->
-    @if (!choosingNarrowing()) {
-    <button type="button" class="quiet" (click)="clearNarrowing()">{{ 'narrowing.clear' | translate }}</button>
-    } } @else {
-    <span class="meta inline">{{ 'narrowing.searchingEvery' | translate }}</span>
-    <button type="button" class="adder" (click)="openNarrowing()">
-      {{ (choosingNarrowing() ? 'narrowing.done' : 'narrowing.narrowTo') | translate }}
-    </button>
-    }
+    <span #narrowingChip class="filter-chip" [class.active]="narrowedTo().length > 0">
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-controls="narrowing-panel"
+        [attr.aria-expanded]="choosingNarrowing()"
+        [attr.aria-label]="'narrowing.chip' | translate"
+        [attr.aria-description]="narrowedTo().length ? narrowedTo().join(', ') : null"
+        [title]="narrowedTo().join(', ')"
+        (click)="openNarrowing()"
+      >
+        <span class="value">{{ narrowedTo().length ? narrowedTo().join(', ') : ('narrowing.chip' | translate) }}</span>
+        <cetp-icon size="small" name="chevron-down" />
+      </button>
+      @if (narrowedTo().length) {
+      <button
+        type="button"
+        class="clear"
+        [title]="'narrowing.clearChip' | translate"
+        [attr.aria-label]="'narrowing.clearChip' | translate"
+        (click)="clearNarrowing()"
+      >
+        <cetp-icon size="small" name="close" />
+      </button>
+      }
+    </span>
   </div>
 
   @if (choosingNarrowing()) {
   <!--
+    Floating over the results rather than taking a place above them, so opening it, typing in its
+    finder and closing it move nothing under it. What is ticked here is a draft until Apply, as in
+    Workspace's filters: a run of clicks is one search rather than one per click.
+  -->
+  <section
+    #narrowingPopover
+    id="narrowing-panel"
+    class="filter-popover"
+    popover="manual"
+    role="dialog"
+    [attr.aria-label]="'narrowing.panelLabel' | translate"
+    (keydown)="onNarrowingKeydown($event)"
+  >
+    <!--
       A way into a list of hundreds. The panel holds every ontology the query reaches, so this finds
       a row in it rather than running a search of its own — the counts stay counts of the query.
     -->
-  <label class="finder">
-    <input
-      spellcheck="false"
-      type="search"
-      [value]="narrowingFilter()"
-      [placeholder]="'narrowing.finderPlaceholder' | translate"
-      [attr.aria-label]="'narrowing.finderLabel' | translate"
-      (input)="narrowingFilter.set($any($event.target).value)"
-    />
-  </label>
-  <!--
+    <label class="finder">
+      <input
+        spellcheck="false"
+        type="search"
+        [value]="narrowingFilter()"
+        [placeholder]="'narrowing.finderPlaceholder' | translate"
+        [attr.aria-label]="'narrowing.finderLabel' | translate"
+        (input)="narrowingFilter.set($any($event.target).value)"
+      />
+    </label>
+    <!--
       The column on the right is how many of each ontology's terms the query matched, which is the
       whole reason the list is in this order — and it was a bare figure until it was named.
     -->
-  <p class="candidates-head">
-    <span class="grow">
-      @if (narrowingFilter()) { {{ localizer.plural('narrowing.visibleOf', candidates().length, { shown:
-      visibleCandidates().length, total: candidates().length }) }} } @else { {{ localizer.plural('counts.ontologies',
-      candidates().length) }} }
-    </span>
-    <span>{{ 'narrowing.matchingTerms' | translate }}</span>
-  </p>
-  <div class="candidates">
-    @for (candidate of visibleCandidates(); track candidate.sourceAcronym) {
-    <button
-      type="button"
-      class="candidate"
-      [class.on]="isNarrowedTo(candidate.sourceAcronym)"
-      (click)="toggleNarrowing(candidate.sourceAcronym)"
-    >
-      <span class="who">{{ candidate.sourceAcronym }}</span>
-      <span class="dim ellipsis">{{ sourceNameIfDistinct(candidate.sourceAcronym) }}</span>
-      <span class="meta inline"
-        >{{ candidate.matchCount === undefined ? '' : localizer.number(candidate.matchCount) }}</span
-      >
-    </button>
-    } @empty { @if (candidates().length > 0) {
-    <p class="empty">{{ 'narrowing.noneByThatName' | translate }}</p>
-    } @else if (searching()) {
-    <p class="empty">{{ 'narrowing.looking' | translate }}</p>
-    } @else if (text().trim().length > 0) {
-    <p class="empty">{{ 'narrowing.noneHoldsMatch' | translate }}</p>
-    } @else {
-    <p class="empty">{{ 'narrowing.nothingYet' | translate }}</p>
-    } }
-  </div>
+    <p class="candidates-head">
+      <span class="grow">
+        @if (narrowingFilter()) { {{ localizer.plural('narrowing.visibleOf', candidates().length, { shown:
+        visibleCandidates().length, total: candidates().length }) }} } @else { {{ localizer.plural('counts.ontologies',
+        candidates().length) }} }
+      </span>
+      <span>{{ 'narrowing.matchingTerms' | translate }}</span>
+    </p>
+    <!--
+      As tall as the whole ranking whatever the finder holds, so filtering it does not pull the
+      panel's foot up and down under the author's eye.
+    -->
+    <div class="candidates">
+      @for (candidate of visibleCandidates(); track candidate.sourceAcronym) {
+      <label class="candidate" [class.on]="isDrafted(candidate.sourceAcronym)">
+        <span class="who">{{ candidate.sourceAcronym }}</span>
+        <span class="dim ellipsis">{{ candidateName(candidate.sourceAcronym) }}</span>
+        <span class="meta inline"
+          >{{ candidate.matchCount === undefined ? '' : localizer.number(candidate.matchCount) }}</span
+        >
+        <input
+          type="checkbox"
+          spellcheck="false"
+          [checked]="isDrafted(candidate.sourceAcronym)"
+          (change)="toggleCandidate(candidate.sourceAcronym)"
+        />
+      </label>
+      } @empty { @if (candidates().length > 0) {
+      <p class="empty">{{ 'narrowing.noneByThatName' | translate }}</p>
+      } @else if (loadingCandidates()) {
+      <p class="empty">{{ 'narrowing.looking' | translate }}</p>
+      } @else if (text().trim().length > 0) {
+      <p class="empty">{{ 'narrowing.noneHoldsMatch' | translate }}</p>
+      } @else {
+      <p class="empty">{{ 'narrowing.nothingYet' | translate }}</p>
+      } } @for (row of reservedRows(); track row) {
+      <span class="reserved-row" aria-hidden="true">&nbsp;</span>
+      }
+    </div>
+    <footer>
+      <button type="button" (click)="clearDraft()">{{ 'narrowing.clearAll' | translate }}</button>
+      <span class="grow"></span>
+      <button type="button" (click)="closeNarrowing()">{{ 'narrowing.cancel' | translate }}</button>
+      <button type="button" class="primary" (click)="applyNarrowing()">{{ 'narrowing.apply' | translate }}</button>
+    </footer>
+  </section>
   } }
   <nav class="tabs" role="tablist">
     @for (tab of tabs(); track tab) {
@@ -586,7 +615,7 @@
       </div>
       }
     </div>
-    } @empty { @if (!searching()) {
+    } @empty { @if (response()) {
     <p class="empty">{{ 'results.noTerms' | translate }}</p>
     } } } @case ('branch') { @for (group of branchGroups(); track group.label) {
     <div class="row group">
@@ -644,7 +673,7 @@
       </div>
       }
     </div>
-    } @empty { @if (!searching()) {
+    } @empty { @if (response()) {
     <p class="empty">{{ 'results.noBranches' | translate }}</p>
     } } } @case ('ontology') { @for (hit of ontologies(); track hit.sourceAcronym) {
     <div
@@ -675,7 +704,7 @@
     </div>
     <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />
     <ng-container *ngTemplateOutlet="detail; context: { $implicit: hit }" />
-    } @empty { @if (!searching()) {
+    } @empty { @if (response()) {
     <p class="empty">{{ 'results.noOntologies' | translate }}</p>
     } } } @case ('property') { @if (response()?.errors?.property; as message) {
     <p role="alert" class="selection-error">{{ localizer.say(message) }}</p>
@@ -727,7 +756,7 @@
       </div>
       }
     </div>
-    } @empty { @if (!searching()) { @if (!response()?.errors?.property) {
+    } @empty { @if (response()) { @if (!response()?.errors?.property) {
     <p class="empty">{{ 'results.noProperties' | translate }}</p>
     } } } } @case ('valueSet') { @for (hit of valueSets(); track hit.termBaseIri) {
     <div
@@ -755,19 +784,19 @@
     </div>
     <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />
     <ng-container *ngTemplateOutlet="detail; context: { $implicit: hit }" />
-    } @empty { @if (!searching()) {
+    } @empty { @if (response()) {
     <p class="empty">{{ 'results.noValueSets' | translate }}</p>
     } } } }
+    <!--
+      What the bottom of the list is doing. Only while it is growing: a first search has nothing yet
+      to be more of, and the tab strip already says that one is running. Inside the list rather than
+      under it, so the line that comes and goes lengthens what scrolls rather than the box around it.
+    -->
+    <p class="tail">
+      @if (loadingMore()) { {{ 'status.readingMore' | translate }} } @else if (isExhausted(activeTab()) &&
+      pageOf(activeTab()) > 1) { {{ 'status.noMore' | translate }} }
+    </p>
   </div>
-
-  <!--
-    What the bottom of the list is doing. Only while it is growing: a first search has nothing yet
-    to be more of, and the tab strip already says that one is running.
-  -->
-  <p class="tail">
-    @if (loadingMore()) { {{ 'status.readingMore' | translate }} } @else if (isExhausted(activeTab()) &&
-    pageOf(activeTab()) > 1) { {{ 'status.noMore' | translate }} }
-  </p>
 </section>
 @if (tableMode()) {
 <!--

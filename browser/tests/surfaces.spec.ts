@@ -1,7 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { surfaceCases, checkSurface } from './surface-contracts.generated.mjs';
-import { branchHit, classHit, ontologyHit, openPicker, results, search, source, stubHierarchy, stubSearch } from './support';
+import {
+  branchHit,
+  classHit,
+  ontologyHit,
+  openPicker,
+  results,
+  search,
+  source,
+  stubHierarchy,
+  stubSearch,
+} from './support';
 
 // The registry's surfaces, each opened from fixtures and walked against the shared scale.
 const registry = JSON.parse(readFileSync(new URL('../../.ui-surfaces.json', import.meta.url), 'utf8'));
@@ -19,12 +29,16 @@ const MELANOMA = {
         classHit('NCIT', 'Melanoma', { descendantCount: 321, under: 'Melanocytic Neoplasm' }),
         classHit('DOID', 'melanoma', {
           descendantCount: 31,
-          definition: 'A cell type cancer that has_material_basis_in abnormally proliferating cells derived from melanocytes.',
+          definition:
+            'A cell type cancer that has_material_basis_in abnormally proliferating cells derived from melanocytes.',
         }),
       ],
       { totalCount: 5439, distinctLabelCount: 2552 },
     ),
-    branch: results([branchHit('NCIT', 'Melanoma', 'Melanocytic Neoplasm', 321), branchHit('DOID', 'melanoma', 'skin cancer', 31)]),
+    branch: results([
+      branchHit('NCIT', 'Melanoma', 'Melanocytic Neoplasm', 321),
+      branchHit('DOID', 'melanoma', 'skin cancer', 31),
+    ]),
     ontology: results([ontologyHit('MELO', 12, true), ontologyHit('NCIT', 950, false)]),
   },
 };
@@ -51,6 +65,11 @@ const scenarios: Record<string, (page: Page) => Promise<void>> = {
     await searched(page);
     await picker(page).locator('.tab').nth(2).click();
     await expect(picker(page).locator('.row.oneline').first()).toBeVisible();
+  },
+  'ontology-filter': async (page) => {
+    await searched(page);
+    await picker(page).locator('.filter-chip > button').first().click();
+    await expect(picker(page).locator('.filter-popover .candidate').first()).toBeVisible();
   },
   'term-detail': async (page) => {
     await stubHierarchy(page, (query) => ({

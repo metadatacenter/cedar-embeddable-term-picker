@@ -1,3 +1,4 @@
+import { TextPolicy, IdentifierPolicy } from 'cedar-model-typescript-library/policy';
 import { ControlledTermSet } from './constraint-set';
 import { constraintIdentity } from './constraint-presentation';
 import { SearchKind } from './search-types';
@@ -16,14 +17,10 @@ const kinds: Record<string, SearchKind> = {
 };
 const record = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
-const text = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
+const text = (value: unknown): value is string => typeof value === 'string' && !TextPolicy.isBlank(value);
 /** Absolute IRIs, including URNs and Unicode; spaces, controls and malformed escapes are not identifiers. */
 export const validIri = (value: unknown): value is string =>
-  text(value) &&
-  /^[A-Za-z][A-Za-z0-9+.-]*:\S+$/.test(value) &&
-  !/[<>"{}|\\^`]/.test(value) &&
-  [...value].every((char) => char.charCodeAt(0) > 32 && char.charCodeAt(0) !== 127) &&
-  !/%(?![\da-f]{2})/i.test(value);
+  typeof value === 'string' && IdentifierPolicy.isValid(value);
 
 export function validateConstraints(
   value: unknown,
