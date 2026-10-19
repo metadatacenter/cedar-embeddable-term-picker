@@ -80,7 +80,7 @@ API either.
 
 ## Requirements
 
-Node 24.19.0, the version `.nvmrc` pins and CI runs. Angular 22 accepts
+Node 24.22.0, the version `.nvmrc` pins and CI runs. Angular 22 accepts
 `^22.22.3 || ^24.15.0 || >=26`; 24 is the active LTS where 22 is in maintenance.
 Nothing here needs Java, and nothing needs the CEDAR stack running until the
 component starts reading from it.
