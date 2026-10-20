@@ -1,7 +1,18 @@
 import { Icon } from '../icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { Localizer, Message, languageTag, messageOf, phrase } from '../i18n/localization';
-import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { TerminologyClient } from './terminology-client';
 import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './search-types';
 
@@ -86,7 +97,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
               </li>
             }
             @if (more()) {
-              <li>
+              <li class="more">
                 <button type="button" class="term" [disabled]="loading()" (click)="loadMore()">
                   {{ 'property.moreChildren' | translate }}
                 </button>
@@ -115,6 +126,8 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
 export class PropertyDetailComponent {
   private readonly client = inject(TerminologyClient);
   protected readonly localizer = inject(Localizer);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
   protected readonly languageTag = languageTag;
   readonly hit = input.required<PropertyHit>();
   readonly allowVersions = input(true);
@@ -170,12 +183,36 @@ export class PropertyDetailComponent {
       obsolete: property.obsolete,
     });
   }
+  /**
+   * Reads the chosen release. The list closes and takes the pressed button with it, so focus moves
+   * to the toggle that opened the list, the nearest control that remains.
+   */
   protected changeVersion(versionId: string): void {
     this.showReleases.set(false);
+    this.host.nativeElement.querySelector<HTMLElement>('.release-toggle')?.focus();
     void this.read({ ...this.current(), versionId });
   }
-  protected loadMore(): void {
-    void this.read(this.current(), this.hierarchy()?.children.length ?? 0);
+
+  /**
+   * Reads the next children. The button is disabled while they are read and gone once there are no
+   * more, and either way focus left it. Unless the author has moved it since, it returns to the
+   * button while one remains, and otherwise goes to the first child that arrived, which is where
+   * the reading continues.
+   */
+  protected async loadMore(): Promise<void> {
+    const shown = this.hierarchy()?.children.length ?? 0;
+    await this.read(this.current(), shown);
+    afterNextRender(
+      () => {
+        const detail = this.host.nativeElement;
+        const focused = (detail.getRootNode() as Document | ShadowRoot).activeElement;
+        if (focused !== null && focused !== document.body) return;
+        const more = detail.querySelector<HTMLElement>('.more button');
+        const arrived = detail.querySelectorAll<HTMLElement>('.node.self ~ .node button.term')[shown];
+        (more ?? arrived)?.focus();
+      },
+      { injector: this.injector },
+    );
   }
   private async read(hit: PropertyHit, offset = 0): Promise<void> {
     this.attempt?.abort();

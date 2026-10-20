@@ -146,3 +146,83 @@ test('Enter on a row’s release count opens the history, as a click does, and l
   await expect(rows.first()).toHaveClass(/marked/);
   await expect(picker(page).locator('.selection-detail')).toHaveCount(1);
 });
+
+test("choosing a property's release, or reading more of its children, keeps focus in the detail", async ({ page }) => {
+  await stubSearch(page, () => ({ sources: [], results: { class: results([]) } }));
+  const parent = {
+    iri: 'urn:related',
+    kind: 'object',
+    label: 'related to',
+    obsolete: false,
+    parents: [],
+    literals: [],
+  };
+  const property = { iri: 'urn:part', kind: 'object', label: 'part of', obsolete: false, parents: ['urn:related'] };
+  const children = (from: number, count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      iri: `urn:kid${from + index}`,
+      kind: 'object',
+      label: `kid ${from + index}`,
+      obsolete: false,
+      parents: ['urn:part'],
+      hasChildren: false,
+    }));
+  await page.route('**/properties/search', (route) =>
+    route.fulfill({
+      json: {
+        total: 1,
+        page: 1,
+        pageSize: 25,
+        items:
+          (route.request().postDataJSON().offset ?? 0) > 0
+            ? []
+            : [{ sourceAcronym: 'RO', versionId: 'ro-v2', property: { ...property, literals: [], hasChildren: true } }],
+      },
+    }),
+  );
+  await page.route('**/properties/versions?*', (route) =>
+    route.fulfill({
+      json: [
+        { id: 'ro-v2', declaredVersion: '2', propertiesAvailable: true },
+        { id: 'ro-v1', declaredVersion: '1', propertiesAvailable: true },
+      ],
+    }),
+  );
+  // Fifty children, the most one read returns, then three more and no further.
+  await page.route('**/properties/hierarchy?*', (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    const offset = Number(query.get('offset') ?? 0);
+    return route.fulfill({
+      json: {
+        selected: { sourceAcronym: 'RO', versionId: query.get('versionId'), property: { ...property, literals: [] } },
+        ancestors: [parent],
+        children: children(offset, offset ? 3 : 50),
+        offset,
+      },
+    });
+  });
+  await page.goto('/?mode=constraints');
+  await picker(page).locator('.picker').waitFor();
+  await picker(page).evaluate((element) => Object.assign(element, { termTypes: ['property'] }));
+  await picker(page).locator('input[type=search]').fill('part');
+  await picker(page)
+    .getByRole('button', { name: /part of.*in 1 ontology/ })
+    .click();
+  await picker(page).locator('.child').first().click();
+  const detail = picker(page).locator('cetp-property-detail');
+  await expect(detail.locator('.tree')).toBeVisible();
+
+  // The release list closes on a choice and takes the chosen button with it; focus goes back to
+  // the toggle that opened it.
+  const toggle = detail.locator('.release-toggle');
+  await toggle.press('Enter');
+  await detail.getByRole('button', { name: '1 ro-v1', exact: true }).press('Enter');
+  await expect(detail.getByRole('group')).toHaveCount(0);
+  expect(await focused(toggle)).toBe(true);
+
+  // The last read of children takes "More children" away; focus goes to the first child it added.
+  await detail.getByRole('button', { name: 'More children', exact: true }).press('Enter');
+  await expect(detail.getByRole('button', { name: 'More children', exact: true })).toHaveCount(0);
+  await expect(detail.getByRole('button', { name: 'kid 52', exact: true })).toBeVisible();
+  expect(await focused(detail.getByRole('button', { name: 'kid 50', exact: true }))).toBe(true);
+});
