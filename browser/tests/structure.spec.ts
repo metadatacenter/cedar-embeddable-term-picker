@@ -202,7 +202,7 @@ test("the history's head names its list, and each release's date and hash", asyn
         versions: [
           { id: 'hash-c-0123456789abcdef', effectiveDate: '2026-07-01T00:00:00.000-07:00', declaredVersion: '26.07d' },
           { id: 'hash-b-0123456789abcdef', declaredVersion: '26.06e' },
-        ] as never,
+        ],
       }),
     ],
     results: { class: results([classHit('NCIT', 'Melanoma')], { distinctLabelCount: 1 }) },
