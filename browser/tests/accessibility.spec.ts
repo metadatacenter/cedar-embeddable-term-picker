@@ -21,6 +21,13 @@ import {
  */
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
+/**
+ * WCAG 2.1's Label in Name, criterion 2.5.3: a control's accessible name contains the text it shows,
+ * so that speech input reaches it by its visible label. axe-core's rule for it is experimental, and
+ * a tag selection leaves experimental rules out, so it runs by name.
+ */
+const LABEL_IN_NAME = 'label-content-name-mismatch';
+
 const ANSWER = {
   sources: [
     source('NCIT', { name: 'National Cancer Institute Thesaurus', versionCount: 3, declaredVersion: '26.07d' }),
@@ -58,7 +65,9 @@ async function expectAccessible(page: Page, state: string): Promise<void> {
         .map((animation) => animation.finished.catch(() => undefined)),
     );
   });
-  const { violations, incomplete } = await new AxeBuilder({ page }).withTags(WCAG).analyze();
+  const { violations: tagged, incomplete } = await new AxeBuilder({ page }).withTags(WCAG).analyze();
+  const { violations: named } = await new AxeBuilder({ page }).withRules([LABEL_IN_NAME]).analyze();
+  const violations = [...tagged, ...named];
   // A label on an element whose role takes none is ignored by screen readers, decided or not.
   const ignoredLabels = incomplete.filter((result) => result.id === 'aria-prohibited-attr');
   const failures = [...violations, ...ignoredLabels].flatMap((violation) =>
