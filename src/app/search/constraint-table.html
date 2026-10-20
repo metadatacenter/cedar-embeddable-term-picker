@@ -67,7 +67,7 @@
         <td class="constraint-row-actions">
           <button
             type="button"
-            (click)="removed.emit(i)"
+            (click)="removeConstraint(i)"
             [attr.aria-label]="'table.removeConstraint' | translate: { number: i + 1 }"
             [title]="'table.removeConstraintTitle' | translate"
           >
@@ -92,7 +92,7 @@
       position: action.to } }} }
       <button
         type="button"
-        (click)="actionRemoved.emit($index)"
+        (click)="removeAction($index)"
         [attr.aria-label]="'table.removeAction' | translate: { number: $index + 1 }"
       >
         <cetp-icon name="delete" />

@@ -44,7 +44,8 @@
   <!--
     The button's name is the count it shows, finished by hidden words that say whose releases they
     are. The title says the same for a pointer, and an empty description keeps it from being read
-    after the name.
+    after the name. Enter stops here as a click does, so the key opens the history and leaves the
+    row it sits in unmarked.
   -->
   <button
     type="button"
@@ -53,6 +54,7 @@
     aria-description=""
     [title]="localizer.plural('stepper.showAllReleases', count, { acronym })"
     (click)="openHistory(acronym); $event.stopPropagation()"
+    (keydown.enter)="$event.stopPropagation()"
   >
     {{ 'stepper.of' | translate: { count } }}
     <span class="sr-only">{{ localizer.plural('stepper.releasesOf', count, { acronym }) }}</span

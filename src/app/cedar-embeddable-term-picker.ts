@@ -973,10 +973,17 @@ export class CedarEmbeddableTermPicker {
     }
   }
 
-  /** The chip's clearing segment: searches every ontology again, at once. */
+  /**
+   * The chip's clearing segment: searches every ontology again, at once.
+   *
+   * The segment removes itself, so focus moves to the chip beside it, which is the nearest control
+   * that remains. Left where it was, focus fell to the page and a keyboard author started again
+   * from its top.
+   */
   protected clearNarrowing(): void {
-    this.closeNarrowing();
+    this.closeNarrowing(false);
     this.narrowedTo.set([]);
+    this.narrowingChip()?.nativeElement.querySelector('button')?.focus();
   }
 
   /**
