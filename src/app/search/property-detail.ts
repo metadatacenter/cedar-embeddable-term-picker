@@ -62,10 +62,16 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
         <p role="alert">{{ localizer.say(message) }}</p>
       }
       @if (hierarchy(); as tree) {
+        <!--
+          The parents, the property under them and its children stand at three depths, drawn as
+          indents. Each entry states its level and its place among its siblings, so the depth can be
+          heard too. A set whose end has not been read has a size of -1, which means unknown.
+        -->
+        @let parents = tree.selected.property.parents.length;
         <div class="hierarchy-choice">
           <ol class="tree" [attr.aria-label]="'property.hierarchy' | translate">
-            @for (iri of tree.selected.property.parents; track iri) {
-              <li class="node">
+            @for (iri of tree.selected.property.parents; track iri; let i = $index) {
+              <li class="node" aria-level="1" [attr.aria-posinset]="i + 1" [attr.aria-setsize]="parents">
                 <span class="twist" aria-hidden="true"><cetp-icon size="small" name="chevron-down" /></span>
                 @if (ancestor(iri); as parent) {
                   <button type="button" class="term" [title]="iri" (click)="navigate(parent)">
@@ -76,7 +82,13 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
                 }
               </li>
             }
-            <li class="node self" [style.padding-left.rem]="tree.selected.property.parents.length ? 0.9 : 0">
+            <li
+              class="node self"
+              [style.padding-left.rem]="parents ? 0.9 : 0"
+              [attr.aria-level]="parents ? 2 : 1"
+              aria-posinset="1"
+              aria-setsize="1"
+            >
               <span class="twist" aria-hidden="true">
                 @if (tree.children.length) {
                   <cetp-icon size="small" name="chevron-down" />
@@ -84,8 +96,14 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
               </span>
               <span class="term" [title]="tree.selected.property.iri">{{ tree.selected.property.label }}</span>
             </li>
-            @for (child of tree.children; track child.iri) {
-              <li class="node" [style.padding-left.rem]="tree.selected.property.parents.length ? 1.8 : 0.9">
+            @for (child of tree.children; track child.iri; let i = $index) {
+              <li
+                class="node"
+                [style.padding-left.rem]="parents ? 1.8 : 0.9"
+                [attr.aria-level]="parents ? 3 : 2"
+                [attr.aria-posinset]="i + 1"
+                [attr.aria-setsize]="more() ? -1 : tree.children.length"
+              >
                 <span class="twist" aria-hidden="true">
                   @if (child.hasChildren) {
                     <cetp-icon size="small" name="chevron-right" />

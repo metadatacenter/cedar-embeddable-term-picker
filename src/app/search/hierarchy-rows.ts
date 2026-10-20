@@ -9,7 +9,7 @@ export function hierarchyRows(
   nodeKey: (iri: string) => string,
 ): readonly TreeRow[] {
   const spine = [...(tree.path ?? []).map((step) => step.termIri), tree.termIri];
-  const rows: TreeRow[] = [];
+  const rows: Omit<TreeRow, 'position' | 'setSize'>[] = [];
   const visited = new Set<string>();
 
   // `known` is what the node's parent already said about it, which is everything a row needs to
@@ -65,7 +65,29 @@ export function hierarchyRows(
 
   const root = spine[0];
   walk(root, spineLabel(tree, root), 0, true);
-  return rows;
+  return placed(rows);
+}
+
+/**
+ * Places each row among its siblings. The rows are in the order the walk drew them, so a row's
+ * parent is the last row drawn one level above it.
+ */
+function placed(rows: readonly Omit<TreeRow, 'position' | 'setSize'>[]): readonly TreeRow[] {
+  const latestAt: number[] = [];
+  const drawn = new Map<number, number>();
+  const places = rows.map((row, index) => {
+    const parent = row.depth === 0 ? -1 : latestAt[row.depth - 1];
+    latestAt[row.depth] = index;
+    const position = (drawn.get(parent) ?? 0) + 1;
+    drawn.set(parent, position);
+    return { parent, position };
+  });
+  return rows.map((row, index) => {
+    const { parent, position } = places[index];
+    const above = parent < 0 ? undefined : rows[parent];
+    const reported = above?.open ? above.total : 0;
+    return { ...row, position, setSize: Math.max(drawn.get(parent) ?? position, reported) };
+  });
 }
 
 function spineLabel(tree: Hierarchy, iri: string): string {

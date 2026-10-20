@@ -107,7 +107,12 @@
             every read below — the tree, its rows, its paging, its refusal — addresses one subject.
           -->
           @let focus = treeFocus(hit); @if (hierarchyOf(focus)) {
-          <ol class="tree" (scroll)="onTreeScroll($event, focus)">
+          <!--
+            The tree is one list, and its depth is drawn as an indent. Each entry also states its
+            level and its place among its siblings, so the shape can be heard as well as seen. It
+            stays a list. A tree role would replace its Tab stops with arrow keys.
+          -->
+          <ol class="tree" [attr.aria-label]="'detail.hierarchy' | translate" (scroll)="onTreeScroll($event, focus)">
             @for (row of treeRows(focus); track row.key) {
             <li
               class="node"
@@ -115,6 +120,9 @@
               [class.spine]="row.onSpine"
               [class.picked]="isPicked(row)"
               [style.padding-left.rem]="row.depth * 0.9"
+              [attr.aria-level]="row.depth + 1"
+              [attr.aria-posinset]="row.position"
+              [attr.aria-setsize]="row.setSize"
             >
               @if (row.hasChildren) {
               <button
@@ -243,13 +251,19 @@
       <span class="hash">{{ 'history.contentHash' | translate }}</span>
       <span class="tag"></span>
     </p>
-    <ol class="releases">
+    <!--
+      The head names the list and its columns. The list takes its name from the head's count, and
+      each release is described by its date and hash after their columns' names, so a reader who
+      cannot see the columns hears them. The button's name stays the text it shows.
+    -->
+    <ol class="releases" [attr.aria-label]="localizer.plural('history.count', releases.length)">
       @for (release of releases; track release.id; let i = $index) {
       <li>
         <button
           type="button"
           class="release"
           [class.on]="isShowing(acronym, release, i)"
+          [attr.aria-description]="releaseColumns(release)"
           (click)="pinTo(hit, release, i)"
         >
           <span class="declared">{{ release.declaredVersion ?? ('history.noDeclaredVersion' | translate) }}</span>
@@ -271,8 +285,12 @@
 
 <section class="picker" [class.set-mode]="tableMode()">
   <header class="bar">
+    <!--
+      The bar's two captions are drawn as section headings, and each is exposed as one. The
+      search's caption is also the label of its field.
+    -->
     <label class="search">
-      <span class="label">{{ 'bar.findTerms' | translate }}</span>
+      <span class="label" role="heading" aria-level="2">{{ 'bar.findTerms' | translate }}</span>
       <input
         spellcheck="false"
         type="search"
@@ -311,7 +329,7 @@
           say the same thing twice, and the one up here is the further of the two from the term.
         -->
       <div class="selection-heading">
-        <span class="label">{{ 'selection.heading.' + chosen.noun | translate }}</span>
+        <span class="label" role="heading" aria-level="2">{{ 'selection.heading.' + chosen.noun | translate }}</span>
       </div>
       <p class="phrase">
         <strong [title]="chosen.what">{{ elide(chosen.what, 72, 20) }}</strong>
@@ -491,7 +509,7 @@
       whole reason the list is in this order — and it was a bare figure until it was named.
     -->
     <p class="candidates-head">
-      <span class="grow">
+      <span id="narrowing-count" class="grow">
         @if (narrowingFilter()) { {{ localizer.plural('narrowing.visibleOf', candidates().length, { shown:
         visibleCandidates().length, total: candidates().length }) }} } @else { {{ localizer.plural('counts.ontologies',
         candidates().length) }} }
@@ -502,13 +520,19 @@
       As tall as the whole ranking whatever the finder holds, so filtering it does not pull the
       panel's foot up and down under the author's eye.
     -->
-    <div class="candidates">
+    <!--
+      The head's count names the group of boxes. The name of its column follows each box's count in
+      the box's name, so a reader who cannot see the column does not hear a bare number.
+    -->
+    <div class="candidates" role="group" aria-labelledby="narrowing-count">
       @for (candidate of visibleCandidates(); track candidate.sourceAcronym) {
       <label class="candidate" [class.on]="isDrafted(candidate.sourceAcronym)">
         <span class="who">{{ candidate.sourceAcronym }}</span>
         <span class="dim ellipsis">{{ candidateName(candidate.sourceAcronym) }}</span>
         <span class="meta inline"
-          >{{ candidate.matchCount === undefined ? '' : localizer.number(candidate.matchCount) }}</span
+          >{{ candidate.matchCount === undefined ? '' : localizer.number(candidate.matchCount) }}@if
+          (candidate.matchCount !== undefined) {<span class="sr-only"> {{ 'narrowing.matchingTerms' | translate }}</span
+          >}</span
         >
         <input
           type="checkbox"

@@ -1474,6 +1474,18 @@ export class CedarEmbeddableTermPicker {
   }
 
   /**
+   * A release's date and hash, each after the name of the column the history shows it in. It is the
+   * release's description, so its name stays the text the button shows.
+   */
+  protected releaseColumns(release: VersionInfo): string {
+    const date = (release.effectiveDate ?? '').slice(0, 10);
+    return [
+      ...(date ? [`${this.localizer.t('history.effectiveDate')} ${date}`] : []),
+      `${this.localizer.t('history.contentHash')} ${this.shortHash(release.id)}`,
+    ].join(', ');
+  }
+
+  /**
    * Pins a release chosen from the history.
    *
    * Choosing the current one unpins rather than writing today's version, the same rule stepping
