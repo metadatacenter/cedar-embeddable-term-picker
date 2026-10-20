@@ -105,8 +105,7 @@ test('a query too short to search the corpus says so once the author stops, and 
   await openEmpty(page);
   await listen(page);
   await field(page).pressSequentially('me', { delay: 40 });
-  const tooShort =
-    'A corpus-wide search needs at least 3 characters. Narrow to an ontology to search it with fewer.';
+  const tooShort = 'A corpus-wide search needs at least 3 characters. Narrow to an ontology to search it with fewer.';
   await expect(region(page)).toHaveText(tooShort);
   expect(await said(page)).toEqual([tooShort]);
   expect(recorded.bodies.filter((body) => (body as { query: string }).query === 'me')).toEqual([]);

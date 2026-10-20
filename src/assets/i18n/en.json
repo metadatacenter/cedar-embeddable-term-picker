@@ -30,6 +30,7 @@
   "detail": {
     "ontologyIri": "Ontology IRI",
     "valueSetIri": "Value set IRI",
+    "hierarchy": "Hierarchy",
     "matched": "Matched",
     "alsoCalled": "Also called",
     "moreNames": "and {{count}} more",

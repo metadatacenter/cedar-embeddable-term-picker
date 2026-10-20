@@ -1346,6 +1346,24 @@ export class CedarEmbeddableTermPicker {
     eionet: 'Eionet',
   };
 
+  /**
+   * A property row's accessible name: the property in its source, then the words the row shows.
+   *
+   * The row shows the source and the kind of property, and the property's label is on the group
+   * above it, so the name carries both. The row's own words come last and in the order shown, so
+   * speech input reaches the row by what it says.
+   */
+  protected propertyRowName(hit: PropertyHit): string {
+    return [
+      this.localizer.t('results.propertyIn', { label: hit.termLabel, acronym: hit.sourceAcronym }),
+      this.sourceNameIfDistinct(hit.sourceAcronym),
+      this.authorityOf(hit.sourceAcronym),
+      this.localizer.t(`results.propertyKind.${hit.propertyKind}`),
+    ]
+      .filter((part) => part !== '')
+      .join(', ');
+  }
+
   /** The name only when it says more than the acronym, so a row never reads "BERO BERO". */
   protected sourceNameIfDistinct(acronym: string): string {
     const name = this.sourceOf(acronym)?.sourceName;

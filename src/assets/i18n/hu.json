@@ -30,6 +30,7 @@
   "detail": {
     "ontologyIri": "Ontológia IRI",
     "valueSetIri": "Értékkészlet IRI",
+    "hierarchy": "Hierarchia",
     "matched": "Egyezés",
     "alsoCalled": "Más néven",
     "moreNames": "és még {{count}}",

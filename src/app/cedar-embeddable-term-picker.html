@@ -93,9 +93,12 @@
       <dd class="iri" [title]="termIriOf(hit)">{{ hit.type === 'ontology' ? sourceIriOf(hit) : termIriOf(hit) }}</dd>
       } @if (hit.type === 'class' || hit.type === 'branch') {
       <!--
-          Unlabelled, unlike the sections around it: a tree of terms under the row it belongs to
-          reads as what it is, and a caption on it was a line of chrome saying so again.
+          Unlabelled on screen, unlike the sections around it: a tree of terms under the row it
+          belongs to reads as what it is, and a caption on it was a line of chrome saying so again.
+          Its term is hidden rather than absent: a definition with no term before it breaks the
+          list for a screen reader.
         -->
+      <dt class="sr-only">{{ 'detail.hierarchy' | translate }}</dt>
       <dd class="wide hierarchy-choice">
         <div>
           <!--
@@ -428,7 +431,7 @@
       <button
         type="button"
         aria-haspopup="dialog"
-        aria-controls="narrowing-panel"
+        [attr.aria-controls]="choosingNarrowing() ? 'narrowing-panel' : null"
         [attr.aria-expanded]="choosingNarrowing()"
         [attr.aria-description]="narrowedTo().length ? '' : null"
         [title]="narrowedTo().join(', ')"
@@ -763,7 +766,7 @@
           class="child oneline pick"
           tabindex="0"
           role="option"
-          [attr.aria-label]="'results.propertyIn' | translate: { label: hit.termLabel, acronym: hit.sourceAcronym }"
+          [attr.aria-label]="propertyRowName(hit)"
           [attr.aria-selected]="isSelected(hit)"
           [attr.aria-expanded]="isMarked(hit)"
           [class.marked]="isSelected(hit)"
@@ -777,7 +780,11 @@
             @if (sourceNameIfDistinct(hit.sourceAcronym); as name) { <span class="dim">· {{ name }}</span> } @if
             (authorityOf(hit.sourceAcronym); as from) { <span class="meta inline dim from">· {{ from }}</span> }
           </span>
-          <span class="meta inline">{{ 'results.propertyKind.' + hit.propertyKind | translate }}</span>
+          <!--
+            A space keeps the kind a word apart from the source in the row's text, as the two cells
+            are apart on screen. The row is a grid, which renders a space between its cells as nothing.
+          -->
+          &ngsp;<span class="meta inline">{{ 'results.propertyKind.' + hit.propertyKind | translate }}</span>
         </div>
         @if (isMarked(hit)) {
         <cetp-property-detail

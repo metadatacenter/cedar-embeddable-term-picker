@@ -97,7 +97,10 @@ test('removing the only constraint with saved actions moves focus to the actions
 });
 
 test('removing a saved action leaves focus on the nearest action, then on the last constraint', async ({ page }) => {
-  await openConstraints(page, { constraints: [ontology('DOID'), ontology('NCIT')], actions: [action('a'), action('b')] });
+  await openConstraints(page, {
+    constraints: [ontology('DOID'), ontology('NCIT')],
+    actions: [action('a'), action('b')],
+  });
   await picker(page).locator('.saved-actions summary').click();
   const remove = (number: number) => picker(page).getByRole('button', { name: `Remove action ${number}`, exact: true });
 
