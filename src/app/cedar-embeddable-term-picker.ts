@@ -33,16 +33,19 @@ import { ControlledTermSet, ControlledTermConfig, ControlledTermAction } from '.
 import { toControlledTermConfig } from './search/picked-constraint';
 import { PropertyDetailComponent } from './search/property-detail';
 import { NgTemplateOutlet } from '@angular/common';
-import { TranslatePipe } from '@ngx-translate/core';
+import { InterpolationParameters, TranslatePipe } from '@ngx-translate/core';
 import {
   CetpLanguage,
   DEFAULT_LANGUAGE,
   Localizer,
   Message,
+  Passage,
   countKey,
   languageOf,
   languageTag,
+  messageLanguage,
   messageOf,
+  passage,
   phrase,
   provideLocalization,
 } from './i18n/localization';
@@ -409,8 +412,11 @@ export class CedarEmbeddableTermPicker {
    * things are not live themselves. It is written when an outcome happens rather than derived from
    * what is on screen, so switching tabs or typing says nothing, and a search is said once, after
    * the debounce.
+   *
+   * Held as passages, so a sentence the terminology server wrote is said in English inside a
+   * Hungarian announcement.
    */
-  protected readonly announcement = signal('');
+  protected readonly announcement = signal<readonly Passage[]>([]);
   protected readonly expanded = signal<string | null>(null);
 
   /**
@@ -620,14 +626,14 @@ export class CedarEmbeddableTermPicker {
     // in the new one.
     effect(() => {
       this.language();
-      untracked(() => this.announcement.set(''));
+      untracked(() => this.announcement.set([]));
     });
 
     // A failure, a refusal and the reason a short query was not sent are shown as a notice and
     // said as they arrive. The message is said in the language of the moment it arrived.
     effect(() => {
       const message = this.error();
-      if (message !== null) untracked(() => this.announcement.set(this.localizer.say(message)));
+      if (message !== null) untracked(() => this.announcement.set([this.localizer.passage(message)]));
     });
 
     effect(() => {
@@ -735,13 +741,13 @@ export class CedarEmbeddableTermPicker {
       this.settle(null);
       this.error.set(null);
       this.searching.set(false);
-      this.announcement.set('');
+      this.announcement.set([]);
       return;
     }
     const controller = new AbortController();
     this.inFlight = controller;
     this.searching.set(true);
-    this.announcement.set(this.localizer.t('status.searching'));
+    this.announcement.set([passage(this.localizer.t('status.searching'))]);
     // Whatever the last query was told, this one has not been told anything yet. Left standing, a
     // refusal sat under "searching…" as though it were this query's answer.
     this.error.set(null);
@@ -808,18 +814,26 @@ export class CedarEmbeddableTermPicker {
    * What an answered search says aloud, in the order the screen shows it: the count on each tab,
    * each source that was not searched, and the open tab's sentence when it holds nothing.
    */
-  private outcome(): string {
+  private outcome(): readonly Passage[] {
     const counts = this.counts();
     const tabs = this.tabs()
       .filter((tab) => counts[tab] !== undefined)
       .map((tab) => `${this.localizer.t(`tabs.${tab}`)} ${counts[tab]}`);
-    const said = tabs.length ? [this.localizer.t('status.results', { counts: tabs.join(', ') })] : [];
-    for (const source of this.unavailable()) {
-      said.push(this.localizer.t('status.unavailable', { acronym: source.sourceAcronym, reason: source.reason }));
-    }
+    const said: (readonly Passage[])[] = tabs.length
+      ? [[passage(this.localizer.t('status.results', { counts: tabs.join(', ') }))]]
+      : [];
+    for (const source of this.unavailable()) said.push(this.unsearched(source));
     const empty = this.emptyKey(this.activeTab());
-    if (empty !== null) said.push(this.localizer.t(empty));
-    return said.join(' ');
+    if (empty !== null) said.push([passage(this.localizer.t(empty))]);
+    return said.flatMap((sentence, index) => (index ? [passage(' '), ...sentence] : sentence));
+  }
+
+  /** What the notice for a source that was not searched says, with the server's reason in English. */
+  protected unsearched(source: SourceBlock): readonly Passage[] {
+    const acronym = source.sourceAcronym;
+    return source.reason === undefined
+      ? [passage(this.localizer.t('status.unavailable', { acronym, reason: source.reason }))]
+      : this.within('status.unavailable', 'reason', source.reason, { acronym });
   }
 
   /** The sentence a tab's list shows in place of rows when it holds none, or null when it holds some. */
@@ -1249,7 +1263,7 @@ export class CedarEmbeddableTermPicker {
     const page = this.pageOf(kind) + 1;
     this.searching.set(true);
     this.loadingMore.set(true);
-    if (asked) this.announcement.set(this.localizer.t('status.readingMore'));
+    if (asked) this.announcement.set([passage(this.localizer.t('status.readingMore'))]);
     const signal = this.alongside();
     let failed = false;
     try {
@@ -1302,9 +1316,9 @@ export class CedarEmbeddableTermPicker {
         operation.finish();
         this.searching.set(false);
         if (this.isExhausted(kind) && this.pageOf(kind) > 1 && kind === this.activeTab()) {
-          this.announcement.set(this.localizer.t('status.noMore'));
+          this.announcement.set([passage(this.localizer.t('status.noMore'))]);
         } else if (asked && !failed) {
-          this.announcement.set('');
+          this.announcement.set([]);
         }
         this.topUp(kind);
       }
@@ -1580,6 +1594,7 @@ export class CedarEmbeddableTermPicker {
   }
 
   protected readonly languageTag = languageTag;
+  protected readonly messageLanguage = messageLanguage;
 
   /**
    * A phrase cut where one of its parameters goes, so the parameter can be an element of its own.
@@ -1587,10 +1602,37 @@ export class CedarEmbeddableTermPicker {
    * A label quoted inside a phrase is in its own language, and only an element can say so. The
    * phrase is translated around a mark and cut at it, so each language keeps its own word order.
    */
-  protected around(key: string, parameter: string): readonly [string, string] {
-    const marked = this.localizer.t(key, { [parameter]: PARAMETER_MARK });
+  protected around(key: string, parameter: string, params: InterpolationParameters = {}): readonly [string, string] {
+    const marked = this.localizer.t(key, { ...params, [parameter]: PARAMETER_MARK });
     const at = marked.indexOf(PARAMETER_MARK);
     return at < 0 ? [marked, ''] : [marked.slice(0, at), marked.slice(at + PARAMETER_MARK.length)];
+  }
+
+  /**
+   * A phrase that quotes a message as one of its parameters. Someone else's text is a passage of its
+   * own in its own language, and the phrase around it stays in the picker's.
+   */
+  protected within(
+    key: string,
+    parameter: string,
+    message: Message,
+    params: InterpolationParameters = {},
+  ): readonly Passage[] {
+    const language = messageLanguage(message);
+    if (language === null)
+      return [passage(this.localizer.t(key, { ...params, [parameter]: this.localizer.say(message) }))];
+    const [before, after] = this.around(key, parameter, params);
+    return [passage(before), passage(this.localizer.say(message), language), passage(after)];
+  }
+
+  /**
+   * Why a tree is missing. The store's own sentence when it answered, and otherwise the phrase that
+   * says the tree could not be read, quoting whatever explains it.
+   */
+  protected refusalPassages(refusal: { readonly answered: boolean; readonly reason: Message }): readonly Passage[] {
+    return refusal.answered
+      ? [this.localizer.passage(refusal.reason)]
+      : this.within('tree.unreadable', 'reason', refusal.reason);
   }
 
   protected labelsOf(refs: readonly TermRef[] | undefined, limit = 4): string {

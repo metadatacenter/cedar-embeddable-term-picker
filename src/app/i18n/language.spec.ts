@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { CedarEmbeddableTermPicker } from '../cedar-embeddable-term-picker';
 import { TerminologyClient } from '../search/terminology-client';
 import { SearchResponse } from '../search/search-types';
-import { languageTag } from './localization';
+import { languageTag, messageLanguage, phrase } from './localization';
 
 /** A client that answers every search with one fixture, so these specs need no server. */
 class StubClient {
@@ -128,5 +128,15 @@ describe('a label tagged with a language', () => {
     expect(languageTag(undefined)).toBeNull();
     expect(languageTag('')).toBeNull();
     expect(languageTag('not a tag')).toBeNull();
+  });
+});
+
+describe('a message', () => {
+  it("is in the picker's language when it is a phrase of the picker's own", () => {
+    expect(messageLanguage(phrase('errors.searchFailed'))).toBeNull();
+  });
+
+  it("is English when it is the server's text", () => {
+    expect(messageLanguage('The store holds no term urn:x in NCIT.')).toBe('en');
   });
 });

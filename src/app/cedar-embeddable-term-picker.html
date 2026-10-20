@@ -178,9 +178,10 @@
               looking for a broken ingest. A failure is said as a failure, so it is not read as an
               answer about what the store holds.
             -->
+          <!-- The store's sentence is marked as English, whole or where the picker's phrase quotes it. -->
           <span class="meta inline"
-            >{{ refusal.answered ? localizer.say(refusal.reason) : ('tree.unreadable' | translate: { reason:
-            localizer.say(refusal.reason) }) }}</span
+            >@for (part of refusalPassages(refusal); track $index) {<span [attr.lang]="part.lang">{{ part.text }}</span
+            >}</span
           >
           } @else {
           <span class="meta inline">{{ 'common.reading' | translate }}</span>
@@ -341,7 +342,7 @@
           release, and cannot be recorded until one of the two changes.
         -->
       @if (selectionBlocked(); as blocked) {
-      <p class="blocked" role="status">{{ localizer.say(blocked) }}</p>
+      <p class="blocked" role="status" [attr.lang]="messageLanguage(blocked)">{{ localizer.say(blocked) }}</p>
       }
       <!--
           The source and the release, under the term rather than beside it. Together they are the
@@ -592,12 +593,24 @@
     found, a failure, the list reading more and the list ending. The lines on screen that show the
     same things are not live, so nothing is said twice, and focus stays where the author left it.
   -->
-  <p class="sr-only" role="status" aria-live="polite">{{ announcement() }}</p>
+  <!--
+    A sentence the terminology server wrote is said in English inside an announcement in another
+    language. The region is read whole on any change, as it was while it held one line of text.
+  -->
+  <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+    @for (part of announcement(); track $index) {<span [attr.lang]="part.lang">{{ part.text }}</span>}
+  </p>
 
+  <!--
+    The server's sentences and reasons are marked as English, so a picker in another language does
+    not read them as its own.
+  -->
   @if (error(); as message) {
-  <p class="notice">{{ localizer.say(message) }}</p>
+  <p class="notice" [attr.lang]="messageLanguage(message)">{{ localizer.say(message) }}</p>
   } @for (source of unavailable(); track source.sourceAcronym) {
-  <p class="notice">{{ 'status.unavailable' | translate: { acronym: source.sourceAcronym, reason: source.reason } }}</p>
+  <p class="notice">
+    @for (part of unsearched(source); track $index) {<span [attr.lang]="part.lang">{{ part.text }}</span>}
+  </p>
   }
 
   <div class="results" #list (scroll)="onScroll($event)">
@@ -768,7 +781,7 @@
     } @empty { @if (response()) {
     <p class="empty">{{ 'results.noOntologies' | translate }}</p>
     } } } @case ('property') { @if (response()?.errors?.property; as message) {
-    <p role="alert" class="selection-error">{{ localizer.say(message) }}</p>
+    <p role="alert" class="selection-error" [attr.lang]="messageLanguage(message)">{{ localizer.say(message) }}</p>
     } @for (group of propertyGroups(); track group.label) {
     <div class="row group" [class.open]="expanded() === group.label">
       <button

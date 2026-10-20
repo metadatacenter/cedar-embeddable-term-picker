@@ -83,6 +83,38 @@ export function isPhrase(message: Message): message is Phrase {
 }
 
 /**
+ * The language the terminology server writes in.
+ *
+ * Its resources write every sentence they send in English, whatever the request asks for, such as a
+ * refusal or the reason a tree is missing. The codes that say why a source was not searched, such
+ * as `sourceUnknown`, are English words too.
+ */
+export const SERVER_LANGUAGE = 'en';
+
+/**
+ * The language a message is written in, where it differs from the picker's.
+ *
+ * Null for a phrase, which is the picker's own and speaks its language. A string is someone else's
+ * text: a sentence the terminology server sent, or now and then the message of an error the browser
+ * raised. Both are English, and a Hungarian picker marks them so rather than reading them as
+ * Hungarian.
+ */
+export function messageLanguage(message: Message): string | null {
+  return isPhrase(message) ? null : SERVER_LANGUAGE;
+}
+
+/** A stretch of text, and its language where that is not the picker's. */
+export interface Passage {
+  readonly text: string;
+  readonly lang: string | null;
+}
+
+/** Text in the picker's language, or in the one named. */
+export function passage(text: string, lang: string | null = null): Passage {
+  return { text, lang };
+}
+
+/**
  * Carries a message out of code that reports by throwing.
  *
  * `message` holds the text when there is one to hold and the key otherwise, so a stack trace
@@ -155,6 +187,11 @@ export class Localizer {
 
   say(message: Message): string {
     return isPhrase(message) ? this.t(message.key, message.params) : message;
+  }
+
+  /** A message in the active language, marked with its own where it is someone else's text. */
+  passage(message: Message): Passage {
+    return passage(this.say(message), messageLanguage(message));
   }
 
   /** A count, grouped the way the active language groups digits. */

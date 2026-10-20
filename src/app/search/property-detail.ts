@@ -1,6 +1,6 @@
 import { Icon } from '../icon';
 import { TranslatePipe } from '@ngx-translate/core';
-import { Localizer, Message, languageTag, messageOf, phrase } from '../i18n/localization';
+import { Localizer, Message, languageTag, messageLanguage, messageOf, phrase } from '../i18n/localization';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -59,7 +59,8 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
         <p role="status">{{ 'property.reading' | translate }}</p>
       }
       @if (error(); as message) {
-        <p role="alert">{{ localizer.say(message) }}</p>
+        <!-- A sentence the terminology server wrote is in English. -->
+        <p role="alert" [attr.lang]="messageLanguage(message)">{{ localizer.say(message) }}</p>
       }
       @if (hierarchy(); as tree) {
         <!--
@@ -147,6 +148,7 @@ export class PropertyDetailComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
   protected readonly languageTag = languageTag;
+  protected readonly messageLanguage = messageLanguage;
   readonly hit = input.required<PropertyHit>();
   readonly allowVersions = input(true);
   readonly focused = output<PropertyHit | null>();

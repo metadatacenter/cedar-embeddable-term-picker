@@ -87,9 +87,10 @@
   <details class="saved-actions">
     <summary>{{ localizer.plural('table.savedActions', set().actions.length) }}</summary>
     @for (action of set().actions; track $index) {
+    <!-- The action is the model's own keyword, an English word shown as the set stores it. -->
     <p>
-      {{ action.action }} · {{ action.termUri }}@if (action.to !== undefined) { · {{ 'table.position' | translate: {
-      position: action.to } }} }
+      <span lang="en">{{ action.action }}</span> · {{ action.termUri }}@if (action.to !== undefined) { · {{
+      'table.position' | translate: { position: action.to } }} }
       <button
         type="button"
         (click)="removeAction($index)"
