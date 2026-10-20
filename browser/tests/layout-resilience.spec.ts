@@ -243,11 +243,16 @@ async function showTab(page: Page, index: number): Promise<void> {
   await expect(picker(page).locator('.tab').nth(index)).toHaveAttribute('aria-selected', 'true');
 }
 
+/**
+ * The five kinds, set before the query is typed. Setting them after a search starts a second one, and
+ * a reply that arrives late replaces the results a test has already opened.
+ */
 async function withProperties(page: Page): Promise<void> {
-  await answered(page);
+  await open(page, 'constraints');
   await picker(page).evaluate((element) =>
     Object.assign(element, { termTypes: ['class', 'branch', 'ontology', 'valueSet', 'property'] }),
   );
+  await search(page, 'melanoma');
   await expect(picker(page).locator('.tab')).toHaveCount(5);
 }
 
