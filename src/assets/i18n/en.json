@@ -98,6 +98,7 @@
   },
   "status": {
     "searching": "searching…",
+    "results": "Results: {{counts}}.",
     "readingMore": "reading more…",
     "noMore": "no more matches",
     "unavailable": "{{acronym}} was not searched — {{reason}}. Its terms are absent from these results rather than missing from the vocabulary."

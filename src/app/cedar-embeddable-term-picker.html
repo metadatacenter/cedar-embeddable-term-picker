@@ -555,9 +555,15 @@
     a search runs: rendering it into existence pushed the results down a line at the moment an
     author was reading them.
   -->
-  <p class="working" [class.idle]="!searching()" role="status" aria-live="polite">
+  <p class="working" [class.idle]="!searching()">
     {{ 'status.searching' | translate }}
   </p>
+  <!--
+    The one live region. It says each outcome once, as it happens: a search starting and what it
+    found, a failure, the list reading more and the list ending. The lines on screen that show the
+    same things are not live, so nothing is said twice, and focus stays where the author left it.
+  -->
+  <p class="sr-only" role="status" aria-live="polite">{{ announcement() }}</p>
 
   @if (error(); as message) {
   <p class="notice">{{ localizer.say(message) }}</p>

@@ -399,6 +399,18 @@ export class CedarEmbeddableTermPicker {
    * says a search is running; this says the list is growing.
    */
   protected readonly loadingMore = signal(false);
+
+  /**
+   * What the picker last said to someone who cannot see the list change, in the language it was
+   * said in.
+   *
+   * One live region says every outcome, so nothing is announced twice: a search starting, its
+   * answer, a failure, the list growing and the list ending. The lines on screen that say the same
+   * things are not live themselves. It is written when an outcome happens rather than derived from
+   * what is on screen, so switching tabs or typing says nothing, and a search is said once, after
+   * the debounce.
+   */
+  protected readonly announcement = signal('');
   protected readonly expanded = signal<string | null>(null);
 
   /**
@@ -604,6 +616,20 @@ export class CedarEmbeddableTermPicker {
     // alone. The maps are bundled, so the switch completes before the next render.
     effect(() => this.localizer.use(this.language()));
 
+    // What was last announced was said in the old language, and is cleared rather than said again
+    // in the new one.
+    effect(() => {
+      this.language();
+      untracked(() => this.announcement.set(''));
+    });
+
+    // A failure, a refusal and the reason a short query was not sent are shown as a notice and
+    // said as they arrive. The message is said in the language of the moment it arrived.
+    effect(() => {
+      const message = this.error();
+      if (message !== null) untracked(() => this.announcement.set(this.localizer.say(message)));
+    });
+
     effect(() => {
       this.terminologyBaseUrl();
       this.configurationError();
@@ -709,11 +735,13 @@ export class CedarEmbeddableTermPicker {
       this.settle(null);
       this.error.set(null);
       this.searching.set(false);
+      this.announcement.set('');
       return;
     }
     const controller = new AbortController();
     this.inFlight = controller;
     this.searching.set(true);
+    this.announcement.set(this.localizer.t('status.searching'));
     // Whatever the last query was told, this one has not been told anything yet. Left standing, a
     // refusal sat under "searching…" as though it were this query's answer.
     this.error.set(null);
@@ -732,6 +760,7 @@ export class CedarEmbeddableTermPicker {
       this.settle(response);
       this.topUp(this.activeTab());
       this.error.set(null);
+      this.announcement.set(this.outcome());
       // The ontologies on offer rank against the text, so new text makes them stale. An open panel
       // refills in place, keeping its rows until the new ones arrive; a closed one asks again when it
       // next opens. Narrowing re-asks with the same text, and leaves them as they are.
@@ -774,6 +803,41 @@ export class CedarEmbeddableTermPicker {
     }
     return counts;
   });
+
+  /**
+   * What an answered search says aloud, in the order the screen shows it: the count on each tab,
+   * each source that was not searched, and the open tab's sentence when it holds nothing.
+   */
+  private outcome(): string {
+    const counts = this.counts();
+    const tabs = this.tabs()
+      .filter((tab) => counts[tab] !== undefined)
+      .map((tab) => `${this.localizer.t(`tabs.${tab}`)} ${counts[tab]}`);
+    const said = tabs.length ? [this.localizer.t('status.results', { counts: tabs.join(', ') })] : [];
+    for (const source of this.unavailable()) {
+      said.push(this.localizer.t('status.unavailable', { acronym: source.sourceAcronym, reason: source.reason }));
+    }
+    const empty = this.emptyKey(this.activeTab());
+    if (empty !== null) said.push(this.localizer.t(empty));
+    return said.join(' ');
+  }
+
+  /** The sentence a tab's list shows in place of rows when it holds none, or null when it holds some. */
+  private emptyKey(tab: SearchKind): string | null {
+    switch (tab) {
+      case 'class':
+        return this.labelGroups().length ? null : 'results.noTerms';
+      case 'branch':
+        return this.branchGroups().length ? null : 'results.noBranches';
+      case 'ontology':
+        return this.ontologies().length ? null : 'results.noOntologies';
+      case 'valueSet':
+        return this.valueSets().length ? null : 'results.noValueSets';
+      case 'property':
+        // A property search that failed says so in an alert of its own instead.
+        return this.propertyGroups().length || this.response()?.errors?.property ? null : 'results.noProperties';
+    }
+  }
 
   /**
    * Whether a label is a bare code rather than a name.
@@ -1127,7 +1191,7 @@ export class CedarEmbeddableTermPicker {
     const list = event.target as HTMLElement;
     const remaining = list.scrollHeight - list.scrollTop - list.clientHeight;
     if (remaining < list.clientHeight) {
-      void this.loadMore(this.activeTab());
+      void this.loadMore(this.activeTab(), true);
     }
   }
 
@@ -1156,8 +1220,12 @@ export class CedarEmbeddableTermPicker {
    * A page rather than everything, because a common query matches ten thousand distinct labels and
    * an author reads the first twenty. The end is a short page, not a count: `totalCount` stops at
    * the cap and cannot say where the list runs out.
+   *
+   * `asked` is whether the author's scrolling asked for it. Only then is the reading said aloud: a
+   * page fetched to fill a short list follows every answer, and saying so would follow every answer
+   * with chatter. The list's end is said however it was reached.
    */
-  protected async loadMore(kind: SearchKind): Promise<void> {
+  protected async loadMore(kind: SearchKind, asked = false): Promise<void> {
     const current = this.response();
     const query = this.text().trim();
     if (
@@ -1174,7 +1242,9 @@ export class CedarEmbeddableTermPicker {
     const page = this.pageOf(kind) + 1;
     this.searching.set(true);
     this.loadingMore.set(true);
+    if (asked) this.announcement.set(this.localizer.t('status.readingMore'));
     const signal = this.alongside();
+    let failed = false;
     try {
       const next = await this.client.search(
         {
@@ -1215,6 +1285,7 @@ export class CedarEmbeddableTermPicker {
       if (!operation.current() || signal?.aborted) {
         return;
       }
+      failed = true;
       this.error.set(messageOf(failure, phrase('errors.searchFailed')));
     } finally {
       if (operation.current() && !signal?.aborted) this.loadingMore.set(false);
@@ -1223,6 +1294,11 @@ export class CedarEmbeddableTermPicker {
       if (operation.current() && !signal?.aborted) {
         operation.finish();
         this.searching.set(false);
+        if (this.isExhausted(kind) && this.pageOf(kind) > 1 && kind === this.activeTab()) {
+          this.announcement.set(this.localizer.t('status.noMore'));
+        } else if (asked && !failed) {
+          this.announcement.set('');
+        }
         this.topUp(kind);
       }
     }

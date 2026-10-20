@@ -98,6 +98,7 @@
   },
   "status": {
     "searching": "keresés…",
+    "results": "Találatok: {{counts}}.",
     "readingMore": "további találatok beolvasása…",
     "noMore": "nincs több találat",
     "unavailable": "{{acronym}}: a keresés nem terjedt ki erre a forrásra — {{reason}}. A fogalmai ezért hiányoznak a találatok közül, nem azért, mert a szótárban nem szerepelnek."
