@@ -41,6 +41,7 @@ import {
   Message,
   countKey,
   languageOf,
+  languageTag,
   messageOf,
   phrase,
   provideLocalization,
@@ -145,8 +146,13 @@ export interface LabelGroup {
   readonly label: string;
   /** The label the ontology gave, when it is a code and the title came from a matched name. */
   readonly code?: string;
+  /** The language of the title, when it came from a matched name that carries one. */
+  readonly language?: string | null;
   readonly hits: readonly ClassHit[];
 }
+
+/** Stands in for a parameter while a phrase is split around it, and is never shown. */
+const PARAMETER_MARK = '\u0000';
 
 @Component({
   selector: CETP_TAG,
@@ -157,8 +163,10 @@ export interface LabelGroup {
   styleUrl: './cedar-embeddable-term-picker.scss',
   encapsulation: ViewEncapsulation.ShadowDom,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  // Lets the table mode fill a host that gives it a fixed height; see the stylesheet.
-  host: { '[class.cetp-table-mode]': 'tableMode()' },
+  // Lets the table mode fill a host that gives it a fixed height; see the stylesheet. The shadow
+  // tree takes its language from the host element, so `lang` there is the language of every string
+  // the picker shows, whatever language the page around it is in.
+  host: { '[class.cetp-table-mode]': 'tableMode()', '[attr.lang]': 'language()' },
 })
 export class CedarEmbeddableTermPicker {
   private readonly client = inject(TerminologyClient);
@@ -796,11 +804,12 @@ export class CedarEmbeddableTermPicker {
       const first = members[0];
       // A code is not a name. When the ontology gave one, lead with the name that actually matched
       // and keep the code beside it, so the row says what the author searched for.
-      const matched = first.matchedLabels?.[0]?.label;
+      const matched = first.matchedLabels?.[0];
       const coded = CedarEmbeddableTermPicker.isCode(first.termLabel) && matched !== undefined;
       return {
-        label: coded ? matched : first.termLabel,
+        label: coded ? matched.label : first.termLabel,
         code: coded ? first.termLabel : undefined,
+        language: coded ? languageTag(matched.language) : undefined,
         hits: members,
       };
     });
@@ -1455,6 +1464,20 @@ export class CedarEmbeddableTermPicker {
   protected elide(text: string | undefined, max = 96, tail = 28): string {
     // A value set's name is optional in the contract, so this takes what the contract gives.
     return DisplayText.elide(text ?? '', max, tail);
+  }
+
+  protected readonly languageTag = languageTag;
+
+  /**
+   * A phrase cut where one of its parameters goes, so the parameter can be an element of its own.
+   *
+   * A label quoted inside a phrase is in its own language, and only an element can say so. The
+   * phrase is translated around a mark and cut at it, so each language keeps its own word order.
+   */
+  protected around(key: string, parameter: string): readonly [string, string] {
+    const marked = this.localizer.t(key, { [parameter]: PARAMETER_MARK });
+    const at = marked.indexOf(PARAMETER_MARK);
+    return at < 0 ? [marked, ''] : [marked.slice(0, at), marked.slice(at + PARAMETER_MARK.length)];
   }
 
   protected labelsOf(refs: readonly TermRef[] | undefined, limit = 4): string {

@@ -43,6 +43,22 @@ export function languageOf(value: unknown): CetpLanguage {
   return LANGUAGES.find((language) => language === value) ?? DEFAULT_LANGUAGE;
 }
 
+/**
+ * The `lang` attribute of a label the terminology server tagged with a language.
+ *
+ * The tag is the server's, canonicalized, so "mélanome" tagged `fr` is read in French inside an
+ * English or a Hungarian picker. Null where there is no tag or it is not a well-formed BCP 47 tag,
+ * and the label then takes the picker's language.
+ */
+export function languageTag(tag: string | undefined): string | null {
+  if (!tag) return null;
+  try {
+    return Intl.getCanonicalLocales(tag)[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Text the picker states itself, identified by its key in the translation files. */
 export interface Phrase {
   readonly key: string;

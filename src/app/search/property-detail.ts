@@ -1,6 +1,6 @@
 import { Icon } from '../icon';
 import { TranslatePipe } from '@ngx-translate/core';
-import { Localizer, Message, messageOf, phrase } from '../i18n/localization';
+import { Localizer, Message, languageTag, messageOf, phrase } from '../i18n/localization';
 import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
 import { TerminologyClient } from './terminology-client';
 import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './search-types';
@@ -99,7 +99,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
         @for (literal of tree.selected.property.literals; track $index) {
           @if (isDescription(literal.predicate)) {
             <p class="description">
-              {{ literal.value }}
+              <span [attr.lang]="languageTag(literal.lang)">{{ literal.value }}</span>
               @if (literal.lang) {
                 ({{ literal.lang }})
               }
@@ -114,6 +114,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
 export class PropertyDetailComponent {
   private readonly client = inject(TerminologyClient);
   protected readonly localizer = inject(Localizer);
+  protected readonly languageTag = languageTag;
   readonly hit = input.required<PropertyHit>();
   readonly allowVersions = input(true);
   readonly focused = output<PropertyHit | null>();
