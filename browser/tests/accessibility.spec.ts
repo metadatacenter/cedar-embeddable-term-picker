@@ -1,4 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
+import type { NodeResult } from 'axe-core';
 import { Page, expect, test } from '@playwright/test';
 import {
   branchHit,
@@ -70,12 +71,11 @@ async function expectAccessible(page: Page, state: string): Promise<void> {
   const violations = [...tagged, ...named];
   // A label on an element whose role takes none is ignored by screen readers, decided or not.
   const ignoredLabels = incomplete.filter((result) => result.id === 'aria-prohibited-attr');
-  const failures = [...violations, ...ignoredLabels].flatMap((violation) =>
-    violation.nodes
-      .map((node) => JSON.stringify(node.target))
-      .filter((target) => !pending(violation.id, target))
-      .map((target) => `${violation.id}: ${target}`),
-  );
+  const failures: string[] = [];
+  for (const violation of [...violations, ...ignoredLabels])
+    for (const node of violation.nodes)
+      if (!(await pending(page, violation.id, node.target)))
+        failures.push(`${violation.id}: ${JSON.stringify(node.target)}`);
   expect(failures, state).toEqual([]);
 }
 
@@ -87,11 +87,38 @@ const picker = (page: Page) => page.locator('cedar-embeddable-term-picker');
  * option does not take, and holds buttons of its own; giving the list proper semantics changes how
  * the keyboard moves through it. A release-history button is smaller than WCAG 2.2's 24px target,
  * and growing it changes the row's layout. Anything else that fails these rules fails the test.
+ *
+ * Each exception names its elements by a selector they match. The selector axe-core reports is
+ * built from whatever attribute is rarest on the page, so it changes when an unrelated attribute
+ * does, and matching its text would excuse other elements or stop excusing these.
  */
-function pending(rule: string, target: string): boolean {
-  if (['aria-allowed-attr', 'aria-required-parent', 'nested-interactive'].includes(rule))
-    return /\.pick|\.marked/.test(target);
-  return rule === 'target-size' && target.includes('Show all');
+const PENDING: readonly { readonly rule: string; readonly selector: string }[] = [
+  { rule: 'aria-allowed-attr', selector: '.pick' },
+  { rule: 'aria-required-parent', selector: '.pick' },
+  { rule: 'nested-interactive', selector: '.pick' },
+  { rule: 'target-size', selector: 'button.of' },
+];
+
+/** Whether the element an axe-core finding points at is one of the exceptions for its rule. */
+async function pending(page: Page, rule: string, target: NodeResult['target']): Promise<boolean> {
+  const selectors = PENDING.filter((entry) => entry.rule === rule).map((entry) => entry.selector);
+  return selectors.length > 0 && (await page.evaluate(matchesAt, { target, selectors }));
+}
+
+/**
+ * Whether the element at an axe-core target matches one of the selectors. A target lists one entry
+ * a frame; an entry is a selector, or a path of selectors that crosses shadow roots.
+ */
+function matchesAt({ target, selectors }: { target: NodeResult['target']; selectors: readonly string[] }): boolean {
+  const path = target.at(-1);
+  let scope: ParentNode = document;
+  let element: Element | null = null;
+  for (const step of typeof path === 'string' ? [path] : (path ?? [])) {
+    element = scope.querySelector(step);
+    if (element === null) return false;
+    scope = element.shadowRoot ?? element;
+  }
+  return element !== null && selectors.some((selector) => element.matches(selector));
 }
 
 test('the picker opened, and each tab of an answer', async ({ page }) => {
@@ -155,4 +182,49 @@ test('a constraint set in its tables', async ({ page }) => {
   });
   await search(page, 'melanoma');
   await expectAccessible(page, 'constraint set');
+});
+
+test('a control that shows a value is named by that value, then by what it is for', async ({ page }) => {
+  await stubSearch(page, () => ANSWER);
+  await stubHierarchy(page, () => null);
+  await page.goto('/?mode=constraints');
+  await picker(page).locator('.picker').waitFor();
+  await search(page, 'melanoma');
+  const chip = picker(page).locator('.filter-chip > button').first();
+  await expect(chip).toHaveAccessibleName('Ontologies');
+
+  // Narrowed, the chip shows the acronyms, and speech input reaches it by them.
+  await chip.click();
+  await picker(page).getByRole('checkbox', { name: /^NCIT/ }).check();
+  await picker(page).getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(chip.locator('.value')).toHaveText('NCIT');
+  await expect(chip).toHaveAccessibleName('NCIT ontology');
+  await chip.click();
+  await picker(page).getByRole('checkbox', { name: /^MELO/ }).check();
+  await picker(page).getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(chip.locator('.value')).toHaveText('NCIT, MELO');
+  await expect(chip).toHaveAccessibleName('NCIT, MELO ontologies');
+  // The title repeats the acronyms for a pointer and is not read a second time.
+  await expect(chip).toHaveAttribute('title', 'NCIT, MELO');
+  await expect(chip).toHaveAccessibleDescription('');
+  await expectAccessible(page, 'narrowed chip');
+
+  // A row's release count is named by the count it shows, then by whose releases they are.
+  await picker(page).locator('.rowhead').first().click();
+  const counts = picker(page).locator('button.of');
+  const shown = (buttons: Element[]) => buttons.map((button) => button.firstChild?.textContent?.trim());
+  await expect(counts).toHaveCount(2);
+  expect(await counts.evaluateAll(shown)).toEqual(['of 3', 'of 15']);
+  await expect(counts.first()).toHaveAccessibleName('of 3 releases of NCIT');
+  await expect(counts.nth(1)).toHaveAccessibleName('of 15 releases of DOID');
+  await expect(counts.first()).toHaveAttribute('title', 'Show all 3 releases of NCIT');
+  await expect(counts.first()).toHaveAccessibleDescription('');
+  await expectAccessible(page, 'release counts');
+
+  // The same in Hungarian, where the count reads "/ 3".
+  await picker(page).evaluate((element) => element.setAttribute('language', 'hu'));
+  await expect(chip).toHaveAccessibleName('NCIT, MELO ontológiák');
+  await expect(counts.first()).toHaveAccessibleName('/ 3 kiadás (NCIT)');
+  expect(await counts.evaluateAll(shown)).toEqual(['/ 3', '/ 15']);
+  await expectAccessible(page, 'release counts in Hungarian');
 });

@@ -41,14 +41,22 @@
   } @else {
   <span class="version"></span>
   } @if (versionCount(acronym); as count) {
+  <!--
+    The button's name is the count it shows, finished by hidden words that say whose releases they
+    are. The title says the same for a pointer, and an empty description keeps it from being read
+    after the name.
+  -->
   <button
     type="button"
     class="of"
     [attr.aria-expanded]="isHistoryOpen(acronym)"
+    aria-description=""
     [title]="localizer.plural('stepper.showAllReleases', count, { acronym })"
     (click)="openHistory(acronym); $event.stopPropagation()"
   >
-    {{ 'stepper.of' | translate: { count } }}<span class="caret"
+    {{ 'stepper.of' | translate: { count } }}
+    <span class="sr-only">{{ localizer.plural('stepper.releasesOf', count, { acronym }) }}</span
+    ><span class="caret"
       ><cetp-icon size="small" [name]="isHistoryOpen(acronym) ? 'chevron-up' : 'chevron-down'"
     /></span>
   </button>
@@ -409,6 +417,9 @@
     The ontologies the search is narrowed to, drawn as Workspace's listing filters are: one chip
     holding the filter's value, which opens a panel to change it, and, once the filter is on, a
     segment that clears it. The chosen ontologies are named on the chip rather than counted.
+    The chip's accessible name is the text it shows, so speech input reaches it by the acronyms on
+    it, and hidden words finish the name by saying what the acronyms are. The title repeats the
+    acronyms for a pointer, and an empty description keeps them from being read a second time.
   -->
   <div class="narrowing">
     <span #narrowingChip class="filter-chip" [class.active]="narrowedTo().length > 0">
@@ -417,12 +428,14 @@
         aria-haspopup="dialog"
         aria-controls="narrowing-panel"
         [attr.aria-expanded]="choosingNarrowing()"
-        [attr.aria-label]="'narrowing.chip' | translate"
-        [attr.aria-description]="narrowedTo().length ? narrowedTo().join(', ') : null"
+        [attr.aria-description]="narrowedTo().length ? '' : null"
         [title]="narrowedTo().join(', ')"
         (click)="openNarrowing()"
       >
         <span class="value">{{ narrowedTo().length ? narrowedTo().join(', ') : ('narrowing.chip' | translate) }}</span>
+        @if (narrowedTo().length) {
+        <span class="sr-only"> {{ localizer.plural('narrowing.chipNarrowed', narrowedTo().length) }}</span>
+        }
         <cetp-icon size="small" name="chevron-down" />
       </button>
       @if (narrowedTo().length) {

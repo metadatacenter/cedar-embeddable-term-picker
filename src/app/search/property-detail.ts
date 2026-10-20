@@ -14,21 +14,22 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
       @if (allowVersions() && versions().length) {
         <div class="release-toolbar">
           <span>{{ 'property.release' | translate: { release: releaseLabel() } }}</span>
+          <!-- The name is the count shown, finished by hidden words, as on a result row's release count. -->
           <button
             type="button"
             class="release-toggle"
             [attr.aria-expanded]="showReleases()"
-            [attr.aria-label]="'property.releases' | translate"
             (click)="showReleases.set(!showReleases())"
           >
             {{ 'stepper.of' | translate: { count: versions().length } }}
+            <span class="sr-only">{{ localizer.plural('property.releasesOf', versions().length) }}</span>
             <span aria-hidden="true"
               ><cetp-icon size="small" [name]="showReleases() ? 'chevron-up' : 'chevron-down'"
             /></span>
           </button>
         </div>
         @if (showReleases()) {
-          <div class="releases" [attr.aria-label]="'property.releases' | translate">
+          <div class="releases" role="group" [attr.aria-label]="'property.releases' | translate">
             @for (version of versions(); track version.id) {
               <button
                 type="button"

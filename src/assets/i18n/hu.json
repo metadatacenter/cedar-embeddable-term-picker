@@ -14,7 +14,11 @@
       "one": "{{acronym}}: az összes kiadás megjelenítése ({{count}})",
       "many": "{{acronym}}: az összes kiadás megjelenítése ({{count}})"
     },
-    "of": "/ {{count}}"
+    "of": "/ {{count}}",
+    "releasesOf": {
+      "one": "kiadás ({{acronym}})",
+      "many": "kiadás ({{acronym}})"
+    }
   },
   "tree": {
     "collapse": "{{label}} bezárása",
@@ -64,6 +68,10 @@
   "narrowing": {
     "searchingOnly": "Keresés csak ezekben:",
     "chip": "Ontológiák",
+    "chipNarrowed": {
+      "one": "ontológia",
+      "many": "ontológiák"
+    },
     "clearChip": "Szűrő törlése: ontológiák",
     "panelLabel": "Keresés szűkítése ontológiákra",
     "finderPlaceholder": "Ontológia keresése név vagy rövidítés alapján",
@@ -216,6 +224,10 @@
     "details": "Tulajdonság részletei",
     "release": "Kiadás: {{release}}",
     "releases": "A tulajdonság ontológiájának kiadásai",
+    "releasesOf": {
+      "one": "kiadás (a tulajdonság ontológiája)",
+      "many": "kiadás (a tulajdonság ontológiája)"
+    },
     "reading": "Tulajdonság beolvasása…",
     "notHeld": "{{iri}} (ebben a pillanatképben nem szerepel)",
     "hierarchy": "Tulajdonsághierarchia",
