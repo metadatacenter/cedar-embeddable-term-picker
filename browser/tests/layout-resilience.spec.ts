@@ -4,8 +4,8 @@ import { branchHit, classHit, ontologyHit, results, search, source, stubHierarch
 /**
  * Whether the picker's content survives a narrow host, a zoomed window and wider text.
  *
- * WCAG 2.2 asks four things of a layout. At 320 CSS px nothing may scroll sideways and every control
- * stays reachable (1.4.10). At 200% zoom, which for a 1280 by 800 window is a 640 by 400 viewport,
+ * WCAG 2.2 asks four things of a layout. At 320 CSS px nothing may scroll sideways, no text is drawn
+ * over other text and every control stays reachable (1.4.10). At 200% zoom, which for a 1280 by 800 window is a 640 by 400 viewport,
  * no text is clipped or drawn over other text and every control stays reachable (1.4.4). Text spaced
  * as 1.4.12 describes loses nothing and runs into nothing. A placeholder's text meets 4.5:1 (1.4.3).
  *
@@ -54,6 +54,16 @@ const EXCEPTIONS: readonly Exception[] = [
       'it, as it does at 375px, and a long release has its tag cut. A release has three facts, and a list ' +
       'of them is not a table that needs two dimensions. Below some width each release could take two ' +
       "lines, which changes the history's layout.",
+  },
+  {
+    check: 'reflow',
+    kind: 'overlap',
+    selector: '.releases-head > .grow',
+    states: ['the release history'],
+    why:
+      "At 320 CSS px the release history's head leaves its count no width, so the count is drawn over " +
+      "the column heading beside it. The two-line release that the history's sideways scrolling needs " +
+      'would give the head room for its count.',
   },
   {
     check: 'resize',
@@ -487,9 +497,10 @@ function measure({
     }
 
   if (kinds.includes('overlap')) {
-    // What a text node shows is what its scrolling and clipping boxes leave of it. A panel in the top
-    // layer, and a sticky or fixed box, is drawn over the content that passes under it, and where its
-    // background is opaque, what passes under is hidden rather than overlapped.
+    // What a text node shows is what its scrolling and clipping boxes leave of it, its own element's
+    // included, since an ellipsis is the element clipping its own text. A panel in the top layer, and
+    // a sticky or fixed box, is drawn over the content that passes under it, and where its background
+    // is opaque, what passes under is hidden rather than overlapped.
     const layer = (element: Element) =>
       lineage(element).find((at) => at.matches(':popover-open') || ['sticky', 'fixed'].includes(style(at).position)) ??
       null;
@@ -497,7 +508,7 @@ function measure({
       element !== null && /^rgb\(|^rgba\(.*, 1\)$/.test(style(element).backgroundColor);
     const drawn = texts.flatMap(({ node, element }) => {
       let clip = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
-      for (const at of lineage(element).slice(1)) {
+      for (const at of lineage(element)) {
         const { overflowX, overflowY } = style(at);
         const box = at.getBoundingClientRect();
         if (overflowX !== 'visible')
@@ -615,7 +626,7 @@ function placeholders(): { where: string; ratio: number; text: string; backgroun
 }
 
 const KINDS: Readonly<Record<Check, readonly Kind[]>> = {
-  reflow: ['page scrolls', 'scrolls', 'unreachable'],
+  reflow: ['page scrolls', 'scrolls', 'unreachable', 'overlap'],
   resize: ['clipped', 'ellipsis', 'overlap', 'unreachable'],
   spacing: ['clipped', 'ellipsis', 'overlap'],
 };
