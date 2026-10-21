@@ -43,6 +43,22 @@ export function languageOf(value: unknown): CetpLanguage {
   return LANGUAGES.find((language) => language === value) ?? DEFAULT_LANGUAGE;
 }
 
+/**
+ * The `lang` attribute of a label the terminology server tagged with a language.
+ *
+ * The tag is the server's, canonicalized, so "mélanome" tagged `fr` is read in French inside an
+ * English or a Hungarian picker. Null where there is no tag or it is not a well-formed BCP 47 tag,
+ * and the label then takes the picker's language.
+ */
+export function languageTag(tag: string | undefined): string | null {
+  if (!tag) return null;
+  try {
+    return Intl.getCanonicalLocales(tag)[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Text the picker states itself, identified by its key in the translation files. */
 export interface Phrase {
   readonly key: string;
@@ -64,6 +80,38 @@ export function phrase(key: string, params?: InterpolationParameters): Phrase {
 
 export function isPhrase(message: Message): message is Phrase {
   return typeof message !== 'string';
+}
+
+/**
+ * The language the terminology server writes in.
+ *
+ * Its resources write every sentence they send in English, whatever the request asks for, such as a
+ * refusal or the reason a tree is missing. The codes that say why a source was not searched, such
+ * as `sourceUnknown`, are English words too.
+ */
+export const SERVER_LANGUAGE = 'en';
+
+/**
+ * The language a message is written in, where it differs from the picker's.
+ *
+ * Null for a phrase, which is the picker's own and speaks its language. A string is someone else's
+ * text: a sentence the terminology server sent, or now and then the message of an error the browser
+ * raised. Both are English, and a Hungarian picker marks them so rather than reading them as
+ * Hungarian.
+ */
+export function messageLanguage(message: Message): string | null {
+  return isPhrase(message) ? null : SERVER_LANGUAGE;
+}
+
+/** A stretch of text, and its language where that is not the picker's. */
+export interface Passage {
+  readonly text: string;
+  readonly lang: string | null;
+}
+
+/** Text in the picker's language, or in the one named. */
+export function passage(text: string, lang: string | null = null): Passage {
+  return { text, lang };
 }
 
 /**
@@ -139,6 +187,11 @@ export class Localizer {
 
   say(message: Message): string {
     return isPhrase(message) ? this.t(message.key, message.params) : message;
+  }
+
+  /** A message in the active language, marked with its own where it is someone else's text. */
+  passage(message: Message): Passage {
+    return passage(this.say(message), messageLanguage(message));
   }
 
   /** A count, grouped the way the active language groups digits. */

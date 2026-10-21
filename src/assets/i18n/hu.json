@@ -14,7 +14,11 @@
       "one": "{{acronym}}: az összes kiadás megjelenítése ({{count}})",
       "many": "{{acronym}}: az összes kiadás megjelenítése ({{count}})"
     },
-    "of": "/ {{count}}"
+    "of": "/ {{count}}",
+    "releasesOf": {
+      "one": "kiadás ({{acronym}})",
+      "many": "kiadás ({{acronym}})"
+    }
   },
   "tree": {
     "collapse": "{{label}} bezárása",
@@ -26,6 +30,7 @@
   "detail": {
     "ontologyIri": "Ontológia IRI",
     "valueSetIri": "Értékkészlet IRI",
+    "hierarchy": "Hierarchia",
     "matched": "Egyezés",
     "alsoCalled": "Más néven",
     "moreNames": "és még {{count}}",
@@ -64,6 +69,10 @@
   "narrowing": {
     "searchingOnly": "Keresés csak ezekben:",
     "chip": "Ontológiák",
+    "chipNarrowed": {
+      "one": "ontológia",
+      "many": "ontológiák"
+    },
     "clearChip": "Szűrő törlése: ontológiák",
     "panelLabel": "Keresés szűkítése ontológiákra",
     "finderPlaceholder": "Ontológia keresése név vagy rövidítés alapján",
@@ -90,6 +99,7 @@
   },
   "status": {
     "searching": "keresés…",
+    "results": "Találatok: {{counts}}.",
     "readingMore": "további találatok beolvasása…",
     "noMore": "nincs több találat",
     "unavailable": "{{acronym}}: a keresés nem terjedt ki erre a forrásra — {{reason}}. A fogalmai ezért hiányoznak a találatok közül, nem azért, mert a szótárban nem szerepelnek."
@@ -216,6 +226,10 @@
     "details": "Tulajdonság részletei",
     "release": "Kiadás: {{release}}",
     "releases": "A tulajdonság ontológiájának kiadásai",
+    "releasesOf": {
+      "one": "kiadás (a tulajdonság ontológiája)",
+      "many": "kiadás (a tulajdonság ontológiája)"
+    },
     "reading": "Tulajdonság beolvasása…",
     "notHeld": "{{iri}} (ebben a pillanatképben nem szerepel)",
     "hierarchy": "Tulajdonsághierarchia",

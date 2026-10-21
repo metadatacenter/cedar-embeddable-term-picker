@@ -33,15 +33,19 @@ import { ControlledTermSet, ControlledTermConfig, ControlledTermAction } from '.
 import { toControlledTermConfig } from './search/picked-constraint';
 import { PropertyDetailComponent } from './search/property-detail';
 import { NgTemplateOutlet } from '@angular/common';
-import { TranslatePipe } from '@ngx-translate/core';
+import { InterpolationParameters, TranslatePipe } from '@ngx-translate/core';
 import {
   CetpLanguage,
   DEFAULT_LANGUAGE,
   Localizer,
   Message,
+  Passage,
   countKey,
   languageOf,
+  languageTag,
+  messageLanguage,
   messageOf,
+  passage,
   phrase,
   provideLocalization,
 } from './i18n/localization';
@@ -145,8 +149,13 @@ export interface LabelGroup {
   readonly label: string;
   /** The label the ontology gave, when it is a code and the title came from a matched name. */
   readonly code?: string;
+  /** The language of the title, when it came from a matched name that carries one. */
+  readonly language?: string | null;
   readonly hits: readonly ClassHit[];
 }
+
+/** Stands in for a parameter while a phrase is split around it, and is never shown. */
+const PARAMETER_MARK = '\u0000';
 
 @Component({
   selector: CETP_TAG,
@@ -157,8 +166,10 @@ export interface LabelGroup {
   styleUrl: './cedar-embeddable-term-picker.scss',
   encapsulation: ViewEncapsulation.ShadowDom,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  // Lets the table mode fill a host that gives it a fixed height; see the stylesheet.
-  host: { '[class.cetp-table-mode]': 'tableMode()' },
+  // Lets the table mode fill a host that gives it a fixed height; see the stylesheet. The shadow
+  // tree takes its language from the host element, so `lang` there is the language of every string
+  // the picker shows, whatever language the page around it is in.
+  host: { '[class.cetp-table-mode]': 'tableMode()', '[attr.lang]': 'language()' },
 })
 export class CedarEmbeddableTermPicker {
   private readonly client = inject(TerminologyClient);
@@ -391,6 +402,21 @@ export class CedarEmbeddableTermPicker {
    * says a search is running; this says the list is growing.
    */
   protected readonly loadingMore = signal(false);
+
+  /**
+   * What the picker last said to someone who cannot see the list change, in the language it was
+   * said in.
+   *
+   * One live region says every outcome, so nothing is announced twice: a search starting, its
+   * answer, a failure, the list growing and the list ending. The lines on screen that say the same
+   * things are not live themselves. It is written when an outcome happens rather than derived from
+   * what is on screen, so switching tabs or typing says nothing, and a search is said once, after
+   * the debounce.
+   *
+   * Held as passages, so a sentence the terminology server wrote is said in English inside a
+   * Hungarian announcement.
+   */
+  protected readonly announcement = signal<readonly Passage[]>([]);
   protected readonly expanded = signal<string | null>(null);
 
   /**
@@ -596,6 +622,20 @@ export class CedarEmbeddableTermPicker {
     // alone. The maps are bundled, so the switch completes before the next render.
     effect(() => this.localizer.use(this.language()));
 
+    // What was last announced was said in the old language, and is cleared rather than said again
+    // in the new one.
+    effect(() => {
+      this.language();
+      untracked(() => this.announcement.set([]));
+    });
+
+    // A failure, a refusal and the reason a short query was not sent are shown as a notice and
+    // said as they arrive. The message is said in the language of the moment it arrived.
+    effect(() => {
+      const message = this.error();
+      if (message !== null) untracked(() => this.announcement.set([this.localizer.passage(message)]));
+    });
+
     effect(() => {
       this.terminologyBaseUrl();
       this.configurationError();
@@ -701,11 +741,13 @@ export class CedarEmbeddableTermPicker {
       this.settle(null);
       this.error.set(null);
       this.searching.set(false);
+      this.announcement.set([]);
       return;
     }
     const controller = new AbortController();
     this.inFlight = controller;
     this.searching.set(true);
+    this.announcement.set([passage(this.localizer.t('status.searching'))]);
     // Whatever the last query was told, this one has not been told anything yet. Left standing, a
     // refusal sat under "searching…" as though it were this query's answer.
     this.error.set(null);
@@ -724,6 +766,7 @@ export class CedarEmbeddableTermPicker {
       this.settle(response);
       this.topUp(this.activeTab());
       this.error.set(null);
+      this.announcement.set(this.outcome());
       // The ontologies on offer rank against the text, so new text makes them stale. An open panel
       // refills in place, keeping its rows until the new ones arrive; a closed one asks again when it
       // next opens. Narrowing re-asks with the same text, and leaves them as they are.
@@ -768,6 +811,49 @@ export class CedarEmbeddableTermPicker {
   });
 
   /**
+   * What an answered search says aloud, in the order the screen shows it: the count on each tab,
+   * each source that was not searched, and the open tab's sentence when it holds nothing.
+   */
+  private outcome(): readonly Passage[] {
+    const counts = this.counts();
+    const tabs = this.tabs()
+      .filter((tab) => counts[tab] !== undefined)
+      .map((tab) => `${this.localizer.t(`tabs.${tab}`)} ${counts[tab]}`);
+    const said: (readonly Passage[])[] = tabs.length
+      ? [[passage(this.localizer.t('status.results', { counts: tabs.join(', ') }))]]
+      : [];
+    for (const source of this.unavailable()) said.push(this.unsearched(source));
+    const empty = this.emptyKey(this.activeTab());
+    if (empty !== null) said.push([passage(this.localizer.t(empty))]);
+    return said.flatMap((sentence, index) => (index ? [passage(' '), ...sentence] : sentence));
+  }
+
+  /** What the notice for a source that was not searched says, with the server's reason in English. */
+  protected unsearched(source: SourceBlock): readonly Passage[] {
+    const acronym = source.sourceAcronym;
+    return source.reason === undefined
+      ? [passage(this.localizer.t('status.unavailable', { acronym, reason: source.reason }))]
+      : this.within('status.unavailable', 'reason', source.reason, { acronym });
+  }
+
+  /** The sentence a tab's list shows in place of rows when it holds none, or null when it holds some. */
+  private emptyKey(tab: SearchKind): string | null {
+    switch (tab) {
+      case 'class':
+        return this.labelGroups().length ? null : 'results.noTerms';
+      case 'branch':
+        return this.branchGroups().length ? null : 'results.noBranches';
+      case 'ontology':
+        return this.ontologies().length ? null : 'results.noOntologies';
+      case 'valueSet':
+        return this.valueSets().length ? null : 'results.noValueSets';
+      case 'property':
+        // A property search that failed says so in an alert of its own instead.
+        return this.propertyGroups().length || this.response()?.errors?.property ? null : 'results.noProperties';
+    }
+  }
+
+  /**
    * Whether a label is a bare code rather than a name.
    *
    * Some ontologies put an identifier where the name belongs and keep every human phrasing as a
@@ -796,11 +882,12 @@ export class CedarEmbeddableTermPicker {
       const first = members[0];
       // A code is not a name. When the ontology gave one, lead with the name that actually matched
       // and keep the code beside it, so the row says what the author searched for.
-      const matched = first.matchedLabels?.[0]?.label;
+      const matched = first.matchedLabels?.[0];
       const coded = CedarEmbeddableTermPicker.isCode(first.termLabel) && matched !== undefined;
       return {
-        label: coded ? matched : first.termLabel,
+        label: coded ? matched.label : first.termLabel,
         code: coded ? first.termLabel : undefined,
+        language: coded ? languageTag(matched.language) : undefined,
         hits: members,
       };
     });
@@ -900,10 +987,17 @@ export class CedarEmbeddableTermPicker {
     }
   }
 
-  /** The chip's clearing segment: searches every ontology again, at once. */
+  /**
+   * The chip's clearing segment: searches every ontology again, at once.
+   *
+   * The segment removes itself, so focus moves to the chip beside it, which is the nearest control
+   * that remains. Left where it was, focus fell to the page and a keyboard author started again
+   * from its top.
+   */
   protected clearNarrowing(): void {
-    this.closeNarrowing();
+    this.closeNarrowing(false);
     this.narrowedTo.set([]);
+    this.narrowingChip()?.nativeElement.querySelector('button')?.focus();
   }
 
   /**
@@ -1118,7 +1212,7 @@ export class CedarEmbeddableTermPicker {
     const list = event.target as HTMLElement;
     const remaining = list.scrollHeight - list.scrollTop - list.clientHeight;
     if (remaining < list.clientHeight) {
-      void this.loadMore(this.activeTab());
+      void this.loadMore(this.activeTab(), true);
     }
   }
 
@@ -1147,8 +1241,12 @@ export class CedarEmbeddableTermPicker {
    * A page rather than everything, because a common query matches ten thousand distinct labels and
    * an author reads the first twenty. The end is a short page, not a count: `totalCount` stops at
    * the cap and cannot say where the list runs out.
+   *
+   * `asked` is whether the author's scrolling asked for it. Only then is the reading said aloud: a
+   * page fetched to fill a short list follows every answer, and saying so would follow every answer
+   * with chatter. The list's end is said however it was reached.
    */
-  protected async loadMore(kind: SearchKind): Promise<void> {
+  protected async loadMore(kind: SearchKind, asked = false): Promise<void> {
     const current = this.response();
     const query = this.text().trim();
     if (
@@ -1165,7 +1263,9 @@ export class CedarEmbeddableTermPicker {
     const page = this.pageOf(kind) + 1;
     this.searching.set(true);
     this.loadingMore.set(true);
+    if (asked) this.announcement.set([passage(this.localizer.t('status.readingMore'))]);
     const signal = this.alongside();
+    let failed = false;
     try {
       const next = await this.client.search(
         {
@@ -1206,6 +1306,7 @@ export class CedarEmbeddableTermPicker {
       if (!operation.current() || signal?.aborted) {
         return;
       }
+      failed = true;
       this.error.set(messageOf(failure, phrase('errors.searchFailed')));
     } finally {
       if (operation.current() && !signal?.aborted) this.loadingMore.set(false);
@@ -1214,6 +1315,11 @@ export class CedarEmbeddableTermPicker {
       if (operation.current() && !signal?.aborted) {
         operation.finish();
         this.searching.set(false);
+        if (this.isExhausted(kind) && this.pageOf(kind) > 1 && kind === this.activeTab()) {
+          this.announcement.set([passage(this.localizer.t('status.noMore'))]);
+        } else if (asked && !failed) {
+          this.announcement.set([]);
+        }
         this.topUp(kind);
       }
     }
@@ -1253,6 +1359,24 @@ export class CedarEmbeddableTermPicker {
     ecoportal: 'EcoPortal',
     eionet: 'Eionet',
   };
+
+  /**
+   * A property row's accessible name: the property in its source, then the words the row shows.
+   *
+   * The row shows the source and the kind of property, and the property's label is on the group
+   * above it, so the name carries both. The row's own words come last and in the order shown, so
+   * speech input reaches the row by what it says.
+   */
+  protected propertyRowName(hit: PropertyHit): string {
+    return [
+      this.localizer.t('results.propertyIn', { label: hit.termLabel, acronym: hit.sourceAcronym }),
+      this.sourceNameIfDistinct(hit.sourceAcronym),
+      this.authorityOf(hit.sourceAcronym),
+      this.localizer.t(`results.propertyKind.${hit.propertyKind}`),
+    ]
+      .filter((part) => part !== '')
+      .join(', ');
+  }
 
   /** The name only when it says more than the acronym, so a row never reads "BERO BERO". */
   protected sourceNameIfDistinct(acronym: string): string {
@@ -1364,6 +1488,18 @@ export class CedarEmbeddableTermPicker {
   }
 
   /**
+   * A release's date and hash, each after the name of the column the history shows it in. It is the
+   * release's description, so its name stays the text the button shows.
+   */
+  protected releaseColumns(release: VersionInfo): string {
+    const date = (release.effectiveDate ?? '').slice(0, 10);
+    return [
+      ...(date ? [`${this.localizer.t('history.effectiveDate')} ${date}`] : []),
+      `${this.localizer.t('history.contentHash')} ${this.shortHash(release.id)}`,
+    ].join(', ');
+  }
+
+  /**
    * Pins a release chosen from the history.
    *
    * Choosing the current one unpins rather than writing today's version, the same rule stepping
@@ -1455,6 +1591,48 @@ export class CedarEmbeddableTermPicker {
   protected elide(text: string | undefined, max = 96, tail = 28): string {
     // A value set's name is optional in the contract, so this takes what the contract gives.
     return DisplayText.elide(text ?? '', max, tail);
+  }
+
+  protected readonly languageTag = languageTag;
+  protected readonly messageLanguage = messageLanguage;
+
+  /**
+   * A phrase cut where one of its parameters goes, so the parameter can be an element of its own.
+   *
+   * A label quoted inside a phrase is in its own language, and only an element can say so. The
+   * phrase is translated around a mark and cut at it, so each language keeps its own word order.
+   */
+  protected around(key: string, parameter: string, params: InterpolationParameters = {}): readonly [string, string] {
+    const marked = this.localizer.t(key, { ...params, [parameter]: PARAMETER_MARK });
+    const at = marked.indexOf(PARAMETER_MARK);
+    return at < 0 ? [marked, ''] : [marked.slice(0, at), marked.slice(at + PARAMETER_MARK.length)];
+  }
+
+  /**
+   * A phrase that quotes a message as one of its parameters. Someone else's text is a passage of its
+   * own in its own language, and the phrase around it stays in the picker's.
+   */
+  protected within(
+    key: string,
+    parameter: string,
+    message: Message,
+    params: InterpolationParameters = {},
+  ): readonly Passage[] {
+    const language = messageLanguage(message);
+    if (language === null)
+      return [passage(this.localizer.t(key, { ...params, [parameter]: this.localizer.say(message) }))];
+    const [before, after] = this.around(key, parameter, params);
+    return [passage(before), passage(this.localizer.say(message), language), passage(after)];
+  }
+
+  /**
+   * Why a tree is missing. The store's own sentence when it answered, and otherwise the phrase that
+   * says the tree could not be read, quoting whatever explains it.
+   */
+  protected refusalPassages(refusal: { readonly answered: boolean; readonly reason: Message }): readonly Passage[] {
+    return refusal.answered
+      ? [this.localizer.passage(refusal.reason)]
+      : this.within('tree.unreadable', 'reason', refusal.reason);
   }
 
   protected labelsOf(refs: readonly TermRef[] | undefined, limit = 4): string {

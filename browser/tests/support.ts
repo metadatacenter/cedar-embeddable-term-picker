@@ -109,7 +109,7 @@ interface SourceOptions {
   readonly declaredVersion?: string;
   readonly served?: 'local' | 'proxied' | 'unavailable';
   readonly reason?: string;
-  readonly versions?: readonly { id: string; declaredVersion: string }[];
+  readonly versions?: readonly { id: string; declaredVersion?: string; effectiveDate?: string }[];
 }
 
 export function source(acronym: string, options: SourceOptions = {}): object {

@@ -41,14 +41,24 @@
   } @else {
   <span class="version"></span>
   } @if (versionCount(acronym); as count) {
+  <!--
+    The button's name is the count it shows, finished by hidden words that say whose releases they
+    are. The title says the same for a pointer, and an empty description keeps it from being read
+    after the name. Enter stops here as a click does, so the key opens the history and leaves the
+    row it sits in unmarked.
+  -->
   <button
     type="button"
     class="of"
     [attr.aria-expanded]="isHistoryOpen(acronym)"
+    aria-description=""
     [title]="localizer.plural('stepper.showAllReleases', count, { acronym })"
     (click)="openHistory(acronym); $event.stopPropagation()"
+    (keydown.enter)="$event.stopPropagation()"
   >
-    {{ 'stepper.of' | translate: { count } }}<span class="caret"
+    {{ 'stepper.of' | translate: { count } }}
+    <span class="sr-only">{{ localizer.plural('stepper.releasesOf', count, { acronym }) }}</span
+    ><span class="caret"
       ><cetp-icon size="small" [name]="isHistoryOpen(acronym) ? 'chevron-up' : 'chevron-down'"
     /></span>
   </button>
@@ -83,9 +93,12 @@
       <dd class="iri" [title]="termIriOf(hit)">{{ hit.type === 'ontology' ? sourceIriOf(hit) : termIriOf(hit) }}</dd>
       } @if (hit.type === 'class' || hit.type === 'branch') {
       <!--
-          Unlabelled, unlike the sections around it: a tree of terms under the row it belongs to
-          reads as what it is, and a caption on it was a line of chrome saying so again.
+          Unlabelled on screen, unlike the sections around it: a tree of terms under the row it
+          belongs to reads as what it is, and a caption on it was a line of chrome saying so again.
+          Its term is hidden rather than absent: a definition with no term before it breaks the
+          list for a screen reader.
         -->
+      <dt class="sr-only">{{ 'detail.hierarchy' | translate }}</dt>
       <dd class="wide hierarchy-choice">
         <div>
           <!--
@@ -94,7 +107,12 @@
             every read below — the tree, its rows, its paging, its refusal — addresses one subject.
           -->
           @let focus = treeFocus(hit); @if (hierarchyOf(focus)) {
-          <ol class="tree" (scroll)="onTreeScroll($event, focus)">
+          <!--
+            The tree is one list, and its depth is drawn as an indent. Each entry also states its
+            level and its place among its siblings, so the shape can be heard as well as seen. It
+            stays a list. A tree role would replace its Tab stops with arrow keys.
+          -->
+          <ol class="tree" [attr.aria-label]="'detail.hierarchy' | translate" (scroll)="onTreeScroll($event, focus)">
             @for (row of treeRows(focus); track row.key) {
             <li
               class="node"
@@ -102,6 +120,9 @@
               [class.spine]="row.onSpine"
               [class.picked]="isPicked(row)"
               [style.padding-left.rem]="row.depth * 0.9"
+              [attr.aria-level]="row.depth + 1"
+              [attr.aria-posinset]="row.position"
+              [attr.aria-setsize]="row.setSize"
             >
               @if (row.hasChildren) {
               <button
@@ -157,9 +178,10 @@
               looking for a broken ingest. A failure is said as a failure, so it is not read as an
               answer about what the store holds.
             -->
+          <!-- The store's sentence is marked as English, whole or where the picker's phrase quotes it. -->
           <span class="meta inline"
-            >{{ refusal.answered ? localizer.say(refusal.reason) : ('tree.unreadable' | translate: { reason:
-            localizer.say(refusal.reason) }) }}</span
+            >@for (part of refusalPassages(refusal); track $index) {<span [attr.lang]="part.lang">{{ part.text }}</span
+            >}</span
           >
           } @else {
           <span class="meta inline">{{ 'common.reading' | translate }}</span>
@@ -174,15 +196,22 @@
       } @if (hit.matchedLabels?.length) {
       <dt>{{ 'detail.matched' | translate }}</dt>
       <dd>
+        <!-- A name the source tagged with a language is read in that language. -->
         @for (name of hit.matchedLabels; track name.label) {
-        <span class="chip">{{ name.label }}@if (name.language) { · {{ name.language }}}</span>
+        <span class="chip"
+          ><span [attr.lang]="languageTag(name.language)">{{ name.label }}</span>@if (name.language) { · {{
+          name.language }}}</span
+        >
         }
       </dd>
       } @if (namesOf(hit); as names) {
       <dt>{{ 'detail.alsoCalled' | translate }}</dt>
       <dd>
         @for (name of names; track name.label) {
-        <span class="alias">{{ elide(name.label, 44, 12) }}@if (name.language) { · {{ name.language }}}</span>
+        <span class="alias"
+          ><span [attr.lang]="languageTag(name.language)">{{ elide(name.label, 44, 12) }}</span>@if (name.language) {
+          · {{ name.language }}}</span
+        >
         } @if (moreNames(hit); as more) {
         <span class="meta inline">{{ 'detail.moreNames' | translate: { count: more } }}</span>
         }
@@ -223,13 +252,19 @@
       <span class="hash">{{ 'history.contentHash' | translate }}</span>
       <span class="tag"></span>
     </p>
-    <ol class="releases">
+    <!--
+      The head names the list and its columns. The list takes its name from the head's count, and
+      each release is described by its date and hash after their columns' names, so a reader who
+      cannot see the columns hears them. The button's name stays the text it shows.
+    -->
+    <ol class="releases" [attr.aria-label]="localizer.plural('history.count', releases.length)">
       @for (release of releases; track release.id; let i = $index) {
       <li>
         <button
           type="button"
           class="release"
           [class.on]="isShowing(acronym, release, i)"
+          [attr.aria-description]="releaseColumns(release)"
           (click)="pinTo(hit, release, i)"
         >
           <span class="declared">{{ release.declaredVersion ?? ('history.noDeclaredVersion' | translate) }}</span>
@@ -251,8 +286,12 @@
 
 <section class="picker" [class.set-mode]="tableMode()">
   <header class="bar">
+    <!--
+      The bar's two captions are drawn as section headings, and each is exposed as one. The
+      search's caption is also the label of its field.
+    -->
     <label class="search">
-      <span class="label">{{ 'bar.findTerms' | translate }}</span>
+      <span class="label" role="heading" aria-level="2">{{ 'bar.findTerms' | translate }}</span>
       <input
         spellcheck="false"
         type="search"
@@ -291,7 +330,7 @@
           say the same thing twice, and the one up here is the further of the two from the term.
         -->
       <div class="selection-heading">
-        <span class="label">{{ 'selection.heading.' + chosen.noun | translate }}</span>
+        <span class="label" role="heading" aria-level="2">{{ 'selection.heading.' + chosen.noun | translate }}</span>
       </div>
       <p class="phrase">
         <strong [title]="chosen.what">{{ elide(chosen.what, 72, 20) }}</strong>
@@ -303,7 +342,7 @@
           release, and cannot be recorded until one of the two changes.
         -->
       @if (selectionBlocked(); as blocked) {
-      <p class="blocked" role="status">{{ localizer.say(blocked) }}</p>
+      <p class="blocked" role="status" [attr.lang]="messageLanguage(blocked)">{{ localizer.say(blocked) }}</p>
       }
       <!--
           The source and the release, under the term rather than beside it. Together they are the
@@ -402,20 +441,25 @@
     The ontologies the search is narrowed to, drawn as Workspace's listing filters are: one chip
     holding the filter's value, which opens a panel to change it, and, once the filter is on, a
     segment that clears it. The chosen ontologies are named on the chip rather than counted.
+    The chip's accessible name is the text it shows, so speech input reaches it by the acronyms on
+    it, and hidden words finish the name by saying what the acronyms are. The title repeats the
+    acronyms for a pointer, and an empty description keeps them from being read a second time.
   -->
   <div class="narrowing">
     <span #narrowingChip class="filter-chip" [class.active]="narrowedTo().length > 0">
       <button
         type="button"
         aria-haspopup="dialog"
-        aria-controls="narrowing-panel"
+        [attr.aria-controls]="choosingNarrowing() ? 'narrowing-panel' : null"
         [attr.aria-expanded]="choosingNarrowing()"
-        [attr.aria-label]="'narrowing.chip' | translate"
-        [attr.aria-description]="narrowedTo().length ? narrowedTo().join(', ') : null"
+        [attr.aria-description]="narrowedTo().length ? '' : null"
         [title]="narrowedTo().join(', ')"
         (click)="openNarrowing()"
       >
         <span class="value">{{ narrowedTo().length ? narrowedTo().join(', ') : ('narrowing.chip' | translate) }}</span>
+        @if (narrowedTo().length) {
+        <span class="sr-only"> {{ localizer.plural('narrowing.chipNarrowed', narrowedTo().length) }}</span>
+        }
         <cetp-icon size="small" name="chevron-down" />
       </button>
       @if (narrowedTo().length) {
@@ -466,7 +510,7 @@
       whole reason the list is in this order — and it was a bare figure until it was named.
     -->
     <p class="candidates-head">
-      <span class="grow">
+      <span id="narrowing-count" class="grow">
         @if (narrowingFilter()) { {{ localizer.plural('narrowing.visibleOf', candidates().length, { shown:
         visibleCandidates().length, total: candidates().length }) }} } @else { {{ localizer.plural('counts.ontologies',
         candidates().length) }} }
@@ -477,13 +521,19 @@
       As tall as the whole ranking whatever the finder holds, so filtering it does not pull the
       panel's foot up and down under the author's eye.
     -->
-    <div class="candidates">
+    <!--
+      The head's count names the group of boxes. The name of its column follows each box's count in
+      the box's name, so a reader who cannot see the column does not hear a bare number.
+    -->
+    <div class="candidates" role="group" aria-labelledby="narrowing-count">
       @for (candidate of visibleCandidates(); track candidate.sourceAcronym) {
       <label class="candidate" [class.on]="isDrafted(candidate.sourceAcronym)">
         <span class="who">{{ candidate.sourceAcronym }}</span>
         <span class="dim ellipsis">{{ candidateName(candidate.sourceAcronym) }}</span>
         <span class="meta inline"
-          >{{ candidate.matchCount === undefined ? '' : localizer.number(candidate.matchCount) }}</span
+          >{{ candidate.matchCount === undefined ? '' : localizer.number(candidate.matchCount) }}@if
+          (candidate.matchCount !== undefined) {<span class="sr-only"> {{ 'narrowing.matchingTerms' | translate }}</span
+          >}</span
         >
         <input
           type="checkbox"
@@ -535,14 +585,32 @@
     a search runs: rendering it into existence pushed the results down a line at the moment an
     author was reading them.
   -->
-  <p class="working" [class.idle]="!searching()" role="status" aria-live="polite">
+  <p class="working" [class.idle]="!searching()">
     {{ 'status.searching' | translate }}
   </p>
+  <!--
+    The one live region. It says each outcome once, as it happens: a search starting and what it
+    found, a failure, the list reading more and the list ending. The lines on screen that show the
+    same things are not live, so nothing is said twice, and focus stays where the author left it.
+  -->
+  <!--
+    A sentence the terminology server wrote is said in English inside an announcement in another
+    language. The region is read whole on any change, as it was while it held one line of text.
+  -->
+  <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+    @for (part of announcement(); track $index) {<span [attr.lang]="part.lang">{{ part.text }}</span>}
+  </p>
 
+  <!--
+    The server's sentences and reasons are marked as English, so a picker in another language does
+    not read them as its own.
+  -->
   @if (error(); as message) {
-  <p class="notice">{{ localizer.say(message) }}</p>
+  <p class="notice" [attr.lang]="messageLanguage(message)">{{ localizer.say(message) }}</p>
   } @for (source of unavailable(); track source.sourceAcronym) {
-  <p class="notice">{{ 'status.unavailable' | translate: { acronym: source.sourceAcronym, reason: source.reason } }}</p>
+  <p class="notice">
+    @for (part of unsearched(source); track $index) {<span [attr.lang]="part.lang">{{ part.text }}</span>}
+  </p>
   }
 
   <div class="results" #list (scroll)="onScroll($event)">
@@ -558,7 +626,11 @@
           ><cetp-icon size="small" [name]="expanded() === group.label ? 'chevron-down' : 'chevron-right'"
         /></span>
         <span class="grow ellipsis">
-          <span class="title" [class.obsolete]="group.hits[0].obsolete" [title]="group.label"
+          <span
+            class="title"
+            [class.obsolete]="group.hits[0].obsolete"
+            [title]="group.label"
+            [attr.lang]="group.language"
             >{{ elide(group.label) }}</span
           >
           @if (group.code) {
@@ -566,9 +638,11 @@
           } @if (group.hits[0].obsolete) {
           <span class="chip warn">{{ 'results.obsolete' | translate }}</span>
           } @if (!group.code && group.hits[0].matchedLabels?.length) {
-          <span class="chip attached" [title]="group.hits[0].matchedLabels![0].label"
-            >{{ 'results.matched' | translate: { label: elide(group.hits[0].matchedLabels![0].label, 64, 20) } }}@if
-            (group.hits[0].matchedLabels![0].language) { · {{ group.hits[0].matchedLabels![0].language }}}</span
+          <!-- The phrase is in the picker's language and the name inside it in its own. -->
+          @let matched = group.hits[0].matchedLabels![0]; @let words = around('results.matched', 'label');
+          <span class="chip attached" [title]="matched.label"
+            >{{ words[0] }}<span [attr.lang]="languageTag(matched.language)">{{ elide(matched.label, 64, 20) }}</span
+            >{{ words[1] }}@if (matched.language) { · {{ matched.language }}}</span
           >
           }
         </span>
@@ -707,7 +781,7 @@
     } @empty { @if (response()) {
     <p class="empty">{{ 'results.noOntologies' | translate }}</p>
     } } } @case ('property') { @if (response()?.errors?.property; as message) {
-    <p role="alert" class="selection-error">{{ localizer.say(message) }}</p>
+    <p role="alert" class="selection-error" [attr.lang]="messageLanguage(message)">{{ localizer.say(message) }}</p>
     } @for (group of propertyGroups(); track group.label) {
     <div class="row group" [class.open]="expanded() === group.label">
       <button
@@ -729,7 +803,7 @@
           class="child oneline pick"
           tabindex="0"
           role="option"
-          [attr.aria-label]="'results.propertyIn' | translate: { label: hit.termLabel, acronym: hit.sourceAcronym }"
+          [attr.aria-label]="propertyRowName(hit)"
           [attr.aria-selected]="isSelected(hit)"
           [attr.aria-expanded]="isMarked(hit)"
           [class.marked]="isSelected(hit)"
@@ -743,7 +817,11 @@
             @if (sourceNameIfDistinct(hit.sourceAcronym); as name) { <span class="dim">· {{ name }}</span> } @if
             (authorityOf(hit.sourceAcronym); as from) { <span class="meta inline dim from">· {{ from }}</span> }
           </span>
-          <span class="meta inline">{{ 'results.propertyKind.' + hit.propertyKind | translate }}</span>
+          <!--
+            A space keeps the kind a word apart from the source in the row's text, as the two cells
+            are apart on screen. The row is a grid, which renders a space between its cells as nothing.
+          -->
+          &ngsp;<span class="meta inline">{{ 'results.propertyKind.' + hit.propertyKind | translate }}</span>
         </div>
         @if (isMarked(hit)) {
         <cetp-property-detail

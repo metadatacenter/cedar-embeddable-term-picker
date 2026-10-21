@@ -14,7 +14,11 @@
       "one": "Show the {{count}} release of {{acronym}}",
       "many": "Show all {{count}} releases of {{acronym}}"
     },
-    "of": "of {{count}}"
+    "of": "of {{count}}",
+    "releasesOf": {
+      "one": "release of {{acronym}}",
+      "many": "releases of {{acronym}}"
+    }
   },
   "tree": {
     "collapse": "Collapse {{label}}",
@@ -26,6 +30,7 @@
   "detail": {
     "ontologyIri": "Ontology IRI",
     "valueSetIri": "Value set IRI",
+    "hierarchy": "Hierarchy",
     "matched": "Matched",
     "alsoCalled": "Also called",
     "moreNames": "and {{count}} more",
@@ -64,6 +69,10 @@
   "narrowing": {
     "searchingOnly": "Searching only",
     "chip": "Ontologies",
+    "chipNarrowed": {
+      "one": "ontology",
+      "many": "ontologies"
+    },
     "clearChip": "Clear ontologies filter",
     "panelLabel": "Narrow the search to ontologies",
     "finderPlaceholder": "Find an ontology by name or acronym",
@@ -90,6 +99,7 @@
   },
   "status": {
     "searching": "searching…",
+    "results": "Results: {{counts}}.",
     "readingMore": "reading more…",
     "noMore": "no more matches",
     "unavailable": "{{acronym}} was not searched — {{reason}}. Its terms are absent from these results rather than missing from the vocabulary."
@@ -216,6 +226,10 @@
     "details": "Property details",
     "release": "Release {{release}}",
     "releases": "Property ontology releases",
+    "releasesOf": {
+      "one": "property ontology release",
+      "many": "property ontology releases"
+    },
     "reading": "Reading property…",
     "notHeld": "{{iri}} (not held in this snapshot)",
     "hierarchy": "Property hierarchy",

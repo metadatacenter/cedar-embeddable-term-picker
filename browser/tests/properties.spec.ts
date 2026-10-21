@@ -93,7 +93,10 @@ test('property-only table enforces the maximum and browses parents at the select
   await picker.getByRole('button', { name: 'Select', exact: true }).click();
   await expect(picker.getByRole('alert')).toContainText('Remove an entry');
   await picker.getByRole('button', { name: 'Remove constraint 1', exact: true }).click();
-  await picker.getByRole('button', { name: 'Property ontology releases', exact: true }).click();
+  await expect(picker.getByRole('group', { name: 'Property ontology releases' })).toHaveCount(0);
+  // Named by the count it shows, then by what the count is of.
+  await picker.getByRole('button', { name: 'of 2 property ontology releases', exact: true }).click();
+  await expect(picker.getByRole('group', { name: 'Property ontology releases' }).getByRole('button')).toHaveCount(2);
   await picker.getByRole('button', { name: '1 ro-v1', exact: true }).click();
   await picker.getByRole('button', { name: 'Select', exact: true }).click();
   await picker.getByRole('button', { name: 'Done', exact: true }).click();

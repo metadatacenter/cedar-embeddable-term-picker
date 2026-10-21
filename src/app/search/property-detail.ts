@@ -1,7 +1,18 @@
 import { Icon } from '../icon';
 import { TranslatePipe } from '@ngx-translate/core';
-import { Localizer, Message, messageOf, phrase } from '../i18n/localization';
-import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
+import { Localizer, Message, languageTag, messageLanguage, messageOf, phrase } from '../i18n/localization';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { TerminologyClient } from './terminology-client';
 import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './search-types';
 
@@ -14,21 +25,22 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
       @if (allowVersions() && versions().length) {
         <div class="release-toolbar">
           <span>{{ 'property.release' | translate: { release: releaseLabel() } }}</span>
+          <!-- The name is the count shown, finished by hidden words, as on a result row's release count. -->
           <button
             type="button"
             class="release-toggle"
             [attr.aria-expanded]="showReleases()"
-            [attr.aria-label]="'property.releases' | translate"
             (click)="showReleases.set(!showReleases())"
           >
             {{ 'stepper.of' | translate: { count: versions().length } }}
+            <span class="sr-only">{{ localizer.plural('property.releasesOf', versions().length) }}</span>
             <span aria-hidden="true"
               ><cetp-icon size="small" [name]="showReleases() ? 'chevron-up' : 'chevron-down'"
             /></span>
           </button>
         </div>
         @if (showReleases()) {
-          <div class="releases" [attr.aria-label]="'property.releases' | translate">
+          <div class="releases" role="group" [attr.aria-label]="'property.releases' | translate">
             @for (version of versions(); track version.id) {
               <button
                 type="button"
@@ -47,13 +59,20 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
         <p role="status">{{ 'property.reading' | translate }}</p>
       }
       @if (error(); as message) {
-        <p role="alert">{{ localizer.say(message) }}</p>
+        <!-- A sentence the terminology server wrote is in English. -->
+        <p role="alert" [attr.lang]="messageLanguage(message)">{{ localizer.say(message) }}</p>
       }
       @if (hierarchy(); as tree) {
+        <!--
+          The parents, the property under them and its children stand at three depths, drawn as
+          indents. Each entry states its level and its place among its siblings, so the depth can be
+          heard too. A set whose end has not been read has a size of -1, which means unknown.
+        -->
+        @let parents = tree.selected.property.parents.length;
         <div class="hierarchy-choice">
           <ol class="tree" [attr.aria-label]="'property.hierarchy' | translate">
-            @for (iri of tree.selected.property.parents; track iri) {
-              <li class="node">
+            @for (iri of tree.selected.property.parents; track iri; let i = $index) {
+              <li class="node" aria-level="1" [attr.aria-posinset]="i + 1" [attr.aria-setsize]="parents">
                 <span class="twist" aria-hidden="true"><cetp-icon size="small" name="chevron-down" /></span>
                 @if (ancestor(iri); as parent) {
                   <button type="button" class="term" [title]="iri" (click)="navigate(parent)">
@@ -64,7 +83,13 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
                 }
               </li>
             }
-            <li class="node self" [style.padding-left.rem]="tree.selected.property.parents.length ? 0.9 : 0">
+            <li
+              class="node self"
+              [style.padding-left.rem]="parents ? 0.9 : 0"
+              [attr.aria-level]="parents ? 2 : 1"
+              aria-posinset="1"
+              aria-setsize="1"
+            >
               <span class="twist" aria-hidden="true">
                 @if (tree.children.length) {
                   <cetp-icon size="small" name="chevron-down" />
@@ -72,8 +97,14 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
               </span>
               <span class="term" [title]="tree.selected.property.iri">{{ tree.selected.property.label }}</span>
             </li>
-            @for (child of tree.children; track child.iri) {
-              <li class="node" [style.padding-left.rem]="tree.selected.property.parents.length ? 1.8 : 0.9">
+            @for (child of tree.children; track child.iri; let i = $index) {
+              <li
+                class="node"
+                [style.padding-left.rem]="parents ? 1.8 : 0.9"
+                [attr.aria-level]="parents ? 3 : 2"
+                [attr.aria-posinset]="i + 1"
+                [attr.aria-setsize]="more() ? -1 : tree.children.length"
+              >
                 <span class="twist" aria-hidden="true">
                   @if (child.hasChildren) {
                     <cetp-icon size="small" name="chevron-right" />
@@ -85,7 +116,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
               </li>
             }
             @if (more()) {
-              <li>
+              <li class="more">
                 <button type="button" class="term" [disabled]="loading()" (click)="loadMore()">
                   {{ 'property.moreChildren' | translate }}
                 </button>
@@ -99,7 +130,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
         @for (literal of tree.selected.property.literals; track $index) {
           @if (isDescription(literal.predicate)) {
             <p class="description">
-              {{ literal.value }}
+              <span [attr.lang]="languageTag(literal.lang)">{{ literal.value }}</span>
               @if (literal.lang) {
                 ({{ literal.lang }})
               }
@@ -114,6 +145,10 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
 export class PropertyDetailComponent {
   private readonly client = inject(TerminologyClient);
   protected readonly localizer = inject(Localizer);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
+  protected readonly languageTag = languageTag;
+  protected readonly messageLanguage = messageLanguage;
   readonly hit = input.required<PropertyHit>();
   readonly allowVersions = input(true);
   readonly focused = output<PropertyHit | null>();
@@ -168,12 +203,36 @@ export class PropertyDetailComponent {
       obsolete: property.obsolete,
     });
   }
+  /**
+   * Reads the chosen release. The list closes and takes the pressed button with it, so focus moves
+   * to the toggle that opened the list, the nearest control that remains.
+   */
   protected changeVersion(versionId: string): void {
     this.showReleases.set(false);
+    this.host.nativeElement.querySelector<HTMLElement>('.release-toggle')?.focus();
     void this.read({ ...this.current(), versionId });
   }
-  protected loadMore(): void {
-    void this.read(this.current(), this.hierarchy()?.children.length ?? 0);
+
+  /**
+   * Reads the next children. The button is disabled while they are read and gone once there are no
+   * more, and either way focus left it. Unless the author has moved it since, it returns to the
+   * button while one remains, and otherwise goes to the first child that arrived, which is where
+   * the reading continues.
+   */
+  protected async loadMore(): Promise<void> {
+    const shown = this.hierarchy()?.children.length ?? 0;
+    await this.read(this.current(), shown);
+    afterNextRender(
+      () => {
+        const detail = this.host.nativeElement;
+        const focused = (detail.getRootNode() as Document | ShadowRoot).activeElement;
+        if (focused !== null && focused !== document.body) return;
+        const more = detail.querySelector<HTMLElement>('.more button');
+        const arrived = detail.querySelectorAll<HTMLElement>('.node.self ~ .node button.term')[shown];
+        (more ?? arrived)?.focus();
+      },
+      { injector: this.injector },
+    );
   }
   private async read(hit: PropertyHit, offset = 0): Promise<void> {
     this.attempt?.abort();

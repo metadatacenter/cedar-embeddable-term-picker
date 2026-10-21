@@ -48,7 +48,7 @@
     border: 1px solid var(--cetp-color-border);
   }
   dt {
-    font-weight: var(--cedar-font-weight-medium, 500);
+    font-weight: var(--cedar-font-weight-medium);
   }
   dd {
     margin: var(--cedar-space-1) 0 var(--cedar-space-2);
@@ -66,7 +66,7 @@
     @include spacing.apply(padding, compact-row);
     color: var(--cetp-color-muted);
     font-size: var(--cetp-font-size);
-    font-weight: var(--cedar-font-weight-medium, 500);
+    font-weight: var(--cedar-font-weight-medium);
     text-align: left;
   }
   th:first-child {
@@ -150,7 +150,7 @@
     line-height: 1.35;
   }
   dt {
-    font-weight: var(--cedar-font-weight-regular, 400);
+    font-weight: var(--cedar-font-weight-regular);
     color: var(--cetp-color-muted);
   }
   dd {

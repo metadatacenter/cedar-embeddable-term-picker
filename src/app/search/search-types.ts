@@ -286,6 +286,15 @@ export interface TreeRow {
    */
   readonly shown: number;
   readonly total: number;
+  /**
+   * Where the row stands among its siblings, counted from 1, and how many siblings there are.
+   *
+   * The indent shows both, and a reader who cannot see it hears them instead. The siblings are the
+   * rows drawn under one parent. An open parent that holds more children than it shows reports how
+   * many it has, so that count is the set's size and the rows not yet read are part of it.
+   */
+  readonly position: number;
+  readonly setSize: number;
   /** In a scoped tree: whether this node is one of the query's matches or a step on the way to one. */
   readonly match?: boolean;
 }
