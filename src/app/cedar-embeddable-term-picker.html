@@ -1,4 +1,5 @@
-@if (selectionMode() === 'term' && safeSources().length > 1) {
+<!-- Not with a field's constraints: one search covers all of them, so there is no source to step between. -->
+@if (selectionMode() === 'term' && !fieldScope() && safeSources().length > 1) {
 <label class="scope-selector"
   >{{ 'scope.label' | translate }}
   <select [value]="scopeIndex()" (change)="scopeIndex.set(numberOf($event))">

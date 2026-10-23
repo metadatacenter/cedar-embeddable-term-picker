@@ -133,6 +133,18 @@ describe('choosing a term within a field', () => {
     expect(picker['hierarchyVersion']('NCIT')).toBeUndefined();
   });
 
+  it('offers no release to step between when a host also passes sources for older pickers', () => {
+    const { fixture } = setup('term');
+    fixture.componentRef.setInput('sources', [
+      { sourceAcronym: 'DOID', version: { id: 'hash-2025' } },
+      { sourceAcronym: 'NCIT' },
+    ]);
+    fixture.detectChanges();
+    const root = (fixture.nativeElement as HTMLElement).shadowRoot!;
+    expect(root.querySelector('.scope-selector')).toBeNull();
+    expect(root.querySelectorAll('.narrowing .chip.within')).toHaveLength(2);
+  });
+
   it('leaves the constraints alone where the picker is not choosing one term', async () => {
     const { picker } = setup('constraints');
     await picker['run']('asthma');
