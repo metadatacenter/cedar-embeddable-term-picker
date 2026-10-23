@@ -133,7 +133,10 @@ export function toControlledTermConfig(picked: PickedConstraint): ControlledTerm
         ontologyName: sourceName,
         branchRootId: picked.termBaseIri,
         branchRootName: picked.termBaseLabel,
-        searchDepth: 1,
+        // Every level below the root, as the legacy designer started a branch. Depth 1 offered only
+        // the root's direct subtypes, and now that integrated search honours depth, an author who
+        // picked DOID's "disease" would have been offered 8 terms of its 12,220.
+        searchDepth: 0,
         sourceSystem: picked.sourceSystem,
         iri: picked.sourceIri,
         version,

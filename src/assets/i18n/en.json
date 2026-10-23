@@ -204,6 +204,7 @@
     "versionPin": "Version pin",
     "latest": "Latest",
     "maximumDepth": "Maximum depth",
+    "depthHint": "0 reaches every level below the branch.",
     "rowTitle": "{{uri}}\nSource: {{source}}\nVersion: {{version}}",
     "removeConstraint": "Remove constraint {{number}}",
     "removeConstraintTitle": "Remove constraint",

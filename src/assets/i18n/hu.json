@@ -204,6 +204,7 @@
     "versionPin": "Rögzített verzió",
     "latest": "Legújabb",
     "maximumDepth": "Legnagyobb mélység",
+    "depthHint": "A 0 az ág alatti összes szintet eléri.",
     "rowTitle": "{{uri}}\nForrás: {{source}}\nVerzió: {{version}}",
     "removeConstraint": "{{number}}. megkötés eltávolítása",
     "removeConstraintTitle": "Megkötés eltávolítása",

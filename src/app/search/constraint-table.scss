@@ -54,6 +54,10 @@
     margin: var(--cedar-space-1) 0 var(--cedar-space-2);
     overflow-wrap: anywhere;
   }
+  // Under the depth field, in the quieter colour the table's other notes take.
+  .depth-hint {
+    margin: var(--cedar-space-1) 0 0;
+  }
 }
 
 .constraint-table {
