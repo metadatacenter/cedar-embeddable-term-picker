@@ -209,8 +209,20 @@ only emits individual terms. Setting either `termTypes` or `maximumTerms` select
 the table workflow instead of these legacy single-selection modes. `sources` accepts source systems, acronyms and version
 selectors. When several scopes are supplied, a vocabulary/release selector searches
 one at a time, including distinct pins of the same ontology. An empty list searches
-all sources. The host must verify a chosen default against the complete field
-constraints and actions; vocabulary scoping alone does not enforce membership.
+all sources.
+
+For a default, give the picker the field's own constraints instead, as
+`fieldConstraints = { constraints, actions }` in the shape `constraintsSelected`
+emits. In term mode the picker then searches within them through the terminology
+server's `bioportal/integrated-search`, the route the metadata editor offers a
+field's values by, so it offers only terms an instance of the field may hold: those
+under each branch to its depth, each listed class, each value set's values and each
+ontology's terms, at any release a constraint pins and less any term an action
+removes. The strip above the results shows one chip for each constraint, with its
+kind, what it names, its source and any pinned release. `fieldConstraints` takes
+precedence over `sources`, which can only say which ontologies to search. The host
+should still verify a chosen default, since the field can change while the picker
+is open.
 
 Which registry a package belongs to is derived from its version rather than
 passed at publish time: a version carrying `-dev.` names the CEDAR Nexus under

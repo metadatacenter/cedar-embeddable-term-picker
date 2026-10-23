@@ -11,6 +11,8 @@ import {
 } from './search-types';
 import { Message, MessageError, messageOf, phrase } from '../i18n/localization';
 import { validHierarchy, validSearchResponse } from './response-validation';
+import type { ControlledTermSet } from './constraint-set';
+import { INTEGRATED_SEARCH_PATH, integratedSearchRequest, integratedSearchResponse } from './integrated-search';
 
 /**
  * The server's response, or the reason none arrived. A request that never reached the server
@@ -106,6 +108,30 @@ export class TerminologyClient {
     }
     if (!validSearchResponse(body)) throw new MessageError(phrase('errors.invalidResponse'));
     return body;
+  }
+
+  /**
+   * One page of terms matching the text within a field's constraints.
+   *
+   * Terms only: a field's value is a term, so a search within its constraints answers on the terms
+   * results and nothing else. See `integrated-search.ts` for why it is a different route.
+   */
+  async searchWithin(query: SearchQuery, within: ControlledTermSet, signal?: AbortSignal): Promise<SearchResponse> {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? SEARCH_DEFAULT_LIMIT;
+    const response = await reach(this.endpoint.replace(/search$/, INTEGRATED_SEARCH_PATH), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(integratedSearchRequest(query.query, within, page, pageSize)),
+      signal,
+    });
+    const body: unknown = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new MessageError(refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }));
+    }
+    const answer = integratedSearchResponse(body, query.query, within, page, pageSize);
+    if (answer === null) throw new MessageError(phrase('errors.invalidResponse'));
+    return answer;
   }
 
   private propertyEndpoint(): string {

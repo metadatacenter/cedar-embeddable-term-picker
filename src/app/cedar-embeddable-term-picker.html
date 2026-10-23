@@ -429,7 +429,27 @@
     }
   </header>
 
-  @if (effectiveSources().length) {
+  @if (fieldScope(); as scope) {
+  <!--
+    What a chosen term has to satisfy, one chip a constraint. Each says what kind of constraint it
+    is, what it names, which source it is in and, where it pins one, which release, so a field
+    constrained to a branch, two classes and a value set reads as those four rather than as the
+    ontologies they come from.
+  -->
+  <div class="narrowing">
+    <span class="meta inline">{{ 'narrowing.searchingWithin' | translate }}</span>
+    @for (constraint of scope.constraints; track $index) {
+    <span class="chip within" [title]="constraintUri(constraint)"
+      ><span class="kind">{{ constraintKind(constraint) | translate }}</span> {{ constraintLabel(constraint) }}
+      @if (constraintAcronym(constraint); as acronym) {
+      <span class="source">· {{ acronym }}</span>
+      } @if (constraint.version; as version) {
+      <span class="source">· {{ version.declaredVersion ?? shortHash(version.id) }}</span>
+      }</span
+    >
+    }
+  </div>
+  } @else if (effectiveSources().length) {
   <div class="narrowing">
     <span class="meta inline">{{ 'narrowing.searchingOnly' | translate }}</span>
     @for (source of effectiveSources(); track $index) {

@@ -68,6 +68,7 @@
   },
   "narrowing": {
     "searchingOnly": "Keresés csak ezekben:",
+    "searchingWithin": "Keresés csak ezeken belül:",
     "chip": "Ontológiák",
     "chipNarrowed": {
       "one": "ontológia",
@@ -188,6 +189,7 @@
     "checkingRelease": "Annak ellenőrzése, hogy a kiadás tartalmazza-e a kifejezést.",
     "invalidResponse": "A terminológiai kiszolgáló hiányos választ adott. Próbálja újra.",
     "sources": "A megadott szótári hatókör érvénytelen.",
+    "fieldConstraints": "A megadott keresési megkötések érvénytelenek.",
     "unreachable": "A terminológiai kiszolgáló nem érhető el. Ellenőrizze a kapcsolatot, és próbálja újra."
   },
   "table": {

@@ -314,6 +314,18 @@ button {
   font-size: var(--cetp-font-size);
 }
 
+// A constraint the search is held within: its kind, as the constraint table tags it, then what it
+// names, then its source and any release it pins, quieter than the name.
+.chip.within {
+  .kind {
+    text-transform: lowercase;
+  }
+
+  .source {
+    color: var(--cetp-color-muted);
+  }
+}
+
 // The panel the chip opens, in the top layer and hung under the chip by `placeNarrowing`. Its width
 // is fixed rather than fitted, so a finder that drops the longest name does not narrow it.
 .filter-popover {

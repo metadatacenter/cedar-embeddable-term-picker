@@ -4,7 +4,9 @@ import { PickerCoordinator } from './search/picker-coordinator';
 import { displayConstraints, validateConstraints } from './search/constraint-validation';
 import { hierarchyRows } from './search/hierarchy-rows';
 import { ConstraintTableComponent } from './search/constraint-table';
+import { searchableConstraints } from './search/integrated-search';
 import {
+  constraintKind,
   constraintLabel,
   constraintUri,
   constraintAcronym,
@@ -60,6 +62,7 @@ import {
   MatchedLabel,
   OntologyHit,
   SearchKind,
+  SearchQuery,
   SearchResponse,
   Selection,
   SourceSelector,
@@ -211,6 +214,13 @@ export class CedarEmbeddableTermPicker {
     const types = this.termTypes();
     if (types !== undefined && (!Array.isArray(types) || types.some((type) => !TAB_ORDER.includes(type))))
       return phrase('errors.termTypes');
+    const fieldConstraints = this.fieldConstraints();
+    if (
+      fieldConstraints !== undefined &&
+      fieldConstraints !== null &&
+      !CedarEmbeddableTermPicker.isConstraintSet(fieldConstraints)
+    )
+      return phrase('errors.fieldConstraints');
     const sources = this.sources();
     if (
       !Array.isArray(sources) ||
@@ -261,6 +271,7 @@ export class CedarEmbeddableTermPicker {
 
   protected readonly constraintLabel = constraintLabel;
   protected readonly constraintUri = constraintUri;
+  protected readonly constraintKind = constraintKind;
   protected readonly constraintAcronym = constraintAcronym;
 
   protected editConstraint(index: number): void {
@@ -330,6 +341,30 @@ export class CedarEmbeddableTermPicker {
 
   /** Optional fixed search scope supplied by a host's field constraint. */
   readonly sources = input<readonly SourceSelector[]>([]);
+
+  /**
+   * The constraints a chosen term must satisfy, for a picker choosing one term for a field.
+   *
+   * With any that hold terms, a search in term mode looks only within them, through the route the
+   * metadata editor offers the field's values by, and the strip above the results names each one.
+   * Takes precedence over `sources`, which can say only which ontologies to search.
+   */
+  readonly fieldConstraints = input<ControlledTermSet | undefined>(undefined);
+  protected readonly fieldScope = computed<ControlledTermSet | null>(() => {
+    const set = this.fieldConstraints();
+    if (this.selectionMode() !== 'term' || !CedarEmbeddableTermPicker.isConstraintSet(set)) return null;
+    const constraints = searchableConstraints(set);
+    return constraints.length ? { constraints: [...constraints], actions: set.actions } : null;
+  });
+
+  private static isConstraintSet(value: unknown): value is ControlledTermSet {
+    return (
+      !!value &&
+      typeof value === 'object' &&
+      Array.isArray((value as { constraints?: unknown }).constraints) &&
+      Array.isArray((value as { actions?: unknown }).actions)
+    );
+  }
   protected readonly safeSources = computed(() =>
     Array.isArray(this.sources())
       ? this.sources().filter((source) => source && typeof source.sourceAcronym === 'string')
@@ -355,6 +390,24 @@ export class CedarEmbeddableTermPicker {
             },
           ]
         : [];
+    }
+    const scope = this.fieldScope();
+    if (scope) {
+      // Every source the constraints name, each at the release it pins: the tree a term opens is read
+      // there. One search covers them all, so none is browsed apart from the others.
+      const named = scope.constraints.flatMap((c): SourceSelector[] => {
+        const acronym = constraintAcronym(c);
+        return acronym
+          ? [
+              {
+                sourceAcronym: acronym,
+                ...(c.sourceSystem ? { sourceSystem: c.sourceSystem } : {}),
+                ...(c.version ? { version: { id: c.version.id } } : {}),
+              },
+            ]
+          : [];
+      });
+      return [...new Map(named.map((source) => [JSON.stringify(source), source])).values()];
     }
     const sources = this.safeSources();
     // The search response groups by acronym, so two releases of one source must
@@ -774,7 +827,7 @@ export class CedarEmbeddableTermPicker {
     // refusal sat under "searching…" as though it were this query's answer.
     this.error.set(null);
     try {
-      const response = await this.client.search(
+      const response = await this.ask(
         {
           query,
           pageSize: PAGE_SIZE,
@@ -972,6 +1025,12 @@ export class CedarEmbeddableTermPicker {
   private hierarchyVersion(acronym: string): string | undefined {
     const fixed = this.effectiveSources().find((source) => source.sourceAcronym === acronym)?.version;
     return fixed && fixed !== 'latest' ? fixed.id : this.pinned().get(acronym)?.id;
+  }
+
+  /** A page of results, from within the field's constraints where the host gave them. */
+  private ask(query: SearchQuery, signal?: AbortSignal): Promise<SearchResponse> {
+    const scope = this.fieldScope();
+    return scope ? this.client.searchWithin(query, scope, signal) : this.client.search(query, signal);
   }
 
   private sourceSelectors(): readonly SourceSelector[] | undefined {
@@ -1289,7 +1348,7 @@ export class CedarEmbeddableTermPicker {
     const signal = this.alongside();
     let failed = false;
     try {
-      const next = await this.client.search(
+      const next = await this.ask(
         {
           query,
           types: [kind],

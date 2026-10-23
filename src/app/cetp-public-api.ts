@@ -59,6 +59,11 @@ export interface CedarEmbeddableTermPickerElement extends HTMLElement {
   constraintSet: ControlledTermSet;
   /** Fixed vocabulary scope; empty means search all sources. */
   sources: readonly SourceSelector[];
+  /**
+   * The constraints of the field a term is chosen for. In term mode the search looks only within
+   * the ones that hold terms, and takes precedence over `sources`.
+   */
+  fieldConstraints?: ControlledTermSet;
   terminologyBaseUrl: string | null;
 
   /*
