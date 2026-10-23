@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { CedarEmbeddableTermPicker } from './cedar-embeddable-term-picker';
 import { TerminologyClient, HierarchyOutcome } from './search/terminology-client';
 import { ControlledTermConfig } from './search/constraint-set';
-import { ClassHit, Hierarchy, SearchResponse } from './search/search-types';
+import { BranchHit, ClassHit, Hierarchy, SearchResponse } from './search/search-types';
 import { hierarchyRows } from './search/hierarchy-rows';
 import { validHierarchy, validSearchResponse } from './search/response-validation';
 import { validIri } from './search/constraint-validation';
@@ -208,6 +208,38 @@ describe('picker state transition matrix', () => {
         expect([...picker['nodes']().values()]).toEqual([currentTree]);
       });
     }
+
+  it('counts a branch in the release its row names, and reads that release as its group opens', async () => {
+    const { fixture, picker } = setup();
+    const branch: BranchHit = {
+      type: 'branch',
+      sourceSystem: 'bioportal',
+      sourceAcronym: 'TEST',
+      termBaseIri: 'urn:term',
+      termBaseLabel: 'Term',
+      descendantCount: 12220,
+      obsolete: false,
+    };
+    client.search.mockResolvedValue({
+      query: 'term',
+      sources: [],
+      results: { branch: { collection: [branch], totalCount: 1, countCapped: false, page: 1, pageSize: 25 } },
+    });
+    await picker['run']('term');
+    picker['activeTab'].set('branch');
+    picker['toggle']('Term', [branch]);
+    TestBed.tick();
+    expect(client.hierarchy, 'an unpinned row needs nothing the search did not say').not.toHaveBeenCalled();
+    expect(picker['descendantsOf'](branch)).toBe(12220);
+
+    client.hierarchy.mockResolvedValue({ kind: 'found', hierarchy: { ...tree, descendantCount: 12000 } });
+    picker['pinned'].set(new Map([['TEST', { id: 'older' }]]));
+    TestBed.tick();
+    await vi.waitFor(() => expect(picker['descendantsOf'](branch)).toBe(12000));
+    expect(client.hierarchy).toHaveBeenCalledWith('TEST', 'urn:term', 'older');
+    expect(picker['selection']()?.descendants, 'the selected branch says the same').toBe(12000);
+    fixture.destroy();
+  });
 
   for (const kind of ['absent', 'failed'] as const) {
     it(`blocks an unverified pinned term and can retry ${kind}`, async () => {

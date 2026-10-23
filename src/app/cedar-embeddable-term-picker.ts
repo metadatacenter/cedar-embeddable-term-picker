@@ -611,6 +611,20 @@ export class CedarEmbeddableTermPicker {
       this.client.setBaseUrl(this.terminologyBaseUrl());
       this.pinned.set(new Map());
     });
+    // A branch row names its source's release and counts what lies under it there. The search read
+    // the current release, so a row of a pinned source reads its own release as its group opens, and
+    // the count it shows is that release's (`descendantsOf`). The marked row reads it anyway.
+    effect(() => {
+      const label = this.expanded();
+      const pins = this.pinned();
+      if (label === null || pins.size === 0 || this.activeTab() !== 'branch') return;
+      const group = this.branchGroups().find((candidate) => candidate.label === label);
+      untracked(() => {
+        for (const hit of group?.hits ?? []) {
+          if (pins.has(hit.sourceAcronym)) void this.readHierarchy(hit);
+        }
+      });
+    });
     effect(() => {
       this.constraintSet();
       this.editing.set(null);
@@ -1877,7 +1891,7 @@ export class CedarEmbeddableTermPicker {
         return {
           noun: 'branch',
           what: hit.termBaseLabel,
-          descendants: hit.descendantCount,
+          descendants: this.descendantsOf(hit),
           acronym,
           version,
           pinned: pinned !== undefined,
@@ -2002,6 +2016,18 @@ export class CedarEmbeddableTermPicker {
   protected hierarchyOf(hit: Hit): Hierarchy | undefined {
     const outcome = this.hierarchyOutcomeOf(hit);
     return outcome?.kind === 'found' ? outcome.hierarchy : undefined;
+  }
+
+  /**
+   * How many terms lie under a branch in the release its row shows.
+   *
+   * A search reads each source's current release, and choosing an older one changes the release a
+   * row names without searching again. So the count is the pinned release's once that release's
+   * hierarchy has been read. Taken from the search alone, DOID's "disease" went on saying 12,220
+   * beside 2025-12-23, a release in which it has 12,000.
+   */
+  protected descendantsOf(hit: BranchHit): number {
+    return this.hierarchyOf(hit)?.descendantCount ?? hit.descendantCount;
   }
 
   /**

@@ -736,8 +736,8 @@
             }
           </span>
           <span class="meta inline">
-            {{ localizer.plural('counts.descendants', hit.descendantCount, { count:
-            localizer.number(hit.descendantCount) }) }}
+            {{ localizer.plural('counts.descendants', descendantsOf(hit), { count:
+            localizer.number(descendantsOf(hit)) }) }}
           </span>
           <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
         </div>
