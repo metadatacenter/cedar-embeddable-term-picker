@@ -353,8 +353,9 @@ export class CedarEmbeddableTermPicker {
   protected readonly fieldScope = computed<ControlledTermSet | null>(() => {
     const set = this.fieldConstraints();
     if (this.selectionMode() !== 'term' || !CedarEmbeddableTermPicker.isConstraintSet(set)) return null;
-    const constraints = searchableConstraints(set);
-    return constraints.length ? { constraints: [...constraints], actions: set.actions } : null;
+    // A constraint the set repeats is searched and shown once; two pins of one ontology stay two.
+    const constraints = [...new Map(searchableConstraints(set).map((c) => [constraintIdentity(c), c])).values()];
+    return constraints.length ? { constraints, actions: set.actions } : null;
   });
 
   private static isConstraintSet(value: unknown): value is ControlledTermSet {
@@ -1467,7 +1468,14 @@ export class CedarEmbeddableTermPicker {
 
   /** What the row shows: the version stepped to, else the one that answered. */
   protected versionOf(acronym: string): string {
-    return this.nameOf(this.pinned().get(acronym) ?? this.sourceOf(acronym)?.version);
+    const pinned = this.pinned().get(acronym);
+    const scope = this.fieldScope();
+    if (pinned !== undefined || scope === null) return this.nameOf(pinned ?? this.sourceOf(acronym)?.version);
+    // A search within a field's constraints says nothing about releases, so a row names the one its
+    // source's constraints pin. Where they pin two, a term found there cannot be said to come from
+    // either, and the row names none rather than calling it latest.
+    const releases = scope.constraints.filter((c) => constraintAcronym(c) === acronym).map((c) => c.version);
+    return new Set(releases.map((release) => release?.id ?? null)).size === 1 ? this.nameOf(releases[0]) : '';
   }
 
   /**

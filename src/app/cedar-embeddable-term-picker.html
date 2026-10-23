@@ -441,11 +441,11 @@
     @for (constraint of scope.constraints; track $index) {
     <span class="chip within" [title]="constraintUri(constraint)"
       ><span class="kind">{{ constraintKind(constraint) | translate }}</span> {{ constraintLabel(constraint) }}
-      @if (constraintAcronym(constraint); as acronym) {
-      <span class="source">· {{ acronym }}</span>
-      } @if (constraint.version; as version) {
-      <span class="source">· {{ version.declaredVersion ?? shortHash(version.id) }}</span>
-      }</span
+      <span class="source"
+        >· {{ constraintAcronym(constraint) }}@if (constraint.version; as version) {
+        · {{ version.declaredVersion ?? shortHash(version.id) }}
+        }</span
+      ></span
     >
     }
   </div>

@@ -101,9 +101,30 @@ describe('choosing a term within a field', () => {
     expect(chips).toHaveLength(2);
     expect(chips[0]).toContain('disease');
     expect(chips[0]).toContain('DOID');
-    expect(chips[0]).toContain('2025-12-23');
+    expect(chips[0]).toContain('DOID · 2025-12-23');
     expect(chips[1]).toContain('Lung Carcinoma');
     expect(chips[1]).toContain('NCIT');
+  });
+
+  it('shows a repeated constraint once and keeps two pins of one ontology apart', () => {
+    const [branch] = field.constraints;
+    const { picker } = setup('term', {
+      constraints: [branch, branch, { ...branch, version: { id: 'hash-2026' } }],
+      actions: [],
+    });
+    expect(picker['fieldScope']()?.constraints.map((c) => c.version?.id)).toEqual(['hash-2025', 'hash-2026']);
+  });
+
+  it('names the release a row was searched at from its constraints, and none where they disagree', () => {
+    const { fixture, picker } = setup('term');
+    expect(picker['versionOf']('DOID')).toBe('2025-12-23');
+    expect(picker['versionOf']('NCIT')).toBe('latest');
+    const [branch] = field.constraints;
+    fixture.componentRef.setInput('fieldConstraints', {
+      constraints: [branch, { ...branch, version: { id: 'hash-2026', declaredVersion: '2026-06-30' } }],
+      actions: [],
+    });
+    expect(picker['versionOf']('DOID')).toBe('');
   });
 
   it('reads the tree of a term at the release its constraint pins', () => {
