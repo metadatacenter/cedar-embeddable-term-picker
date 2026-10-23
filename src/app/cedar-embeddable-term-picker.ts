@@ -611,17 +611,25 @@ export class CedarEmbeddableTermPicker {
       this.client.setBaseUrl(this.terminologyBaseUrl());
       this.pinned.set(new Map());
     });
-    // A branch row names its source's release and counts what lies under it there. The search read
-    // the current release, so a row of a pinned source reads its own release as its group opens, and
-    // the count it shows is that release's (`descendantsOf`). The marked row reads it anyway.
+    // A row names its source's release, and some of what it shows belongs to that release: a branch
+    // counts what lies under it there (`descendantsOf`), and a row with a twin from its own ontology
+    // is told apart by its parent there (`parentOf`). The search read the current release, so such a
+    // row of a pinned source reads its own release as its group opens. The marked row reads it anyway.
     effect(() => {
       const label = this.expanded();
       const pins = this.pinned();
-      if (label === null || pins.size === 0 || this.activeTab() !== 'branch') return;
-      const group = this.branchGroups().find((candidate) => candidate.label === label);
+      const tab = this.activeTab();
+      if (label === null || pins.size === 0) return;
+      const hits: readonly (ClassHit | BranchHit)[] =
+        tab === 'branch'
+          ? (this.branchGroups().find((candidate) => candidate.label === label)?.hits ?? [])
+          : tab === 'class'
+            ? (this.labelGroups().find((candidate) => candidate.label === label)?.hits ?? [])
+            : [];
       untracked(() => {
-        for (const hit of group?.hits ?? []) {
-          if (pins.has(hit.sourceAcronym)) void this.readHierarchy(hit);
+        for (const hit of hits) {
+          const shown = hit.type === 'branch' || CedarEmbeddableTermPicker.twinsOf(hits, hit).length > 1;
+          if (shown && pins.has(hit.sourceAcronym)) void this.readHierarchy(hit);
         }
       });
     });
@@ -1776,13 +1784,18 @@ export class CedarEmbeddableTermPicker {
    * and OGMS:0000031.
    */
   protected distinguisher(hits: readonly Hit[], hit: Hit): string {
-    const twins = hits.filter((other) => other.sourceAcronym === hit.sourceAcronym);
+    const twins = CedarEmbeddableTermPicker.twinsOf(hits, hit);
     if (twins.length < 2) {
       return '';
     }
-    return CedarEmbeddableTermPicker.byParent(twins)
-      ? `under ${CedarEmbeddableTermPicker.parentOf(hit)}`
+    return this.byParent(twins)
+      ? `under ${this.parentOf(hit)}`
       : CedarEmbeddableTermPicker.shortId(this.termIriOf(hit));
+  }
+
+  /** The rows of a fold from the hit's own ontology, the hit among them. */
+  private static twinsOf<T extends Hit>(hits: readonly T[], hit: Hit): readonly T[] {
+    return hits.filter((other) => other.sourceAcronym === hit.sourceAcronym);
   }
 
   /**
@@ -1794,8 +1807,8 @@ export class CedarEmbeddableTermPicker {
    * identifying the term.
    */
   protected distinguishedById(hits: readonly Hit[], hit: Hit): boolean {
-    const twins = hits.filter((other) => other.sourceAcronym === hit.sourceAcronym);
-    return twins.length > 1 && !CedarEmbeddableTermPicker.byParent(twins);
+    const twins = CedarEmbeddableTermPicker.twinsOf(hits, hit);
+    return twins.length > 1 && !this.byParent(twins);
   }
 
   /**
@@ -1805,13 +1818,23 @@ export class CedarEmbeddableTermPicker {
    * column held two kinds of thing and answered neither "which parent" nor "which term". Parents are
    * used only where they tell every twin apart.
    */
-  private static byParent(twins: readonly Hit[]): boolean {
-    const parents = twins.map((other) => CedarEmbeddableTermPicker.parentOf(other));
+  private byParent(twins: readonly Hit[]): boolean {
+    const parents = twins.map((other) => this.parentOf(other));
     return parents.every((parent) => parent !== '') && new Set(parents).size === parents.length;
   }
 
-  private static parentOf(hit: Hit): string {
-    const path = hit.type === 'class' || hit.type === 'branch' ? hit.path : undefined;
+  /**
+   * The parent a row names, in the release the row shows.
+   *
+   * The search read the current release, and a term's parent can move between releases: DOID files
+   * "tricuspid valve disease" under "thoracic disease" today and under "cardiovascular system
+   * disease" in 2023 and before. So the parent is the one the row's own release records once that
+   * release's hierarchy has been read, and the search's until then.
+   */
+  private parentOf(hit: Hit): string {
+    if (hit.type !== 'class' && hit.type !== 'branch') return '';
+    const read = this.hierarchyOf(hit);
+    const path = read === undefined ? hit.path : read.path;
     const step = path?.[path.length - 1];
     return step === undefined ? '' : (step.termLabel ?? step.termIri);
   }
