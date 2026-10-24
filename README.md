@@ -231,7 +231,10 @@ snapshot therefore cannot reach npmjs by forgetting a flag.
 
 Development snapshots are published to CEDAR Nexus as
 `@org.metadatacenter/cedar-embeddable-term-picker`; the split Designer host pins
-an exact version. There is no public npmjs release yet. Browser tests accept
+an exact version for registry installs. Local `cedarcli build frontends` automatically supplies
+current component sources, including uncommitted edits; `cedarcli test frontends` checks them
+without deployment. Neither requires publication, manual pin updates or follow-up approval.
+There is no public npmjs release yet. Browser tests accept
 `PORT` to avoid colliding with a running local demo.
 
 ## Browser Support
