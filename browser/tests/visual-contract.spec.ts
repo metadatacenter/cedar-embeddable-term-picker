@@ -1,8 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { openPicker, stubSearch, results, classHit, source, search } from './support';
+import { openPicker, stubSearch, results, classHit, source, search, useHostFontsBuild } from './support';
 
-for (const width of [1280, 375]) {
-  test(`CEE visual contract and readable search at ${width}px`, async ({ page }, testInfo) => {
+/*
+ * The host-fonts build on a host that registers the CEDAR faces is held to the default build's
+ * baselines. The two differ only in who registers the same faces, so they must not differ by a pixel.
+ */
+const cases = [1280, 375].flatMap((width) => [false, true].map((hostFonts) => ({ width, hostFonts })));
+
+for (const { width, hostFonts } of cases) {
+  const variant = hostFonts ? ' from the host-fonts build' : '';
+  test(`CEE visual contract and readable search at ${width}px${variant}`, async ({ page }, testInfo) => {
+    if (hostFonts) {
+      await useHostFontsBuild(page, { hostFaces: true });
+    }
     await page.setViewportSize({ width, height: 900 });
     await stubSearch(page, () => ({
       sources: [source('TEST')],

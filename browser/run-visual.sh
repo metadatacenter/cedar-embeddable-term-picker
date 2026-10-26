@@ -2,10 +2,13 @@
 # Pixels are compared on the same browser, fonts and architecture locally and in CI.
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-test -f "$REPO/dist/cedar-embeddable-term-picker/browser/index.html" || {
-  echo "Run npm run build:production before testing visual baselines." >&2
-  exit 1
-}
+# The host-fonts build is held to the default build's baselines, so both builds must exist.
+for BUILD in cedar-embeddable-term-picker cedar-embeddable-term-picker-host-fonts; do
+  test -f "$REPO/dist/$BUILD/browser/index.html" || {
+    echo "Run npm run build:production before testing visual baselines." >&2
+    exit 1
+  }
+done
 # Own the container as well as the Docker client, including interrupted builds.
 CONTAINER="cetp-tests-$$-${RANDOM}"
 cleanup() { docker rm -f "$CONTAINER" >/dev/null 2>&1 || true; }

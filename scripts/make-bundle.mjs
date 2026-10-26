@@ -1,6 +1,7 @@
 /**
  * Build `dist-bundle/cedar-embeddable-term-picker.js` — the single file an embedder
- * downloads — and a manifest recording what went into it.
+ * downloads — and a manifest recording what went into it. Build its host-fonts
+ * counterpart, `cedar-embeddable-term-picker.host-fonts.js`, with a manifest of its own.
  *
  * The manifest exists so the size gate and the packaging step can check the copy
  * they are looking at without re-deriving it, and so a staged package can be
@@ -11,12 +12,26 @@
  */
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
-import { DEFAULT_DIST, ROOT, resolveBuildOutput } from './build-output.mjs';
+import { basename, join, relative } from 'node:path';
+import { DEFAULT_DIST, HOST_FONTS_DIST, ROOT, resolveBuildOutput } from './build-output.mjs';
 
 export const OUT_DIR = join(ROOT, 'dist-bundle');
 export const OUT = join(OUT_DIR, 'cedar-embeddable-term-picker.js');
 export const MANIFEST = join(OUT_DIR, 'bundle-manifest.json');
+export const HOST_FONTS_OUT = join(OUT_DIR, 'cedar-embeddable-term-picker.host-fonts.js');
+export const HOST_FONTS_MANIFEST = join(OUT_DIR, 'bundle-manifest.host-fonts.json');
+
+/**
+ * The two bundles, each flattened from its own build and recorded in its own manifest.
+ *
+ * The default embeds the CEDAR Roboto faces and needs nothing from its host. The
+ * host-fonts bundle leaves them to a host page that registers them once for every
+ * CEDAR component it loads. A host loads one of the two, never both.
+ */
+export const BUNDLES = [
+  { dist: DEFAULT_DIST, out: OUT, manifest: MANIFEST },
+  { dist: HOST_FONTS_DIST, out: HOST_FONTS_OUT, manifest: HOST_FONTS_MANIFEST },
+];
 
 export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
@@ -74,11 +89,15 @@ export async function produceBundle(dist = DEFAULT_DIST) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { bundle, manifest } = await produceBundle();
-  mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, bundle);
-  writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
-  console.log(`  bundle: ${manifest.bytes.toLocaleString('en-US')} bytes (${manifest.sha256.slice(0, 12)}…)`);
+  mkdirSync(OUT_DIR, { recursive: true });
+  for (const { dist, out, manifest: manifestPath } of BUNDLES) {
+    const { bundle, manifest } = await produceBundle(dist);
+    writeFileSync(out, bundle);
+    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    console.log(
+      `  ${basename(out)}: ${manifest.bytes.toLocaleString('en-US')} bytes (${manifest.sha256.slice(0, 12)}…)`,
+    );
+  }
 }
 
-export const readManifest = () => JSON.parse(readFileSync(MANIFEST, 'utf8'));
+export const readManifest = (path = MANIFEST) => JSON.parse(readFileSync(path, 'utf8'));
