@@ -1,4 +1,5 @@
-@if (selectionMode() === 'term' && safeSources().length > 1) {
+<!-- Not with a field's constraints: one search covers all of them, so there is no source to step between. -->
+@if (selectionMode() === 'term' && !fieldScope() && safeSources().length > 1) {
 <label class="scope-selector"
   >{{ 'scope.label' | translate }}
   <select [value]="scopeIndex()" (change)="scopeIndex.set(numberOf($event))">
@@ -429,7 +430,27 @@
     }
   </header>
 
-  @if (effectiveSources().length) {
+  @if (fieldScope(); as scope) {
+  <!--
+    What a chosen term has to satisfy, one chip a constraint. Each says what kind of constraint it
+    is, what it names, which source it is in and, where it pins one, which release, so a field
+    constrained to a branch, two classes and a value set reads as those four rather than as the
+    ontologies they come from.
+  -->
+  <div class="narrowing">
+    <span class="meta inline">{{ 'narrowing.searchingWithin' | translate }}</span>
+    @for (constraint of scope.constraints; track $index) {
+    <span class="chip within" [title]="constraintUri(constraint)"
+      ><span class="kind">{{ constraintKind(constraint) | translate }}</span> {{ constraintLabel(constraint) }}
+      <span class="source"
+        >· {{ constraintAcronym(constraint) }}@if (constraint.version; as version) {
+        · {{ version.declaredVersion ?? shortHash(version.id) }}
+        }</span
+      ></span
+    >
+    }
+  </div>
+  } @else if (effectiveSources().length) {
   <div class="narrowing">
     <span class="meta inline">{{ 'narrowing.searchingOnly' | translate }}</span>
     @for (source of effectiveSources(); track $index) {
@@ -736,8 +757,8 @@
             }
           </span>
           <span class="meta inline">
-            {{ localizer.plural('counts.descendants', hit.descendantCount, { count:
-            localizer.number(hit.descendantCount) }) }}
+            {{ localizer.plural('counts.descendants', descendantsOf(hit), { count:
+            localizer.number(descendantsOf(hit)) }) }}
           </span>
           <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
         </div>

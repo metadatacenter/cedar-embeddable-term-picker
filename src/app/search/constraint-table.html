@@ -33,8 +33,11 @@
                 min="0"
                 step="1"
                 [value]="c.searchDepth"
+                [attr.aria-describedby]="'depth-hint-' + i"
                 (change)="changeDepth(i, $event)"
             /></label>
+            <!-- A bare 0 reads as no levels at all, and it means the opposite. -->
+            <p class="depth-hint" [id]="'depth-hint-' + i">{{ 'table.depthHint' | translate }}</p>
           </details>
           } @else {
           <span

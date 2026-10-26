@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { CedarEmbeddableTermPicker } from './cedar-embeddable-term-picker';
 import { TerminologyClient, HierarchyOutcome } from './search/terminology-client';
 import { ControlledTermConfig } from './search/constraint-set';
-import { ClassHit, Hierarchy, SearchResponse } from './search/search-types';
+import { BranchHit, ClassHit, Hierarchy, SearchResponse } from './search/search-types';
 import { hierarchyRows } from './search/hierarchy-rows';
 import { validHierarchy, validSearchResponse } from './search/response-validation';
 import { validIri } from './search/constraint-validation';
@@ -208,6 +208,108 @@ describe('picker state transition matrix', () => {
         expect([...picker['nodes']().values()]).toEqual([currentTree]);
       });
     }
+
+  it('counts a branch in the release its row names, and reads that release as its group opens', async () => {
+    const { fixture, picker } = setup();
+    const branch: BranchHit = {
+      type: 'branch',
+      sourceSystem: 'bioportal',
+      sourceAcronym: 'TEST',
+      termBaseIri: 'urn:term',
+      termBaseLabel: 'Term',
+      descendantCount: 12220,
+      obsolete: false,
+    };
+    client.search.mockResolvedValue({
+      query: 'term',
+      sources: [],
+      results: { branch: { collection: [branch], totalCount: 1, countCapped: false, page: 1, pageSize: 25 } },
+    });
+    await picker['run']('term');
+    picker['activeTab'].set('branch');
+    picker['toggle']('Term', [branch]);
+    TestBed.tick();
+    expect(client.hierarchy, 'an unpinned row needs nothing the search did not say').not.toHaveBeenCalled();
+    expect(picker['descendantsOf'](branch)).toBe(12220);
+
+    client.hierarchy.mockResolvedValue({ kind: 'found', hierarchy: { ...tree, descendantCount: 12000 } });
+    picker['pinned'].set(new Map([['TEST', { id: 'older' }]]));
+    TestBed.tick();
+    await vi.waitFor(() => expect(picker['descendantsOf'](branch)).toBe(12000));
+    expect(client.hierarchy).toHaveBeenCalledWith('TEST', 'urn:term', 'older');
+    expect(picker['selection']()?.descendants, 'the selected branch says the same').toBe(12000);
+    fixture.destroy();
+  });
+
+  it('tells pinned twins apart by the parents their own release records', async () => {
+    const { fixture, picker } = setup();
+    const twin = (iri: string, parent: string): BranchHit => ({
+      type: 'branch',
+      sourceSystem: 'bioportal',
+      sourceAcronym: 'TEST',
+      termBaseIri: iri,
+      termBaseLabel: 'Term',
+      descendantCount: 1,
+      obsolete: false,
+      path: [{ termIri: `urn:${parent}`, termLabel: parent }],
+    });
+    const a = twin('urn:a', 'Thoracic');
+    const b = twin('urn:b', 'Abdominal');
+    client.search.mockResolvedValue({
+      query: 'term',
+      sources: [],
+      results: { branch: { collection: [a, b], totalCount: 2, countCapped: false, page: 1, pageSize: 25 } },
+    });
+    await picker['run']('term');
+    picker['activeTab'].set('branch');
+    picker['toggle']('Term', [a, b]);
+    TestBed.tick();
+    expect(picker['distinguisher']([a, b], a)).toBe('under Thoracic');
+
+    client.hierarchy.mockImplementation(async (_acronym: string, iri: string): Promise<HierarchyOutcome> => {
+      const parent = iri === 'urn:a' ? 'Cardiovascular' : 'Digestive';
+      return {
+        kind: 'found',
+        hierarchy: { ...tree, termIri: iri, path: [{ termIri: `urn:${parent}`, termLabel: parent }] },
+      };
+    });
+    picker['pinned'].set(new Map([['TEST', { id: 'older' }]]));
+    TestBed.tick();
+    await vi.waitFor(() => expect(picker['distinguisher']([a, b], a)).toBe('under Cardiovascular'));
+    expect(picker['distinguisher']([a, b], b)).toBe('under Digestive');
+    fixture.destroy();
+  });
+
+  it('reads a pinned term row as its group opens only where a twin needs its parent', async () => {
+    const { fixture, picker } = setup();
+    const named = (iri: string, label: string, acronym = 'TEST'): ClassHit => ({
+      ...term,
+      sourceAcronym: acronym,
+      termIri: iri,
+      termLabel: label,
+      path: [{ termIri: `${iri}:parent`, termLabel: `Parent of ${iri}` }],
+    });
+    const single = named('urn:single', 'Single');
+    const twins = [named('urn:x1', 'Twin'), named('urn:x2', 'Twin'), named('urn:o1', 'Twin', 'OTHER')];
+    client.search.mockResolvedValue({
+      query: 'term',
+      sources: [],
+      results: { class: { collection: [single, ...twins], totalCount: 4, countCapped: false, page: 1, pageSize: 25 } },
+    });
+    await picker['run']('term');
+    picker['pinned'].set(new Map([['TEST', { id: 'older' }]]));
+    picker['activeTab'].set('class');
+    picker['toggle']('Single', [single]);
+    TestBed.tick();
+    expect(client.hierarchy, 'a row with no twin shows nothing its release changes').not.toHaveBeenCalled();
+
+    picker['toggle']('Twin', twins);
+    TestBed.tick();
+    await vi.waitFor(() => expect(client.hierarchy).toHaveBeenCalledTimes(2));
+    expect(client.hierarchy).toHaveBeenCalledWith('TEST', 'urn:x1', 'older');
+    expect(client.hierarchy).toHaveBeenCalledWith('TEST', 'urn:x2', 'older');
+    fixture.destroy();
+  });
 
   for (const kind of ['absent', 'failed'] as const) {
     it(`blocks an unverified pinned term and can retry ${kind}`, async () => {

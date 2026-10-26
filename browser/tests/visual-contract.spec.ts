@@ -29,7 +29,9 @@ for (const width of [1280, 375]) {
     }
     expect(box!.x + box!.width).toBeLessThanOrEqual(width);
     if (process.env.CETP_VISUAL) {
-      await expect(picker).toHaveScreenshot(`picker-${width}.png`, { animations: 'disabled', maxDiffPixels: 0 });
+      await expect(picker).toHaveScreenshot(`picker-${width}.png`, {
+        animations: 'disabled', maxDiffPixels: 0, threshold: 0.02,
+      });
     }
     await testInfo.attach('picker appearance', { body: await picker.screenshot(), contentType: 'image/png' });
   });

@@ -4,7 +4,9 @@ import { PickerCoordinator } from './search/picker-coordinator';
 import { displayConstraints, validateConstraints } from './search/constraint-validation';
 import { hierarchyRows } from './search/hierarchy-rows';
 import { ConstraintTableComponent } from './search/constraint-table';
+import { searchableConstraints } from './search/integrated-search';
 import {
+  constraintKind,
   constraintLabel,
   constraintUri,
   constraintAcronym,
@@ -60,6 +62,7 @@ import {
   MatchedLabel,
   OntologyHit,
   SearchKind,
+  SearchQuery,
   SearchResponse,
   Selection,
   SourceSelector,
@@ -211,6 +214,13 @@ export class CedarEmbeddableTermPicker {
     const types = this.termTypes();
     if (types !== undefined && (!Array.isArray(types) || types.some((type) => !TAB_ORDER.includes(type))))
       return phrase('errors.termTypes');
+    const fieldConstraints = this.fieldConstraints();
+    if (
+      fieldConstraints !== undefined &&
+      fieldConstraints !== null &&
+      !CedarEmbeddableTermPicker.isConstraintSet(fieldConstraints)
+    )
+      return phrase('errors.fieldConstraints');
     const sources = this.sources();
     if (
       !Array.isArray(sources) ||
@@ -261,6 +271,7 @@ export class CedarEmbeddableTermPicker {
 
   protected readonly constraintLabel = constraintLabel;
   protected readonly constraintUri = constraintUri;
+  protected readonly constraintKind = constraintKind;
   protected readonly constraintAcronym = constraintAcronym;
 
   protected editConstraint(index: number): void {
@@ -330,6 +341,31 @@ export class CedarEmbeddableTermPicker {
 
   /** Optional fixed search scope supplied by a host's field constraint. */
   readonly sources = input<readonly SourceSelector[]>([]);
+
+  /**
+   * The constraints a chosen term must satisfy, for a picker choosing one term for a field.
+   *
+   * With any that hold terms, a search in term mode looks only within them, through the route the
+   * metadata editor offers the field's values by, and the strip above the results names each one.
+   * Takes precedence over `sources`, which can say only which ontologies to search.
+   */
+  readonly fieldConstraints = input<ControlledTermSet | undefined>(undefined);
+  protected readonly fieldScope = computed<ControlledTermSet | null>(() => {
+    const set = this.fieldConstraints();
+    if (this.selectionMode() !== 'term' || !CedarEmbeddableTermPicker.isConstraintSet(set)) return null;
+    // A constraint the set repeats is searched and shown once; two pins of one ontology stay two.
+    const constraints = [...new Map(searchableConstraints(set).map((c) => [constraintIdentity(c), c])).values()];
+    return constraints.length ? { constraints, actions: set.actions } : null;
+  });
+
+  private static isConstraintSet(value: unknown): value is ControlledTermSet {
+    return (
+      !!value &&
+      typeof value === 'object' &&
+      Array.isArray((value as { constraints?: unknown }).constraints) &&
+      Array.isArray((value as { actions?: unknown }).actions)
+    );
+  }
   protected readonly safeSources = computed(() =>
     Array.isArray(this.sources())
       ? this.sources().filter((source) => source && typeof source.sourceAcronym === 'string')
@@ -355,6 +391,24 @@ export class CedarEmbeddableTermPicker {
             },
           ]
         : [];
+    }
+    const scope = this.fieldScope();
+    if (scope) {
+      // Every source the constraints name, each at the release it pins: the tree a term opens is read
+      // there. One search covers them all, so none is browsed apart from the others.
+      const named = scope.constraints.flatMap((c): SourceSelector[] => {
+        const acronym = constraintAcronym(c);
+        return acronym
+          ? [
+              {
+                sourceAcronym: acronym,
+                ...(c.sourceSystem ? { sourceSystem: c.sourceSystem } : {}),
+                ...(c.version ? { version: { id: c.version.id } } : {}),
+              },
+            ]
+          : [];
+      });
+      return [...new Map(named.map((source) => [JSON.stringify(source), source])).values()];
     }
     const sources = this.safeSources();
     // The search response groups by acronym, so two releases of one source must
@@ -611,6 +665,28 @@ export class CedarEmbeddableTermPicker {
       this.client.setBaseUrl(this.terminologyBaseUrl());
       this.pinned.set(new Map());
     });
+    // A row names its source's release, and some of what it shows belongs to that release: a branch
+    // counts what lies under it there (`descendantsOf`), and a row with a twin from its own ontology
+    // is told apart by its parent there (`parentOf`). The search read the current release, so such a
+    // row of a pinned source reads its own release as its group opens. The marked row reads it anyway.
+    effect(() => {
+      const label = this.expanded();
+      const pins = this.pinned();
+      const tab = this.activeTab();
+      if (label === null || pins.size === 0) return;
+      const hits: readonly (ClassHit | BranchHit)[] =
+        tab === 'branch'
+          ? (this.branchGroups().find((candidate) => candidate.label === label)?.hits ?? [])
+          : tab === 'class'
+            ? (this.labelGroups().find((candidate) => candidate.label === label)?.hits ?? [])
+            : [];
+      untracked(() => {
+        for (const hit of hits) {
+          const shown = hit.type === 'branch' || CedarEmbeddableTermPicker.twinsOf(hits, hit).length > 1;
+          if (shown && pins.has(hit.sourceAcronym)) void this.readHierarchy(hit);
+        }
+      });
+    });
     effect(() => {
       this.constraintSet();
       this.editing.set(null);
@@ -752,7 +828,7 @@ export class CedarEmbeddableTermPicker {
     // refusal sat under "searching…" as though it were this query's answer.
     this.error.set(null);
     try {
-      const response = await this.client.search(
+      const response = await this.ask(
         {
           query,
           pageSize: PAGE_SIZE,
@@ -950,6 +1026,12 @@ export class CedarEmbeddableTermPicker {
   private hierarchyVersion(acronym: string): string | undefined {
     const fixed = this.effectiveSources().find((source) => source.sourceAcronym === acronym)?.version;
     return fixed && fixed !== 'latest' ? fixed.id : this.pinned().get(acronym)?.id;
+  }
+
+  /** A page of results, from within the field's constraints where the host gave them. */
+  private ask(query: SearchQuery, signal?: AbortSignal): Promise<SearchResponse> {
+    const scope = this.fieldScope();
+    return scope ? this.client.searchWithin(query, scope, signal) : this.client.search(query, signal);
   }
 
   private sourceSelectors(): readonly SourceSelector[] | undefined {
@@ -1267,7 +1349,7 @@ export class CedarEmbeddableTermPicker {
     const signal = this.alongside();
     let failed = false;
     try {
-      const next = await this.client.search(
+      const next = await this.ask(
         {
           query,
           types: [kind],
@@ -1386,7 +1468,14 @@ export class CedarEmbeddableTermPicker {
 
   /** What the row shows: the version stepped to, else the one that answered. */
   protected versionOf(acronym: string): string {
-    return this.nameOf(this.pinned().get(acronym) ?? this.sourceOf(acronym)?.version);
+    const pinned = this.pinned().get(acronym);
+    const scope = this.fieldScope();
+    if (pinned !== undefined || scope === null) return this.nameOf(pinned ?? this.sourceOf(acronym)?.version);
+    // A search within a field's constraints says nothing about releases, so a row names the one its
+    // source's constraints pin. Where they pin two, a term found there cannot be said to come from
+    // either, and the row names none rather than calling it latest.
+    const releases = scope.constraints.filter((c) => constraintAcronym(c) === acronym).map((c) => c.version);
+    return new Set(releases.map((release) => release?.id ?? null)).size === 1 ? this.nameOf(releases[0]) : '';
   }
 
   /**
@@ -1762,13 +1851,18 @@ export class CedarEmbeddableTermPicker {
    * and OGMS:0000031.
    */
   protected distinguisher(hits: readonly Hit[], hit: Hit): string {
-    const twins = hits.filter((other) => other.sourceAcronym === hit.sourceAcronym);
+    const twins = CedarEmbeddableTermPicker.twinsOf(hits, hit);
     if (twins.length < 2) {
       return '';
     }
-    return CedarEmbeddableTermPicker.byParent(twins)
-      ? `under ${CedarEmbeddableTermPicker.parentOf(hit)}`
+    return this.byParent(twins)
+      ? `under ${this.parentOf(hit)}`
       : CedarEmbeddableTermPicker.shortId(this.termIriOf(hit));
+  }
+
+  /** The rows of a fold from the hit's own ontology, the hit among them. */
+  private static twinsOf<T extends Hit>(hits: readonly T[], hit: Hit): readonly T[] {
+    return hits.filter((other) => other.sourceAcronym === hit.sourceAcronym);
   }
 
   /**
@@ -1780,8 +1874,8 @@ export class CedarEmbeddableTermPicker {
    * identifying the term.
    */
   protected distinguishedById(hits: readonly Hit[], hit: Hit): boolean {
-    const twins = hits.filter((other) => other.sourceAcronym === hit.sourceAcronym);
-    return twins.length > 1 && !CedarEmbeddableTermPicker.byParent(twins);
+    const twins = CedarEmbeddableTermPicker.twinsOf(hits, hit);
+    return twins.length > 1 && !this.byParent(twins);
   }
 
   /**
@@ -1791,13 +1885,23 @@ export class CedarEmbeddableTermPicker {
    * column held two kinds of thing and answered neither "which parent" nor "which term". Parents are
    * used only where they tell every twin apart.
    */
-  private static byParent(twins: readonly Hit[]): boolean {
-    const parents = twins.map((other) => CedarEmbeddableTermPicker.parentOf(other));
+  private byParent(twins: readonly Hit[]): boolean {
+    const parents = twins.map((other) => this.parentOf(other));
     return parents.every((parent) => parent !== '') && new Set(parents).size === parents.length;
   }
 
-  private static parentOf(hit: Hit): string {
-    const path = hit.type === 'class' || hit.type === 'branch' ? hit.path : undefined;
+  /**
+   * The parent a row names, in the release the row shows.
+   *
+   * The search read the current release, and a term's parent can move between releases: DOID files
+   * "tricuspid valve disease" under "thoracic disease" today and under "cardiovascular system
+   * disease" in 2023 and before. So the parent is the one the row's own release records once that
+   * release's hierarchy has been read, and the search's until then.
+   */
+  private parentOf(hit: Hit): string {
+    if (hit.type !== 'class' && hit.type !== 'branch') return '';
+    const read = this.hierarchyOf(hit);
+    const path = read === undefined ? hit.path : read.path;
     const step = path?.[path.length - 1];
     return step === undefined ? '' : (step.termLabel ?? step.termIri);
   }
@@ -1877,7 +1981,7 @@ export class CedarEmbeddableTermPicker {
         return {
           noun: 'branch',
           what: hit.termBaseLabel,
-          descendants: hit.descendantCount,
+          descendants: this.descendantsOf(hit),
           acronym,
           version,
           pinned: pinned !== undefined,
@@ -2002,6 +2106,18 @@ export class CedarEmbeddableTermPicker {
   protected hierarchyOf(hit: Hit): Hierarchy | undefined {
     const outcome = this.hierarchyOutcomeOf(hit);
     return outcome?.kind === 'found' ? outcome.hierarchy : undefined;
+  }
+
+  /**
+   * How many terms lie under a branch in the release its row shows.
+   *
+   * A search reads each source's current release, and choosing an older one changes the release a
+   * row names without searching again. So the count is the pinned release's once that release's
+   * hierarchy has been read. Taken from the search alone, DOID's "disease" went on saying 12,220
+   * beside 2025-12-23, a release in which it has 12,000.
+   */
+  protected descendantsOf(hit: BranchHit): number {
+    return this.hierarchyOf(hit)?.descendantCount ?? hit.descendantCount;
   }
 
   /**
