@@ -45,7 +45,7 @@
     "@angular/cli": "22.2.4",
     "@angular/compiler-cli": "^22.2.0",
     "@eslint/js": "^10.0.1",
-    "@org.metadatacenter/cedar-design-tokens": "0.1.0-dev.20261026.g1c8bebdaffed.t1144",
+    "@org.metadatacenter/cedar-design-tokens": "0.1.0-dev.20261026.8c05563a",
     "@types/node": "^24.9.2",
     "angular-eslint": "^22.1.0",
     "esbuild": "^0.28.2",
