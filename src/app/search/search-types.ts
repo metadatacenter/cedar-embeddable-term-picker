@@ -69,6 +69,7 @@ export interface SourceBlock {
    * where the copy came from, which two vocabularies of the same name are told apart by.
    */
   readonly authority?: string;
+  readonly authorityLabel?: string;
   readonly pinnable: boolean;
   readonly version?: VersionInfo;
   /** How many versions the store holds, so a row knows whether stepping back is possible. */
