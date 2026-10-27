@@ -631,10 +631,12 @@ button {
     font-weight: var(--cedar-font-weight-medium);
   }
 
-  // The term the bar is describing. The tint alone: a bar down its edge is the mark a row and a
-  // release carry, and inside a tree it read as another level of indent rather than as emphasis.
+  // The term the bar is describing, tinted and framed in the theme colour. A bar down its edge read
+  // as another level of indent rather than as emphasis, and the tint, about 1.2:1 against the tree,
+  // is too faint to mark the term on its own.
   &.picked > .term {
     background: var(--cetp-color-tint);
+    @include patterns.selected-frame;
     color: var(--cetp-color-heading);
   }
 
@@ -767,13 +769,14 @@ button {
   }
 
   // The release the row is reading: the pinned one, or the current one where nothing is pinned.
-  // Marked the way a marked row is marked — a tint and a bar down its edge — because a list of
-  // releases where none is picked out reads as a list an author has yet to choose from, and the
-  // one they are already on is the fact the panel exists to state. The tint carries it on its own:
-  // marking is a tinted row throughout the picker, and nothing else marks a left edge.
+  // It is marked because a list of releases where none is picked out reads as a list an author has
+  // yet to choose from, and the one they are already on is the fact the panel exists to state. The
+  // tint, about 1.2:1 against the list, is too faint to carry the mark alone, so the release is also
+  // framed in the theme colour, as the picked tree term is.
   &.on,
   &.on:hover {
     background: var(--cetp-color-tint);
+    @include patterns.selected-frame;
     color: var(--cetp-color-heading);
   }
 

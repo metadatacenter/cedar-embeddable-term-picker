@@ -528,6 +528,12 @@ test('a term picked from the tree becomes what the tree is about, ancestors kept
   // from is only where the author started, so the panel no longer addresses it.
   await expect(chosen).toContainText('Amelanotic Melanoma');
   await expect(tree.locator('.node.self')).toContainText('Amelanotic Melanoma');
+  // The picked term is framed in the theme colour as well as tinted, because the tint alone is too
+  // faint to mark it.
+  await expect(tree.locator('.node.picked > .term')).toHaveCSS(
+    'box-shadow',
+    'rgb(15, 118, 134) 0px 0px 0px 1px inset',
+  );
   // Its own children are what hangs below it now.
   await expect(tree).toContainText('Spitzoid Melanoma');
   // And the way back is on screen: the step it came from stands above it.
@@ -1107,6 +1113,9 @@ test('the release count opens the whole history, and choosing from it pins', asy
   // where none is picked out reads as one nothing has been chosen from.
   await expect(releases.first()).toHaveClass(/on/);
   await expect(releases.nth(1)).not.toHaveClass(/on/);
+  // The mark is a frame in the theme colour as well as a tint, because the tint alone is too faint.
+  await expect(releases.first()).toHaveCSS('box-shadow', 'rgb(15, 118, 134) 0px 0px 0px 1px inset');
+  await expect(releases.nth(1)).toHaveCSS('box-shadow', 'none');
   await releases.nth(1).click();
   await expect(releases.nth(1)).toHaveClass(/on/);
   // Choosing a release opens the row it belongs to, so the change has somewhere to show.
