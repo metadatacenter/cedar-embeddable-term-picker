@@ -98,16 +98,29 @@ its `cancelled` event. Nothing on that page ships.
 
 ## Building and Testing
 
-| Command                    | What it does                                                                                          |
-| -------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `npm run build:production` | the custom element and its host-fonts counterpart, both under `dist/`                                 |
-| `npm test`                 | unit tests, through the Angular CLI's Vitest builder, then the untranslated-string guard              |
-| `npm run lint`             | ESLint over TypeScript and templates, Prettier included                                               |
-| `npm run typecheck`        | `tsc` over every file under `src/`                                                                    |
-| `npm run dist`             | the distribution: two scripts, their declarations, and a staged package                               |
-| `npm run test:ci`          | the gate: lint, typecheck, tests, the production build, the browser tests and the distribution        |
-| `npm run test:visual`      | desktop and narrow CEE-style pixel baselines for both builds in pinned ARM Linux Docker (build first) |
-| `npm run audit:prod`       | advisories against what actually ships                                                                |
+| Command                    | What it does                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `npm run build:production` | the custom element and its host-fonts counterpart, both under `dist/`                                              |
+| `npm test`                 | unit tests, through the Angular CLI's Vitest builder, then the untranslated-string guard                           |
+| `npm run lint`             | ESLint over TypeScript and templates, Prettier included                                                            |
+| `npm run typecheck`        | `tsc` over every file under `src/`                                                                                 |
+| `npm run dist`             | the distribution: two scripts, their declarations, and a staged package                                            |
+| `npm run check:fresh`      | a check that both scripts in `dist-bundle/`, and the builds they came from, match the current sources              |
+| `npm run test:ci`          | the gate: lint, typecheck, tests, the production build, the browser tests and the distribution                     |
+| `npm run test:visual`      | desktop and narrow CEE-style pixel baselines for both builds in pinned ARM Linux Docker (run `npm run dist` first) |
+| `npm run audit:prod`       | advisories against what actually ships                                                                             |
+
+`npm run build:production` records beside each build a fingerprint of what it was compiled
+from: `src/`, `public/`, `scripts/`, the root configuration files including `package-lock.json`,
+and the installed design tokens and model library. `npm run bundle` refuses a build whose inputs
+have changed since, and copies the record into each script's manifest. `npm run check:fresh` fails
+when either script or its record is missing, when the inputs or the build have changed since the
+script was made, or when the script's bytes differ from its manifest. It compares contents, not
+timestamps, so touching a file changes nothing and an edit that keeps its timestamp still fails.
+Rebuild with `npm run dist`. The browser tests, the visual baselines and the packaging step run
+the check before they use the prebuilt output, so none of them can test or stage a stale build. A
+sibling that loads `dist-bundle/` from this checkout, as the designer's browser suite does through
+`PICKER_BUNDLE`, can run `npm --prefix ../cedar-embeddable-term-picker run check:fresh` first.
 
 Every string the picker shows is stated in `src/assets/i18n/en.json` and
 `hu.json`, which must declare the same keys. The guard `npm test` ends with,
@@ -118,7 +131,7 @@ anything fails too.
 
 GitHub Actions runs the gate and visual baselines on push and pull request. The
 visual runner uses Playwright 1.64.1 on ARM Linux both locally and in CI, with no
-pixel difference allowance. To review an intentional visual change, build first,
+pixel difference allowance. To review an intentional visual change, run `npm run dist` first,
 then run `npm run test:visual -- --update-snapshots` and inspect both images. The build is zoneless, so
 change detection runs on signals rather than on `zone.js` patching the browser's
 async APIs: a view updates on a microtask after a signal is set, and

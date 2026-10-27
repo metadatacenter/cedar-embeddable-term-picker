@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   faces, and it embeds no font at all. It is about 122 kB smaller raw and 94 kB smaller gzipped.
   `npm run build:production` builds both, the size gate holds each to its own ceiling, and the
   package carries both, each verified byte for byte against its manifest.
+- A freshness check, `npm run check:fresh`. `npm run build:production` records a content
+  fingerprint of each build's sources, configuration, dependency lock and installed CEDAR
+  packages, and `npm run bundle` copies it into each bundle's manifest as `provenance`. The check
+  fails when either bundle was not made from the current sources, and the browser tests, the
+  visual baselines and the packaging step run it before they use the prebuilt output.
 
 ## [0.1.0-dev.20260915.0ec47d9c] - 2026-09-16 (Nexus)
 

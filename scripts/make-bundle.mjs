@@ -5,15 +5,19 @@
  *
  * The manifest exists so the size gate and the packaging step can check the copy
  * they are looking at without re-deriving it, and so a staged package can be
- * verified byte for byte against the bundle that was tested.
+ * verified byte for byte against the bundle that was tested. It also carries the
+ * record of what the build was compiled from, which the freshness check compares
+ * with the current sources.
  *
  * Usable as a module: `produceBundle()` returns the bytes and the manifest
- * without writing, so the packaging step is testable against a synthetic build.
+ * without writing, so the packaging step is testable against a synthetic build,
+ * and `writeBundle()` takes the paths it writes to, so the freshness check is too.
  */
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, join, relative } from 'node:path';
+import { basename, dirname, join, relative } from 'node:path';
 import { DEFAULT_DIST, HOST_FONTS_DIST, ROOT, resolveBuildOutput } from './build-output.mjs';
+import { readProvenance, verifyProvenance } from './build-provenance.mjs';
 
 export const OUT_DIR = join(ROOT, 'dist-bundle');
 export const OUT = join(OUT_DIR, 'cedar-embeddable-term-picker.js');
@@ -77,8 +81,8 @@ export async function produceBundle(dist = DEFAULT_DIST) {
     /*
      * No timestamp. A build time here would make the manifest differ on every
      * rebuild even when the bundle was byte-identical, so a staged copy could
-     * never be verified by comparison. The freshness guard takes its timestamps
-     * from the filesystem instead.
+     * never be verified by comparison. The freshness check compares content
+     * fingerprints instead.
      */
     manifest: {
       bytes: bundle.length,
@@ -88,14 +92,37 @@ export async function produceBundle(dist = DEFAULT_DIST) {
   };
 }
 
+/**
+ * Bundle one build and write the bundle and its manifest.
+ *
+ * A build whose record is missing, or no longer matches the current sources or its own output, is
+ * refused. A bundle made from it would be stale from the moment it was written.
+ */
+export async function writeBundle({ dist, out, manifest: manifestPath }, root = ROOT) {
+  const refuse = (reason) => new Error(`${relative(root, dist)} must be rebuilt. ${reason}\n  Run: npm run dist`);
+  const provenance = readProvenance(dist);
+  if (provenance === null) {
+    throw refuse('It records no build inputs, so it was not built by npm run build:production.');
+  }
+  try {
+    verifyProvenance(provenance, root, dist);
+  } catch (error) {
+    throw refuse(error.message);
+  }
+
+  const { bundle, manifest } = await produceBundle(dist);
+  manifest.provenance = provenance;
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, bundle);
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  return manifest;
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  mkdirSync(OUT_DIR, { recursive: true });
-  for (const { dist, out, manifest: manifestPath } of BUNDLES) {
-    const { bundle, manifest } = await produceBundle(dist);
-    writeFileSync(out, bundle);
-    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  for (const target of BUNDLES) {
+    const manifest = await writeBundle(target);
     console.log(
-      `  ${basename(out)}: ${manifest.bytes.toLocaleString('en-US')} bytes (${manifest.sha256.slice(0, 12)}…)`,
+      `  ${basename(target.out)}: ${manifest.bytes.toLocaleString('en-US')} bytes (${manifest.sha256.slice(0, 12)}…)`,
     );
   }
 }

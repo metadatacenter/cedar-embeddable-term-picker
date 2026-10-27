@@ -5,9 +5,10 @@
  * disagree about either question.
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 import { ROOT } from './build-output.mjs';
-import { HOST_FONTS_MANIFEST, HOST_FONTS_OUT, MANIFEST, OUT, sha256 } from './make-bundle.mjs';
+import { checkBundle } from './check-bundle-fresh.mjs';
+import { BUNDLES } from './make-bundle.mjs';
 
 export const TYPES = join(ROOT, 'dist-types/cetp-public-api.d.ts');
 /**
@@ -74,18 +75,13 @@ export function packageMetadata(rootPackage = readJson(join(ROOT, 'package.json'
   };
 }
 
-/** One bundle and its manifest, refused if they do not agree. */
-function readBundle(out, manifestPath) {
-  const name = basename(out);
-  if (!existsSync(out) || !existsSync(manifestPath)) {
-    throw new Error(`${name} is missing.\n  Run: npm run bundle`);
-  }
-  const bundle = readFileSync(out);
-  const manifest = readJson(manifestPath);
-  if (sha256(bundle) !== manifest.sha256) {
-    throw new Error(`${name} does not match its manifest digest.\n  Run: npm run bundle`);
-  }
-  return { bundle, manifest };
+/**
+ * One bundle and its manifest, refused if they do not agree or if the bundle was not built from
+ * the current sources. Staging a stale bundle would publish bytes the current sources do not produce.
+ */
+function readBundle(target) {
+  const manifest = checkBundle(target);
+  return { bundle: readFileSync(target.out), manifest };
 }
 
 /**
@@ -106,10 +102,12 @@ export function assertHostFontsBundle(bundle, hostFontsBundle) {
   }
 }
 
-/** Both bundles and their manifests, refused if a pair disagrees or the host-fonts bundle declares a face. */
+/**
+ * Both bundles and their manifests, refused if a pair disagrees, if either is stale, or if the
+ * host-fonts bundle declares a face.
+ */
 export function assertSourceBundles() {
-  const standalone = readBundle(OUT, MANIFEST);
-  const hostFonts = readBundle(HOST_FONTS_OUT, HOST_FONTS_MANIFEST);
+  const [standalone, hostFonts] = BUNDLES.map(readBundle);
   assertHostFontsBundle(standalone.bundle, hostFonts.bundle);
   if (!existsSync(TYPES) || !existsSync(TYPES_SEARCH)) {
     throw new Error('the published declarations are missing.\n  Run: npm run types:public');
