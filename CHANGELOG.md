@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- A second bundle, `cedar-embeddable-term-picker.host-fonts.js`, with its own
+  `bundle-manifest.host-fonts.json`, for a host page that registers CEDAR Roboto 400 and 500
+  itself. It differs from the default bundle only in its font registrar, which registers no
+  faces, and it embeds no font at all. It is about 122 kB smaller raw and 94 kB smaller gzipped.
+  `npm run build:production` builds both, the size gate holds each to its own ceiling, and the
+  package carries both, each verified byte for byte against its manifest.
+- A freshness check, `npm run check:fresh`. `npm run build:production` records a content
+  fingerprint of each build's sources, configuration, dependency lock and installed CEDAR
+  packages, and `npm run bundle` copies it into each bundle's manifest as `provenance`. The check
+  fails when either bundle was not made from the current sources, and the browser tests, the
+  visual baselines and the packaging step run it before they use the prebuilt output.
+
 ## [0.1.0-dev.20260915.0ec47d9c] - 2026-09-16 (Nexus)
 
 First Nexus development snapshot for the split CED host. Browser tests accept an isolated port.

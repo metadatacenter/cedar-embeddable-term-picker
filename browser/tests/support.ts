@@ -1,4 +1,6 @@
 import { Page, Route } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Fixtures shaped like the terminology server's answers, and the plumbing to serve them.
@@ -208,4 +210,44 @@ export async function openPicker(page: Page): Promise<void> {
 export async function search(page: Page, query: string): Promise<void> {
   await page.locator('cedar-embeddable-term-picker input[type=search]').fill(query);
   await page.locator('cedar-embeddable-term-picker .tabs .badge').first().waitFor();
+}
+
+/**
+ * Serves the host-fonts build in place of the default one, optionally on a host that registers the
+ * CEDAR faces itself.
+ *
+ * The two builds emit the same `index.html` and stylesheet and differ only in `main.js`, so the
+ * host-fonts build is served by answering that one request from its output. The faces the page
+ * adds are the token package's two font partials, which its `fonts` export combines, so they are
+ * the faces a real host registers.
+ */
+export async function useHostFontsBuild(page: Page, options: { readonly hostFaces: boolean }): Promise<void> {
+  const main = fileURLToPath(
+    new URL('../../dist/cedar-embeddable-term-picker-host-fonts/browser/main.js', import.meta.url),
+  );
+  await page.route('**/main.js', (route) =>
+    route.fulfill({ path: main, contentType: 'text/javascript; charset=utf-8' }),
+  );
+  if (!options.hostFaces) {
+    return;
+  }
+  const faces = [400, 500]
+    .map((weight) =>
+      readFileSync(
+        new URL(
+          `../../node_modules/@org.metadatacenter/cedar-design-tokens/scss/fonts/_roboto-${weight}.scss`,
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    )
+    .join('\n');
+  await page.route(
+    (url) => url.pathname === '/',
+    async (route) => {
+      const response = await route.fetch();
+      const body = (await response.text()).replace('</head>', `<style>${faces}</style></head>`);
+      await route.fulfill({ response, body });
+    },
+  );
 }

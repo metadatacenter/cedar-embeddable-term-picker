@@ -57,6 +57,25 @@
                 }
               ]
             },
+            "host-fonts": {
+              "outputPath": "dist/cedar-embeddable-term-picker-host-fonts",
+              "fileReplacements": [
+                {
+                  "replace": "src/app/font-registrar/font-registrar.ts",
+                  "with": "src/app/font-registrar/font-registrar.host-fonts.ts"
+                }
+              ],
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumError": "408000"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumError": "200kB"
+                }
+              ]
+            },
             "development": {
               "optimization": false,
               "extractLicenses": false,

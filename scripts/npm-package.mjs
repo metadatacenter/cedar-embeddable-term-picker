@@ -7,7 +7,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT } from './build-output.mjs';
-import { MANIFEST, OUT, sha256 } from './make-bundle.mjs';
+import { checkBundle } from './check-bundle-fresh.mjs';
+import { BUNDLES } from './make-bundle.mjs';
 
 export const TYPES = join(ROOT, 'dist-types/cetp-public-api.d.ts');
 /**
@@ -51,10 +52,12 @@ export function packageMetadata(rootPackage = readJson(join(ROOT, 'package.json'
     types: 'cedar-embeddable-term-picker.d.ts',
     files: [
       'cedar-embeddable-term-picker.js',
+      'cedar-embeddable-term-picker.host-fonts.js',
       'cedar-embeddable-term-picker.d.ts',
       'search/search-types.d.ts',
       'search/constraint-set.d.ts',
       'bundle-manifest.json',
+      'bundle-manifest.host-fonts.json',
       'README.md',
       'CHANGELOG.md',
       'license.txt',
@@ -72,31 +75,59 @@ export function packageMetadata(rootPackage = readJson(join(ROOT, 'package.json'
   };
 }
 
-/** The bundle and its manifest, refused if they do not agree. */
-export function assertSourceBundle() {
-  if (!existsSync(OUT) || !existsSync(MANIFEST)) {
-    throw new Error('the bundle is missing.\n  Run: npm run bundle');
+/**
+ * One bundle and its manifest, refused if they do not agree or if the bundle was not built from
+ * the current sources. Staging a stale bundle would publish bytes the current sources do not produce.
+ */
+function readBundle(target) {
+  const manifest = checkBundle(target);
+  return { bundle: readFileSync(target.out), manifest };
+}
+
+/**
+ * Refuse a host-fonts bundle that still declares a font face.
+ *
+ * Both bundles are built from the same sources and differ only in the font registrar, so the
+ * host-fonts bundle must declare no face and must be the smaller of the two. The picker draws
+ * its icons as inline SVG, so the host-fonts bundle has no face of any kind to keep.
+ */
+export function assertHostFontsBundle(bundle, hostFontsBundle) {
+  if (hostFontsBundle.includes(Buffer.from('@font-face'))) {
+    throw new Error('the host-fonts bundle declares a font face.\n  Run: npm run build:production && npm run bundle');
   }
-  const bundle = readFileSync(OUT);
-  const manifest = readJson(MANIFEST);
-  if (sha256(bundle) !== manifest.sha256) {
-    throw new Error('the bundle does not match its manifest digest.\n  Run: npm run bundle');
+  if (hostFontsBundle.length >= bundle.length) {
+    throw new Error(
+      'the host-fonts bundle is no smaller than the default one.\n  Run: npm run build:production && npm run bundle',
+    );
   }
+}
+
+/**
+ * Both bundles and their manifests, refused if a pair disagrees, if either is stale, or if the
+ * host-fonts bundle declares a face.
+ */
+export function assertSourceBundles() {
+  const [standalone, hostFonts] = BUNDLES.map(readBundle);
+  assertHostFontsBundle(standalone.bundle, hostFonts.bundle);
   if (!existsSync(TYPES) || !existsSync(TYPES_SEARCH)) {
     throw new Error('the published declarations are missing.\n  Run: npm run types:public');
   }
-  return { bundle, manifest };
+  return { standalone, hostFonts };
 }
+
+const manifestBytes = (manifest) => Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
 
 /** Every file the staged package should contain, by name. */
 export function expectedFiles() {
-  const { bundle, manifest } = assertSourceBundle();
+  const { standalone, hostFonts } = assertSourceBundles();
   return {
-    'cedar-embeddable-term-picker.js': bundle,
+    'cedar-embeddable-term-picker.js': standalone.bundle,
+    'cedar-embeddable-term-picker.host-fonts.js': hostFonts.bundle,
     'cedar-embeddable-term-picker.d.ts': readFileSync(TYPES),
     'search/search-types.d.ts': readFileSync(TYPES_SEARCH),
     'search/constraint-set.d.ts': readFileSync(join(ROOT, 'dist-types/search/constraint-set.d.ts')),
-    'bundle-manifest.json': Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`),
+    'bundle-manifest.json': manifestBytes(standalone.manifest),
+    'bundle-manifest.host-fonts.json': manifestBytes(hostFonts.manifest),
     'README.md': readFileSync(join(ROOT, 'README.md')),
     'CHANGELOG.md': readFileSync(join(ROOT, 'CHANGELOG.md')),
     'license.txt': readFileSync(join(ROOT, 'license.txt')),

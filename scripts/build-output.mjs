@@ -17,6 +17,11 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = fileURLToPath(new URL('..', import.meta.url));
 export const DEFAULT_DIST = join(ROOT, 'dist/cedar-embeddable-term-picker');
+/**
+ * The `host-fonts` configuration's output, built by `npm run build:production` beside the default.
+ * It differs from the default build only in its font registrar, which registers no faces.
+ */
+export const HOST_FONTS_DIST = join(ROOT, 'dist/cedar-embeddable-term-picker-host-fonts');
 
 /**
  * Load order matters: the polyfills install globals the entry expects.
@@ -48,7 +53,7 @@ function findOutputDir(dist) {
 export function resolveBuildOutput(dist = DEFAULT_DIST) {
   const dir = findOutputDir(dist);
   if (dir === null) {
-    throw new Error(`no build output in ${dist}.\n  Run: npm run build`);
+    throw new Error(`no build output in ${dist}.\n  Run: npm run build:production`);
   }
 
   const files = readdirSync(dir);

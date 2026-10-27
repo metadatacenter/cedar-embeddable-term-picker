@@ -14,11 +14,13 @@
  * polyfills.js, which is exactly what make-bundle.mjs concatenates. It therefore carries
  * RAW_LIMIT below as its `maximumError` and no warning band, so the two cannot disagree
  * about the same artifact. Move both together, or neither. Angular cannot gate the gzip
- * figure, which stays this script's alone.
+ * figure, which stays this script's alone. The `host-fonts` configuration carries
+ * HOST_FONTS_RAW_LIMIT as its own `initial` budget by the same rule.
  */
 import { gzipSync } from 'node:zlib';
 import { readFileSync } from 'node:fs';
-import { OUT, readManifest } from './make-bundle.mjs';
+import { basename } from 'node:path';
+import { BUNDLES, HOST_FONTS_OUT, OUT, readManifest } from './make-bundle.mjs';
 
 // 2026-09-18: shared semantic SVG registry and adapters bring the Angular output
 // to about 480k raw bytes including the distribution wrapper. Keep the compressed ceiling unchanged (230k); this replaces
@@ -33,30 +35,47 @@ import { OUT, readManifest } from './make-bundle.mjs';
 const RAW_LIMIT = 530_000;
 const GZIP_LIMIT = 240_000;
 
+// 2026-10-26: the host-fonts bundle, which leaves the CEDAR Roboto faces to its host. Measured on
+// the shipped files, it is 395,992 raw and 114,243 gzip-9 bytes, which is 122,317 and 93,500 bytes
+// below the default bundle. Those differences are the embedded faces. Its ceilings are the default's
+// less those differences, rounded up to the next thousand, so both bundles keep the same headroom.
+// Growth anywhere but in the faces reaches both bundles, so a raise for it moves both pairs.
+const HOST_FONTS_RAW_LIMIT = 408_000;
+const HOST_FONTS_GZIP_LIMIT = 147_000;
+
+const LIMITS = {
+  [OUT]: { raw: RAW_LIMIT, gzip: GZIP_LIMIT },
+  [HOST_FONTS_OUT]: { raw: HOST_FONTS_RAW_LIMIT, gzip: HOST_FONTS_GZIP_LIMIT },
+};
+
 const format = (bytes) => `${bytes.toLocaleString('en-US')} bytes`;
 
-const bundle = readFileSync(OUT);
-const manifest = readManifest();
-
-if (bundle.length !== manifest.bytes) {
-  console.error(`  bundle is ${format(bundle.length)} but its manifest says ${format(manifest.bytes)}.`);
-  console.error('  Run: npm run bundle');
-  process.exit(1);
-}
-
-const gzip = gzipSync(bundle, { level: 9 }).length;
 let failed = false;
 
-for (const [label, actual, limit] of [
-  ['raw', bundle.length, RAW_LIMIT],
-  ['gzip-9', gzip, GZIP_LIMIT],
-]) {
-  const headroom = limit - actual;
-  if (headroom < 0) {
-    console.error(`  ${label}: ${format(actual)} exceeds its ${format(limit)} ceiling by ${format(-headroom)}.`);
-    failed = true;
-  } else {
-    console.log(`  ${label}: ${format(actual)}, ${format(headroom)} under the ceiling.`);
+for (const { out, manifest: manifestPath } of BUNDLES) {
+  console.log(`  ${basename(out)}`);
+  const bundle = readFileSync(out);
+  const manifest = readManifest(manifestPath);
+
+  if (bundle.length !== manifest.bytes) {
+    console.error(`  bundle is ${format(bundle.length)} but its manifest says ${format(manifest.bytes)}.`);
+    console.error('  Run: npm run bundle');
+    process.exit(1);
+  }
+
+  const gzip = gzipSync(bundle, { level: 9 }).length;
+
+  for (const [label, actual, limit] of [
+    ['raw', bundle.length, LIMITS[out].raw],
+    ['gzip-9', gzip, LIMITS[out].gzip],
+  ]) {
+    const headroom = limit - actual;
+    if (headroom < 0) {
+      console.error(`  ${label}: ${format(actual)} exceeds its ${format(limit)} ceiling by ${format(-headroom)}.`);
+      failed = true;
+    } else {
+      console.log(`  ${label}: ${format(actual)}, ${format(headroom)} under the ceiling.`);
+    }
   }
 }
 

@@ -1,19 +1,21 @@
-import { ChangeDetectionStrategy, Component, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, CSP_NONCE, DOCUMENT, inject } from '@angular/core';
+import { registerFontFaces } from '@org.metadatacenter/cedar-design-tokens/font-faces';
 
 /**
  * Puts the picker's embedded fonts into the document's font set.
  *
- * Browsers do not register `@font-face` declared inside a shadow root, so the one
- * stylesheet that carries font faces cannot be encapsulated with the rest. This is
- * the only unencapsulated component here, and its stylesheet holds no selectors —
- * only the CEDAR-namespaced faces — so nothing of the host page can be reached by
- * it. CEE arrived at the same arrangement for the same reason.
+ * Browsers do not register `@font-face` declared inside a shadow root, so the faces go into the
+ * document's head, once for every CEDAR component on the page: CEE and the designer register the
+ * same set the same way. Declared as the styles of an unencapsulated component, as they were,
+ * Angular also copied them into every shadow root, where nothing reads them.
  */
 @Component({
   selector: 'cetp-font-registrar',
   template: '',
-  styleUrl: './font-registrar.scss',
-  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FontRegistrar {}
+export class FontRegistrar {
+  constructor() {
+    registerFontFaces(inject(DOCUMENT), inject(CSP_NONCE, { optional: true }));
+  }
+}
