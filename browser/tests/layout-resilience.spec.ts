@@ -2,12 +2,16 @@ import { Page, expect, test } from '@playwright/test';
 import { branchHit, classHit, ontologyHit, results, search, source, stubHierarchy, stubSearch } from './support';
 
 /**
- * Whether the picker's content survives a narrow host, a zoomed window and wider text.
+ * Whether the picker's content survives a narrow host, a zoomed window and wider text, and whether
+ * its placeholders and field boundaries can be seen.
  *
- * WCAG 2.2 asks four things of a layout. At 320 CSS px nothing may scroll sideways, no text is drawn
+ * WCAG 2.2 asks five things of a layout. At 320 CSS px nothing may scroll sideways, no text is drawn
  * over other text and every control stays reachable (1.4.10). At 200% zoom, which for a 1280 by 800 window is a 640 by 400 viewport,
  * no text is clipped or drawn over other text and every control stays reachable (1.4.4). Text spaced
  * as 1.4.12 describes loses nothing and runs into nothing. A placeholder's text meets 4.5:1 (1.4.3).
+A text-entry or selection control that draws a boundary draws it at 3:1 against what lies outside
+it (1.4.11). The token test measures the token's value; this measures what the browser draws, so a
+framework default or a local override that replaces the token fails.
  *
  * Each check measures the rendered page in every main state. A finding fails the test unless it is
  * listed below with the visible change it needs. A listed finding that no longer occurs fails too,
@@ -625,6 +629,114 @@ function placeholders(): { where: string; ratio: number; text: string; backgroun
     });
 }
 
+/**
+ * Measures the boundary of every text-entry or selection control that draws one against what lies
+ * outside it.
+ *
+ * A control's boundary is drawn by the border of the control itself, of an ancestor at most three
+ * levels up whose box is at most 48px larger each way, or of an element in an absolutely positioned
+ * layer within such an ancestor. The strongest side of any of them is the one measured, against
+ * the colour outside the box that holds it. A control that draws no boundary is not measured,
+ * because 1.4.11 asks for contrast in what identifies a control rather than for a boundary; a
+ * disabled control is exempt, as 1.4.11 exempts inactive components.
+ */
+function boundaries(): { where: string; ratio: number; boundary: string; outside: string }[] {
+  const roots: (Document | ShadowRoot)[] = [];
+  const collect = (root: Document | ShadowRoot): void => {
+    roots.push(root);
+    for (const element of root.querySelectorAll('*')) if (element.shadowRoot) collect(element.shadowRoot);
+  };
+  collect(document);
+  const parse = (color: string): number[] => {
+    const probe = document.createElement('canvas').getContext('2d')!;
+    probe.fillStyle = color;
+    probe.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = probe.getImageData(0, 0, 1, 1).data;
+    return [r, g, b, a / 255];
+  };
+  const over = (top: number[], bottom: number[]) => [0, 1, 2].map((i) => top[i] * top[3] + bottom[i] * (1 - top[3]));
+  const luminance = (rgb: number[]) => {
+    const [r, g, b] = rgb.map((channel) => {
+      const value = channel / 255;
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const hex = (rgb: number[]) => `#${rgb.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`;
+  const parent = (element: Element): Element | null =>
+    element.assignedSlot ?? element.parentElement ?? ((element.getRootNode() as ShadowRoot).host || null);
+  const contains = (outer: Element, inner: Element): boolean => {
+    for (let node: Element | null = inner; node; node = parent(node)) if (node === outer) return true;
+    return false;
+  };
+  /** The colour behind `element`, its own fill included, composited from the top down. */
+  const behind = (element: Element): number[] => {
+    const layers: number[][] = [];
+    for (let at: Element | null = element; at; at = parent(at)) {
+      const fill = parse(getComputedStyle(at).backgroundColor);
+      layers.push(fill);
+      if (fill[3] === 1) break;
+    }
+    return layers.reduceRight((below, layer) => over(layer, [...below, 1]), [255, 255, 255]);
+  };
+  const SIDES = ['Top', 'Right', 'Bottom', 'Left'] as const;
+  const borders = (element: Element): number[][] => {
+    const own = getComputedStyle(element);
+    return SIDES.flatMap((side) => {
+      const colour = parse(own[`border${side}Color`]);
+      const drawn =
+        parseFloat(own[`border${side}Width`]) >= 1 &&
+        !['none', 'hidden'].includes(own[`border${side}Style`]) &&
+        colour[3] > 0;
+      return drawn ? [colour] : [];
+    });
+  };
+  const FIELDS =
+    'input:not([type="hidden"], [type="checkbox"], [type="radio"], [type="range"], [type="color"], ' +
+    '[type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select, ' +
+    '[role="textbox"], [role="combobox"], [role="searchbox"], [role="spinbutton"]';
+  const measured: { where: string; ratio: number; boundary: string; outside: string }[] = [];
+  for (const field of roots.flatMap((root) => [...root.querySelectorAll(FIELDS)])) {
+    if (!field.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
+    if ((field as HTMLInputElement).disabled || field.getAttribute('aria-disabled') === 'true') continue;
+    const own = field.getBoundingClientRect();
+    if (own.width <= 1 || own.height <= 1) continue;
+    const drawers: { element: Element; holder: Element }[] = [];
+    let box: Element | null = field;
+    for (let level = 0; box && level <= 3; level++, box = parent(box)) {
+      const rect = box.getBoundingClientRect();
+      if (rect.width > own.width + 48 || rect.height > own.height + 48) break;
+      drawers.push({ element: box, holder: box });
+      if (box === field) continue;
+      for (const layer of box.querySelectorAll('*')) {
+        if (contains(field, layer) || contains(layer, field) || getComputedStyle(layer).position !== 'absolute')
+          continue;
+        for (const element of [layer, ...layer.querySelectorAll('*')])
+          if (element.checkVisibility({ visibilityProperty: true })) drawers.push({ element, holder: box });
+      }
+    }
+    let strongest: { ratio: number; boundary: number[]; outside: number[] } | undefined;
+    for (const { element, holder } of drawers) {
+      const container = parent(holder);
+      const outside = container ? behind(container) : [255, 255, 255];
+      for (const colour of borders(element)) {
+        const boundary = over(colour, [...behind(element), 1]);
+        const [lighter, darker] = [luminance(boundary), luminance(outside)].sort((a, b) => b - a);
+        const ratio = (lighter + 0.05) / (darker + 0.05);
+        if (!strongest || ratio > strongest.ratio) strongest = { ratio, boundary, outside };
+      }
+    }
+    if (!strongest) continue;
+    measured.push({
+      where: `${field.localName}${[...field.classList].map((name) => `.${name}`).join('')}`,
+      ratio: Math.round(strongest.ratio * 100) / 100,
+      boundary: hex(strongest.boundary),
+      outside: hex(strongest.outside),
+    });
+  }
+  return measured;
+}
+
 const KINDS: Readonly<Record<Check, readonly Kind[]>> = {
   reflow: ['page scrolls', 'scrolls', 'unreachable', 'overlap'],
   resize: ['clipped', 'ellipsis', 'overlap', 'unreachable'],
@@ -724,6 +836,21 @@ for (const state of ['opened', 'the narrowing panel']) {
     expect(measured.length, 'inputs showing a placeholder').toBeGreaterThan(0);
     expect(
       measured.filter((one) => one.ratio < 4.5),
+      state,
+    ).toEqual([]);
+  });
+}
+
+for (const [state, reach] of Object.entries(STATES)) {
+  test(`field boundaries at 1280 CSS px: ${state}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await reach(page);
+    await settle(page);
+    const measured = await page.evaluate(boundaries);
+    // A selector that stops matching would let the check pass by measuring nothing.
+    if (state === 'opened') expect(measured.length, 'controls that draw a boundary').toBeGreaterThan(0);
+    expect(
+      measured.filter((one) => one.ratio < 3),
       state,
     ).toEqual([]);
   });
