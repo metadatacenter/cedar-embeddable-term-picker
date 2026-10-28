@@ -1,3 +1,5 @@
+import type { Presentation } from './generated/terminology-presentation';
+
 /**
  * The `POST /search` contract, as the terminology server serves it.
  *
@@ -56,6 +58,7 @@ export interface VersionInfo {
 
 /** How one source answered, said once rather than repeated on every hit from it. */
 export interface SourceBlock {
+  readonly presentation?: Presentation;
   readonly sourceSystem: string;
   readonly sourceAcronym: string;
   readonly sourceName?: string;
@@ -90,6 +93,7 @@ export interface TermRef {
 }
 
 interface HitBase {
+  readonly presentation?: Presentation;
   readonly sourceSystem: string;
   readonly sourceAcronym: string;
   readonly matchType?: string;
@@ -238,6 +242,7 @@ export function isValueSetHit(hit: Hit): hit is ValueSetHit {
 
 /** Where a term sits in its ontology: the chain above it, and what hangs directly below. */
 export interface Hierarchy {
+  readonly presentation?: Presentation;
   readonly sourceAcronym: string;
   readonly termIri: string;
   readonly termLabel: string;
@@ -253,6 +258,7 @@ export interface Hierarchy {
 }
 
 export interface HierarchyChild {
+  readonly presentation?: Presentation;
   readonly termIri: string;
   readonly termLabel: string;
   readonly hasChildren: boolean;
