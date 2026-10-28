@@ -1,3 +1,4 @@
+import type { ConstraintLinks } from 'cedar-model-typescript-library';
 export interface ControlledTermVersionRef {
   id: string;
   effectiveDate?: string;
@@ -23,6 +24,7 @@ export interface ControlledTermVersionRef {
  * meanings on one key, previously indistinguishable to a reader and to a compiler.
  */
 interface ControlledTermCommon {
+  links?: ConstraintLinks;
   /** The source's own IRI, as distinct from the acronym an author recognises. */
   iri?: string;
   sourceSystem?: string;

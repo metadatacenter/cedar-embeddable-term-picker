@@ -1,4 +1,4 @@
-import type { Presentation } from './generated/terminology-presentation';
+import type { ConstraintLinks } from './generated/terminology-links';
 
 /**
  * The `POST /search` contract, as the terminology server serves it.
@@ -58,7 +58,7 @@ export interface VersionInfo {
 
 /** How one source answered, said once rather than repeated on every hit from it. */
 export interface SourceBlock {
-  readonly presentation?: Presentation;
+  readonly links?: ConstraintLinks;
   readonly sourceSystem: string;
   readonly sourceAcronym: string;
   readonly sourceName?: string;
@@ -93,7 +93,7 @@ export interface TermRef {
 }
 
 interface HitBase {
-  readonly presentation?: Presentation;
+  readonly links?: ConstraintLinks;
   readonly sourceSystem: string;
   readonly sourceAcronym: string;
   readonly matchType?: string;
@@ -242,7 +242,7 @@ export function isValueSetHit(hit: Hit): hit is ValueSetHit {
 
 /** Where a term sits in its ontology: the chain above it, and what hangs directly below. */
 export interface Hierarchy {
-  readonly presentation?: Presentation;
+  readonly links?: ConstraintLinks;
   readonly sourceAcronym: string;
   readonly termIri: string;
   readonly termLabel: string;
@@ -258,7 +258,7 @@ export interface Hierarchy {
 }
 
 export interface HierarchyChild {
-  readonly presentation?: Presentation;
+  readonly links?: ConstraintLinks;
   readonly termIri: string;
   readonly termLabel: string;
   readonly hasChildren: boolean;
@@ -269,6 +269,7 @@ export interface HierarchyChild {
 
 /** One line of the tree drawn under a marked term. */
 export interface TreeRow {
+  readonly links?: ConstraintLinks;
   readonly key: string;
   readonly acronym: string;
   readonly iri: string;

@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { CedarEmbeddableTermPicker } from './cedar-embeddable-term-picker';
+import { hierarchyRows } from './search/hierarchy-rows';
 import { TAB_ORDER } from './search/search-types';
 import { TerminologyClient } from './search/terminology-client';
 import { SearchQuery, SearchResponse } from './search/search-types';
@@ -616,6 +617,37 @@ describe('CedarEmbeddableTermPicker', () => {
     expect(emitted).not.toHaveBeenCalled();
     picker.applyConstraints();
     expect(emitted).toHaveBeenCalledWith(picker.draft());
+  });
+
+  it('keeps a browsed term’s own links without inheriting the parent’s links', async () => {
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('selectionMode', 'constraints');
+    fixture.componentRef.setInput('constraintSet', { constraints: [], actions: [] });
+    await fixture.whenStable();
+    const links = { landingPage: 'https://example.org/child', icon: 'https://example.org/child.svg' };
+    const tree = {
+      sourceAcronym: 'NCIT',
+      termIri: 'urn:root',
+      termLabel: 'Root',
+      childCount: 2,
+      descendantCount: 2,
+      links: { landingPage: 'https://example.org/root' },
+      children: [
+        { termIri: 'urn:child', termLabel: 'Child', hasChildren: false, descendantCount: 0, links },
+        { termIri: 'urn:other', termLabel: 'Other', hasChildren: false, descendantCount: 0 },
+      ],
+    };
+    const rows = hierarchyRows(tree, 'NCIT', new Map(), new Set(['urn:root']), (iri) => iri);
+    const picker = fixture.componentInstance as unknown as {
+      chooseNode(hit: unknown, row: unknown): void;
+      draft(): { constraints: { sourceId: string; links?: unknown }[] };
+    };
+    const hit = { type: 'ontology', sourceSystem: 'bioportal', sourceAcronym: 'NCIT' };
+    picker.chooseNode(hit, rows[1]);
+    picker.chooseNode(hit, rows[2]);
+    expect(picker.draft().constraints[0]).toMatchObject({ sourceId: 'urn:child', links });
+    expect(picker.draft().constraints[1].sourceId).toBe('urn:other');
+    expect(picker.draft().constraints[1].links).toBeUndefined();
   });
 
   it('authors exclusions and term positions separately from constraint order', async () => {

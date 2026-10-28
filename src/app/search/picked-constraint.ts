@@ -1,3 +1,5 @@
+import type { ConstraintLinks } from 'cedar-model-typescript-library';
+import { readConstraintLinks } from 'cedar-model-typescript-library/policy';
 /**
  * What `<cedar-embeddable-term-picker>` emits, and what the designer stores for it.
  *
@@ -28,6 +30,7 @@ export interface PickedVersion {
 }
 
 interface HitBase {
+  readonly links?: ConstraintLinks;
   readonly type: string;
   readonly sourceAcronym: string;
   readonly sourceSystem?: string;
@@ -112,6 +115,7 @@ export function toControlledTermConfig(picked: PickedConstraint): ControlledTerm
         ontologyName: sourceName,
         propertyKind: picked.propertyKind,
         sourceSystem: picked.sourceSystem,
+        links: readConstraintLinks(picked.links) ?? undefined,
         version,
       };
     case 'class':
@@ -123,6 +127,7 @@ export function toControlledTermConfig(picked: PickedConstraint): ControlledTerm
         ontologyId: picked.sourceAcronym,
         ontologyName: sourceName,
         sourceSystem: picked.sourceSystem,
+        links: readConstraintLinks(picked.links) ?? undefined,
         iri: picked.sourceIri,
         version,
       };
@@ -138,6 +143,7 @@ export function toControlledTermConfig(picked: PickedConstraint): ControlledTerm
         // picked DOID's "disease" would have been offered 8 terms of its 12,220.
         searchDepth: 0,
         sourceSystem: picked.sourceSystem,
+        links: readConstraintLinks(picked.links) ?? undefined,
         iri: picked.sourceIri,
         version,
       };
@@ -149,6 +155,7 @@ export function toControlledTermConfig(picked: PickedConstraint): ControlledTerm
         ontologyId: picked.sourceAcronym,
         ontologyName: sourceName,
         sourceSystem: picked.sourceSystem,
+        links: readConstraintLinks(picked.links) ?? undefined,
         iri: picked.sourceIri,
         version,
       };
@@ -160,6 +167,7 @@ export function toControlledTermConfig(picked: PickedConstraint): ControlledTerm
         ontologyId: picked.sourceAcronym,
         ontologyName: sourceName,
         sourceSystem: picked.sourceSystem,
+        links: readConstraintLinks(picked.links) ?? undefined,
         iri: picked.sourceIri,
         version,
       };

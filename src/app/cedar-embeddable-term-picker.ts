@@ -2306,6 +2306,7 @@ export class CedarEmbeddableTermPicker {
       sourceSystem: hit.sourceSystem,
       sourceAcronym: row.acronym,
       termIri: row.iri,
+      links: row.links,
       termType: 'class',
       termLabel: row.label,
       obsolete: false,

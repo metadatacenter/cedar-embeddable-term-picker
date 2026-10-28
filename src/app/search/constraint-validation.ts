@@ -1,4 +1,4 @@
-import { TextPolicy, IdentifierPolicy } from 'cedar-model-typescript-library/policy';
+import { TextPolicy, IdentifierPolicy, readConstraintLinks } from 'cedar-model-typescript-library/policy';
 import { ControlledTermSet } from './constraint-set';
 import { constraintIdentity } from './constraint-presentation';
 import { SearchKind } from './search-types';
@@ -40,6 +40,11 @@ export function validateConstraints(
       return;
     }
     const c = constraint;
+    try {
+      readConstraintLinks(c['links']);
+    } catch {
+      add('shape');
+    }
     if (types && !types.includes(kinds[c['sourceType'] as string])) add('disabled');
     const identifier =
       c['sourceType'] === 'ontology'

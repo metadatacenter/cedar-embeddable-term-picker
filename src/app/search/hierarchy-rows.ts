@@ -41,6 +41,7 @@ export function hierarchyRows(
       descendantCount: known?.descendantCount ?? held?.descendantCount ?? 0,
       shown: held?.children?.length ?? 0,
       total: held?.childCount ?? 0,
+      links: known?.links ?? held?.links,
       definition: known?.definition ?? (iri === tree.termIri ? tree.definition : undefined),
     });
     const next = onSpine ? (spine[spine.indexOf(iri) + 1] ?? null) : null;
