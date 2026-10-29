@@ -105,13 +105,13 @@ async function expectAccessible(page: Page, state: string): Promise<void> {
 const picker = (page: Page) => page.locator('cedar-embeddable-term-picker');
 
 /**
- * Findings that wait on a design decision. Two are recorded on the versioning roadmap. A result row
- * is an `option` outside any listbox, carries `aria-expanded`, which an option does not take, and
- * holds buttons of its own; giving the list proper semantics changes how the keyboard moves through
- * it. A release-history button is smaller than WCAG 2.2's 24px target, and growing it changes the
- * row's layout. The tree's targets are a third, found when the tree was first checked, and growing
- * them changes the tree's layout in the same way. Anything else that fails these rules fails the
- * test.
+ * These findings wait on a design decision, and the frontend roadmap's accessibility item records
+ * each of them. A result row is an `option` outside any listbox, carries `aria-expanded`, which an
+ * option does not take, and holds buttons of its own; giving the list proper semantics changes how
+ * the keyboard moves through it. A release-history button is smaller than WCAG 2.2's 24px target,
+ * and growing it changes the row's layout. The tree's targets, found when the tree was first
+ * checked, wait for the same reason: growing them changes the tree's layout. Anything else that
+ * fails these rules fails the test.
  *
  * Each exception names its elements by a selector they match. The selector axe-core reports is
  * built from whatever attribute is rarest on the page, so it changes when an unrelated attribute

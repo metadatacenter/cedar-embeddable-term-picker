@@ -556,6 +556,8 @@ button {
   border: none;
   border-radius: tokens.$radius;
   color: var(--cetp-color-muted);
+  // As for the tree's twist: an unfilled button names its icon colour, or the icon stays white.
+  --cedar-icon-color: var(--cetp-color-muted);
   font-size: var(--cetp-font-size);
   line-height: var(--cedar-line-height-tight);
   padding: var(--cedar-space-1) var(--cedar-space-1);
@@ -631,10 +633,12 @@ button {
     font-weight: var(--cedar-font-weight-medium);
   }
 
-  // The term the bar is describing. The tint alone: a bar down its edge is the mark a row and a
-  // release carry, and inside a tree it read as another level of indent rather than as emphasis.
+  // The term the bar is describing, tinted and framed in the theme colour. A bar down its edge read
+  // as another level of indent rather than as emphasis, and the tint, about 1.2:1 against the tree,
+  // is too faint to mark the term on its own.
   &.picked > .term {
     background: var(--cetp-color-tint);
+    @include patterns.selected-frame;
     color: var(--cetp-color-heading);
   }
 
@@ -645,6 +649,9 @@ button {
     border-radius: tokens.$radius;
     padding: 0;
     color: var(--cetp-color-primary);
+    // The base button sets its icons white for its primary fill, and the icon contract reads this
+    // property rather than the colour, so an unfilled button names its icon colour here as well.
+    --cedar-icon-color: var(--cetp-color-primary);
     font-size: var(--cetp-font-size-small);
     text-align: center;
   }
@@ -767,13 +774,14 @@ button {
   }
 
   // The release the row is reading: the pinned one, or the current one where nothing is pinned.
-  // Marked the way a marked row is marked — a tint and a bar down its edge — because a list of
-  // releases where none is picked out reads as a list an author has yet to choose from, and the
-  // one they are already on is the fact the panel exists to state. The tint carries it on its own:
-  // marking is a tinted row throughout the picker, and nothing else marks a left edge.
+  // It is marked because a list of releases where none is picked out reads as a list an author has
+  // yet to choose from, and the one they are already on is the fact the panel exists to state. The
+  // tint, about 1.2:1 against the list, is too faint to carry the mark alone, so the release is also
+  // framed in the theme colour, as the picked tree term is.
   &.on,
   &.on:hover {
     background: var(--cetp-color-tint);
+    @include patterns.selected-frame;
     color: var(--cetp-color-heading);
   }
 

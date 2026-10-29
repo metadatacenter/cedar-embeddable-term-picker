@@ -56,6 +56,7 @@ type WireList = 'ontologies' | 'branches' | 'classes' | 'valueSets';
  */
 function wireConstraint(c: ControlledTermConfig): { list: WireList; entry: object } | null {
   const common = {
+    ...(c.links ? { links: c.links } : {}),
     ...(c.iri ? { iri: c.iri } : {}),
     ...(c.sourceSystem ? { sourceSystem: c.sourceSystem } : {}),
     ...(c.version ? { version: wireVersion(c.version) } : {}),

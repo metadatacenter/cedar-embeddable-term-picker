@@ -1423,24 +1423,9 @@ export class CedarEmbeddableTermPicker {
    * shown as the catalog recorded it rather than guessed at, and a direct download says so.
    */
   protected authorityOf(acronym: string): string {
-    const authority = this.sourceOf(acronym)?.authority;
-    if (authority === undefined || authority === '') {
-      return '';
-    }
-    if (authority === 'url') {
-      return this.localizer.t('authority.url');
-    }
-    return CedarEmbeddableTermPicker.AUTHORITY_NAMES[authority] ?? authority;
+    const source = this.sourceOf(acronym);
+    return source?.authorityLabel ?? source?.authority ?? '';
   }
-
-  /** The repositories' own names, which are not translated. A direct download is described instead. */
-  private static readonly AUTHORITY_NAMES: Readonly<Record<string, string>> = {
-    bioportal: 'BioPortal',
-    obofoundry: 'OBO Foundry',
-    agroportal: 'AgroPortal',
-    ecoportal: 'EcoPortal',
-    eionet: 'Eionet',
-  };
 
   /**
    * A property row's accessible name: the property in its source, then the words the row shows.
@@ -2321,6 +2306,7 @@ export class CedarEmbeddableTermPicker {
       sourceSystem: hit.sourceSystem,
       sourceAcronym: row.acronym,
       termIri: row.iri,
+      links: row.links,
       termType: 'class',
       termLabel: row.label,
       obsolete: false,

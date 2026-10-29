@@ -1,3 +1,5 @@
+import type { ConstraintLinks } from './generated/terminology-links';
+
 /**
  * The `POST /search` contract, as the terminology server serves it.
  *
@@ -56,6 +58,7 @@ export interface VersionInfo {
 
 /** How one source answered, said once rather than repeated on every hit from it. */
 export interface SourceBlock {
+  readonly links?: ConstraintLinks;
   readonly sourceSystem: string;
   readonly sourceAcronym: string;
   readonly sourceName?: string;
@@ -69,6 +72,7 @@ export interface SourceBlock {
    * where the copy came from, which two vocabularies of the same name are told apart by.
    */
   readonly authority?: string;
+  readonly authorityLabel?: string;
   readonly pinnable: boolean;
   readonly version?: VersionInfo;
   /** How many versions the store holds, so a row knows whether stepping back is possible. */
@@ -89,6 +93,7 @@ export interface TermRef {
 }
 
 interface HitBase {
+  readonly links?: ConstraintLinks;
   readonly sourceSystem: string;
   readonly sourceAcronym: string;
   readonly matchType?: string;
@@ -237,6 +242,7 @@ export function isValueSetHit(hit: Hit): hit is ValueSetHit {
 
 /** Where a term sits in its ontology: the chain above it, and what hangs directly below. */
 export interface Hierarchy {
+  readonly links?: ConstraintLinks;
   readonly sourceAcronym: string;
   readonly termIri: string;
   readonly termLabel: string;
@@ -252,6 +258,7 @@ export interface Hierarchy {
 }
 
 export interface HierarchyChild {
+  readonly links?: ConstraintLinks;
   readonly termIri: string;
   readonly termLabel: string;
   readonly hasChildren: boolean;
@@ -262,6 +269,7 @@ export interface HierarchyChild {
 
 /** One line of the tree drawn under a marked term. */
 export interface TreeRow {
+  readonly links?: ConstraintLinks;
   readonly key: string;
   readonly acronym: string;
   readonly iri: string;

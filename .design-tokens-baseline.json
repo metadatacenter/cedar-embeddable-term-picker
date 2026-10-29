@@ -43,13 +43,6 @@
       "value": "1.5",
       "count": 2
     },
-    "7824f0855a10378ee658": {
-      "file": "src/app/search/property-detail.scss",
-      "rule": "geometry",
-      "property": "opacity",
-      "value": "0.4",
-      "count": 1
-    },
     "89b7e362c9e43f24dd67": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "spacing",

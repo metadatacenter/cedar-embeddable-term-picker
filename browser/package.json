@@ -12,6 +12,7 @@
     "report": "playwright show-report",
     "test:unicode": "playwright test --config playwright.unicode.config.ts"
   },
+  "allowScripts": {},
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.64.1"

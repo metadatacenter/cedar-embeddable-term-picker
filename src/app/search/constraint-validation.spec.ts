@@ -2,6 +2,28 @@ import { describe, expect, it } from 'vitest';
 import { validateConstraints, validIri } from './constraint-validation';
 
 describe('shared model validation at the picker boundary', () => {
+  it.each([
+    null,
+    {},
+    { icon: 'bioportal' },
+    { landingPage: 'javascript:alert(1)' },
+    { landingPage: 'https://example.org', provider: 'epa' },
+  ])('refuses invalid links %j', (links) => {
+    expect(
+      validateConstraints({ constraints: [{ sourceType: 'ontology', ontologyId: 'DOID', links }], actions: [] }),
+    ).toEqual([expect.objectContaining({ code: 'shape' })]);
+  });
+  it('accepts generic URLs without changing the source or version', () => {
+    const constraint = {
+      sourceType: 'ontology',
+      ontologyId: 'DOID',
+      version: { id: 'snapshot' },
+      links: { landingPage: 'https://example.org/source', icon: 'https://example.org/icon.svg' },
+    };
+    const before = JSON.stringify(constraint);
+    expect(validateConstraints({ constraints: [constraint], actions: [] })).toEqual([]);
+    expect(JSON.stringify(constraint)).toBe(before);
+  });
   it.each(['\u001c', '\u001d', '\u001e', '\u001f', ' '])('refuses a blank version id %j', (id) => {
     expect(
       validateConstraints({

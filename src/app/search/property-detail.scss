@@ -99,7 +99,7 @@ button.term:hover {
   border-radius: var(--cedar-radius);
 }
 button:disabled {
-  opacity: 0.4;
+  opacity: var(--cedar-control-disabled-opacity);
   cursor: default;
 }
 .description {
