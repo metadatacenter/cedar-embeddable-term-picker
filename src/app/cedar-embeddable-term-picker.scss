@@ -556,6 +556,8 @@ button {
   border: none;
   border-radius: tokens.$radius;
   color: var(--cetp-color-muted);
+  // As for the tree's twist: an unfilled button names its icon colour, or the icon stays white.
+  --cedar-icon-color: var(--cetp-color-muted);
   font-size: var(--cetp-font-size);
   line-height: var(--cedar-line-height-tight);
   padding: var(--cedar-space-1) var(--cedar-space-1);
@@ -647,6 +649,9 @@ button {
     border-radius: tokens.$radius;
     padding: 0;
     color: var(--cetp-color-primary);
+    // The base button sets its icons white for its primary fill, and the icon contract reads this
+    // property rather than the colour, so an unfilled button names its icon colour here as well.
+    --cedar-icon-color: var(--cetp-color-primary);
     font-size: var(--cetp-font-size-small);
     text-align: center;
   }
