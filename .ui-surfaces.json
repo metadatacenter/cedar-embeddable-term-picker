@@ -117,6 +117,39 @@
       "states": ["open"],
       "test": "browser/tests/surfaces.spec.ts",
       "parent": "cetp.terms"
+    },
+    {
+      "id": "cetp.constraint-cell",
+      "name": "Constraint Text",
+      "section": "Term Picker",
+      "parent": "cetp.constraint-table",
+      "source": [
+        {
+          "file": "src/app/search/constraint-table.html",
+          "anchor": "<table class=\"constraint-table\">"
+        }
+      ],
+      "contract": "authoring-table-cell",
+      "scenario": "constraint-table",
+      "selector": "cedar-embeddable-term-picker .constraint-table tbody tr:first-child td:first-child",
+      "states": ["open"],
+      "test": "browser/tests/surfaces.spec.ts"
+    },
+    {
+      "id": "cetp.property-loading",
+      "name": "Property Action While Loading",
+      "section": "Term Picker",
+      "source": [
+        {
+          "file": "src/app/search/property-detail.ts",
+          "anchor": "class=\"use\" [disabled]=\"loading() || !!error()\""
+        }
+      ],
+      "contract": "disabled-control",
+      "scenario": "property-loading",
+      "selector": "cedar-embeddable-term-picker cetp-property-detail .use",
+      "states": ["open"],
+      "test": "browser/tests/surfaces.spec.ts"
     }
   ]
 }
