@@ -5,6 +5,7 @@ import { resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { build } from 'esbuild';
+import { modelRuntimeSha256 } from './model-runtime.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = resolve(root, 'dist/integration');
@@ -43,6 +44,7 @@ function runtimes() {
             ...(name === 'cedar-model-typescript-library'
               ? {
                   sha256: fingerprint(dir, ['package.json', existsSync(resolve(dir, 'esm')) ? 'esm' : metadata.module]),
+                  runtimeSha256: modelRuntimeSha256(dir),
                 }
               : {}),
           },
