@@ -9,7 +9,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "build:production": "node scripts/build.mjs",
+    "build:production": "node scripts/build.mjs && node scripts/build-integration.mjs",
     "test": "ng test && npm run test:i18n",
     "test:i18n": "node --test scripts/i18n-guard.test.mjs scripts/count-messages.test.mjs",
     "test:watch": "ng test --watch",

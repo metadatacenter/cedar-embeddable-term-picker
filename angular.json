@@ -26,9 +26,7 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "stylePreprocessorOptions": {
-              "includePaths": [
-                "node_modules"
-              ]
+              "includePaths": ["node_modules"]
             },
             "assets": [
               {
@@ -36,9 +34,7 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "node_modules/@org.metadatacenter/cedar-design-tokens/dist/custom-properties.css"
-            ]
+            "styles": ["node_modules/@org.metadatacenter/cedar-design-tokens/dist/custom-properties.css"]
           },
           "configurations": {
             "production": {
@@ -80,6 +76,21 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "integration": {
+              "outputPath": "dist/integration",
+              "externalDependencies": [
+                "@angular/*",
+                "@ngx-translate/core",
+                "rxjs",
+                "tslib",
+                "zone.js",
+                "cedar-model-typescript-library"
+              ],
+              "polyfills": [],
+              "index": false,
+              "styles": [],
+              "assets": []
             }
           },
           "defaultConfiguration": "production"
@@ -109,10 +120,7 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": [
-              "src/**/*.ts",
-              "src/**/*.html"
-            ]
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
           }
         }
       }
