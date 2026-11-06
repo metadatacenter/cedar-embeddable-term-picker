@@ -14,6 +14,11 @@ concurrency:
   group: test-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Dependency install scripts are reviewed and version-pinned in each owning package.json,
+# and npm refuses a locked package with an install script that policy does not cover.
+env:
+  NPM_CONFIG_STRICT_ALLOW_SCRIPTS: "true"
+
 jobs:
   test:
     runs-on: ubuntu-24.04-arm

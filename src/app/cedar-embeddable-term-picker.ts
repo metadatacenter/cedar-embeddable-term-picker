@@ -106,8 +106,7 @@ const SHORT_QUERY_MS = 900;
 /** Labels per page for the folding tabs, rows per page for the rest. */
 const PAGE_SIZE = 25;
 
-/** How many ontologies the narrowing panel will hold, and how many it asks for at a time. */
-const NARROWING_LIMIT = 1000;
+/** How many ontologies the narrowing panel asks for at a time. */
 const NARROWING_PAGE = 200;
 
 /** How many of them the narrowing panel shows before its list scrolls. */
@@ -1223,7 +1222,7 @@ export class CedarEmbeddableTermPicker {
     const ticket = ++this.candidateTicket;
     this.loadingCandidates.set(true);
     try {
-      for (let page = 1; found.length < NARROWING_LIMIT; page++) {
+      for (let page = 1; ; page++) {
         const response = await this.client.search(
           {
             query,

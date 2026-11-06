@@ -410,6 +410,47 @@ describe('CedarEmbeddableTermPicker', () => {
     expect(picker['narrowingDraft']()).toEqual([]);
   });
 
+  it('finds and applies an ontology beyond the first thousand narrowing candidates', async () => {
+    const collection = Array.from({ length: 1001 }, (_, i) => ({
+      type: 'ontology' as const,
+      sourceSystem: 'bioportal',
+      sourceAcronym: i === 1000 ? 'UBERON' : `SOURCE${i}`,
+      matchCount: 1,
+    }));
+    const pages: number[] = [];
+    const originalSearch = client.search.bind(client);
+    vi.spyOn(client, 'search').mockImplementation(async (query, signal) => {
+      if (query.ontologyOrder !== 'matches') return originalSearch(query, signal);
+      const page = query.page ?? 1;
+      pages.push(page);
+      const batch = collection.slice((page - 1) * 200, page * 200);
+      return {
+        query: query.query,
+        sources: batch.map((hit) => ({ ...hit, served: 'local' as const, pinnable: true })),
+        results: { ontology: { collection: batch, totalCount: 1001, countCapped: false, page, pageSize: 200 } },
+      };
+    });
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('query', 'organ');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+    await fixture.componentInstance['openNarrowing']();
+    await fixture.whenStable();
+    expect(pages).toEqual([1, 2, 3, 4, 5, 6]);
+    const finder = shadow(fixture).querySelector<HTMLInputElement>('.finder input')!;
+    finder.value = 'UBERON';
+    finder.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    const candidate = shadow(fixture).querySelector<HTMLLabelElement>('.candidate')!;
+    expect(candidate.textContent).toContain('UBERON');
+    candidate.querySelector<HTMLInputElement>('input')!.click();
+    fixture.componentInstance['applyNarrowing']();
+    await settle();
+    await fixture.whenStable();
+    expect(client.lastQuery?.sources).toEqual([{ sourceAcronym: 'UBERON' }]);
+  });
+
   it('keeps the answered rows on screen while the next search runs', async () => {
     const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('query', 'melanoma');

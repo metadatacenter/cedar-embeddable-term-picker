@@ -1,3 +1,4 @@
+import { integrationFiles } from './build-integration.mjs';
 /**
  * What the published package contains, and which registry it belongs to.
  *
@@ -51,6 +52,9 @@ export function packageMetadata(rootPackage = readJson(join(ROOT, 'package.json'
     main: 'cedar-embeddable-term-picker.js',
     types: 'cedar-embeddable-term-picker.d.ts',
     files: [
+      'integration.mjs',
+      'integration-manifest.json',
+      'integration-licenses.txt',
       'cedar-embeddable-term-picker.js',
       'cedar-embeddable-term-picker.host-fonts.js',
       'cedar-embeddable-term-picker.d.ts',
@@ -121,6 +125,7 @@ const manifestBytes = (manifest) => Buffer.from(`${JSON.stringify(manifest, null
 export function expectedFiles() {
   const { standalone, hostFonts } = assertSourceBundles();
   return {
+    ...integrationFiles(),
     'cedar-embeddable-term-picker.js': standalone.bundle,
     'cedar-embeddable-term-picker.host-fonts.js': hostFonts.bundle,
     'cedar-embeddable-term-picker.d.ts': readFileSync(TYPES),
