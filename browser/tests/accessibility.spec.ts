@@ -506,24 +506,26 @@ async function hoveredAndFocused(page: Page, kind: string, control: Locator): Pr
   await expectAccessible(page, `${kind}, focused`);
 }
 
-test('each kind of button, a tab, a row and the search box, hovered and focused', async ({ page }) => {
-  await stubTree(page);
-  await page.goto('/?mode=constraints');
-  await picker(page).locator('.picker').waitFor();
-  await search(page, 'melanoma');
-  // Narrowed first, so the chip shows its clear segment, and the narrowed answer is waited for:
-  // it replaces the rows, and a tree opened before it arrived would go with them.
-  await picker(page).locator('.filter-chip > button').first().click();
-  await picker(page).getByRole('checkbox', { name: /^NCIT/ }).check();
-  const narrowed = page.waitForResponse(
-    (response) => response.url().endsWith('/search') && (response.request().postDataJSON()?.sources ?? []).length > 0,
-  );
-  await picker(page).getByRole('button', { name: 'Apply', exact: true }).click();
-  await narrowed;
-  await expect(picker(page).locator('.working')).toHaveClass(/idle/);
-  await markTree(page);
-  await picker(page).locator('.child').first().locator('button.of').click();
-  await expect(picker(page).locator('.history button.release')).toHaveCount(3);
+test.describe('each kind of control, hovered and focused', () => {
+  test.beforeEach(async ({ page }) => {
+    await stubTree(page);
+    await page.goto('/?mode=constraints');
+    await picker(page).locator('.picker').waitFor();
+    await search(page, 'melanoma');
+    // Narrowed first, so the chip shows its clear segment, and the narrowed answer is waited for:
+    // it replaces the rows, and a tree opened before it arrived would go with them.
+    await picker(page).locator('.filter-chip > button').first().click();
+    await picker(page).getByRole('checkbox', { name: /^NCIT/ }).check();
+    const narrowed = page.waitForResponse(
+      (response) => response.url().endsWith('/search') && (response.request().postDataJSON()?.sources ?? []).length > 0,
+    );
+    await picker(page).getByRole('button', { name: 'Apply', exact: true }).click();
+    await narrowed;
+    await expect(picker(page).locator('.working')).toHaveClass(/idle/);
+    await markTree(page);
+    await picker(page).locator('.child').first().locator('button.of').click();
+    await expect(picker(page).locator('.history button.release')).toHaveCount(3);
+  });
   const controls: Readonly<Record<string, string>> = {
     'the primary button': '.actions .primary',
     'a secondary button': '.actions button:not(.primary)',
@@ -539,8 +541,12 @@ test('each kind of button, a tab, a row and the search box, hovered and focused'
     'a row': '.child.pick',
     'the search box': '.search input',
   };
-  for (const [kind, selector] of Object.entries(controls))
-    await hoveredAndFocused(page, kind, picker(page).locator(selector).first());
+  // Each control gets the normal test deadline instead of sharing it across 52 axe scans.
+  for (const [kind, selector] of Object.entries(controls)) {
+    test(kind, async ({ page }) => {
+      await hoveredAndFocused(page, kind, picker(page).locator(selector).first());
+    });
+  }
 });
 
 test("the narrowing panel's finder, a checkbox and its buttons, hovered and focused", async ({ page }) => {
