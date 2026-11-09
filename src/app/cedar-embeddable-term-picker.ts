@@ -1277,18 +1277,38 @@ export class CedarEmbeddableTermPicker {
     return this.exhausted()[kind] === true;
   }
 
-  /**
-   * Asks for the next page when the list is scrolled near its end.
-   *
-   * The threshold is a screenful rather than the last pixel, so the rows arrive before an author
-   * reaches the gap they would otherwise fill.
-   */
   /** Switches tabs, and fills the new one if its first page does not reach the bottom of the box. */
   protected showTab(kind: SearchKind): void {
     this.activeTab.set(kind);
     this.topUp(kind);
   }
 
+  /**
+   * Moves focus along the tab strip without showing the tab it reaches, which Enter or Space does.
+   *
+   * The left and right arrows wrap at either end, and Home and End go to the first and last tab.
+   */
+  protected onTabKeydown(event: KeyboardEvent): void {
+    const tab = event.currentTarget as HTMLElement;
+    const tabs = [...(tab.parentElement?.querySelectorAll<HTMLElement>('[role="tab"]') ?? [])];
+    const current = tabs.indexOf(tab);
+    const targets: Record<string, number> = {
+      ArrowLeft: (current - 1 + tabs.length) % tabs.length,
+      ArrowRight: (current + 1) % tabs.length,
+      Home: 0,
+      End: tabs.length - 1,
+    };
+    if (!(event.key in targets)) return;
+    event.preventDefault();
+    tabs[targets[event.key]].focus();
+  }
+
+  /**
+   * Asks for the next page when the list is scrolled near its end.
+   *
+   * The threshold is a screenful rather than the last pixel, so the rows arrive before an author
+   * reaches the gap they would otherwise fill.
+   */
   protected onScroll(event: Event): void {
     const list = event.target as HTMLElement;
     const remaining = list.scrollHeight - list.scrollTop - list.clientHeight;

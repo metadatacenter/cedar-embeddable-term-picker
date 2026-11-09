@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The result tabs follow the ARIA tabs pattern. The shown tab is the only Tab stop, the left and
+  right arrows move focus along the strip and wrap at either end, Home and End go to the first and
+  last tab, and Enter or Space shows the focused tab, so moving focus fetches nothing. The result
+  list is the shown tab's panel. Nothing visible changes.
+
 ## [0.1.0-dev.20260915.0ec47d9c] - 2026-09-16 (Nexus)
 
 First Nexus development snapshot for the split CED host. Browser tests accept an isolated port.

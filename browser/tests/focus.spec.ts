@@ -226,3 +226,52 @@ test("choosing a property's release, or reading more of its children, keeps focu
   await expect(detail.getByRole('button', { name: 'kid 52', exact: true })).toBeVisible();
   expect(await focused(detail.getByRole('button', { name: 'kid 50', exact: true }))).toBe(true);
 });
+
+test('the result tabs take one Tab stop, the arrow keys move focus along them, and Enter or Space shows one', async ({
+  page,
+}) => {
+  await stubSearch(page, () => ANSWER);
+  await page.goto('/');
+  await picker(page).locator('.picker').waitFor();
+  await search(page, 'melanoma');
+  const tab = (name: string) => picker(page).getByRole('tab', { name: new RegExp(`^${name}`) });
+  const panel = picker(page).getByRole('tabpanel');
+  const names = ['Terms', 'Branches', 'Ontologies', 'Value sets', 'Properties'];
+
+  // The shown tab is the only one in the Tab order, and the result list is its panel.
+  const stops = async () => Promise.all(names.map(async (name) => (await tab(name).getAttribute('tabindex')) === '0'));
+  expect(await stops()).toEqual([true, false, false, false, false]);
+  await expect(panel).toHaveAccessibleName(/^Terms/);
+  await expect(tab('Terms')).toHaveAttribute('aria-controls', (await panel.getAttribute('id'))!);
+
+  // An arrow key moves focus and shows nothing, wrapping at either end.
+  await tab('Terms').focus();
+  await page.keyboard.press('ArrowRight');
+  expect(await focused(tab('Branches'))).toBe(true);
+  await expect(tab('Terms')).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  expect(await focused(tab('Properties'))).toBe(true);
+  await page.keyboard.press('Home');
+  expect(await focused(tab('Terms'))).toBe(true);
+  await page.keyboard.press('End');
+  expect(await focused(tab('Properties'))).toBe(true);
+  await expect(panel).toHaveAccessibleName(/^Terms/);
+
+  // Enter shows the focused tab, which becomes the Tab stop, and Space does the same.
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('Enter');
+  await expect(tab('Ontologies')).toHaveAttribute('aria-selected', 'true');
+  await expect(panel).toHaveAccessibleName(/^Ontologies/);
+  expect(await stops()).toEqual([false, false, true, false, false]);
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Space');
+  await expect(tab('Terms')).toHaveAttribute('aria-selected', 'true');
+
+  // Tab leaves the strip from any tab, rather than stepping through the others.
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Tab');
+  const onTab = await picker(page).evaluate((element) => element.shadowRoot?.activeElement?.getAttribute('role'));
+  expect(onTab).not.toBe('tab');
+});

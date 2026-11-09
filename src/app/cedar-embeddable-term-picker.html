@@ -583,15 +583,24 @@
     </footer>
   </section>
   } }
+  <!--
+    The ARIA tabs pattern with manual activation. The shown tab is the only Tab stop, the arrow keys
+    and Home and End move focus along the strip, and Enter or Space shows the focused tab. Showing a
+    tab can fetch its results, so moving focus alone fetches nothing.
+  -->
   <nav class="tabs" role="tablist">
     @for (tab of tabs(); track tab) {
     <button
       type="button"
       class="tab"
       role="tab"
+      [id]="'cetp-tab-' + tab"
+      aria-controls="cetp-results"
       [attr.aria-selected]="activeTab() === tab"
+      [attr.tabindex]="activeTab() === tab ? 0 : -1"
       [class.active]="activeTab() === tab"
       (click)="showTab(tab)"
+      (keydown)="onTabKeydown($event)"
     >
       {{ 'tabs.' + tab | translate }} @if (counts()[tab]; as count) {
       <span class="badge">{{ count }}</span>
@@ -634,7 +643,14 @@
   </p>
   }
 
-  <div class="results" #list (scroll)="onScroll($event)">
+  <div
+    class="results"
+    id="cetp-results"
+    role="tabpanel"
+    [attr.aria-labelledby]="'cetp-tab-' + activeTab()"
+    #list
+    (scroll)="onScroll($event)"
+  >
     @switch (activeTab()) { @case ('class') { @for (group of labelGroups(); track group.label) {
     <div class="row group" [class.open]="expanded() === group.label">
       <button
