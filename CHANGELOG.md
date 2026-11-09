@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2026-11-09
+
+Aligns with `cedar-model-typescript-library@1.0.27`.
+
+- First public release of `<cedar-embeddable-term-picker>`, a Web Component for choosing what constrains a CEDAR field: an ontology, a branch of one, a class, a value set or a property.
+- One search term shows how many matches each kind has, and refining the query updates every count at once. The picker reads from the CEDAR terminology server.
+- A host-fonts bundle serves pages that register CEDAR Roboto 400 and 500 themselves. It is about 94 kB smaller gzipped than the standalone bundle.
 
 ### Added
 
@@ -20,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   packages, and `npm run bundle` copies it into each bundle's manifest as `provenance`. The check
   fails when either bundle was not made from the current sources, and the browser tests, the
   visual baselines and the packaging step run it before they use the prebuilt output.
+
+### Fixed
+
+- The result tabs follow the ARIA tabs pattern. The shown tab is the only Tab stop, the left and
+  right arrows move focus along the strip and wrap at either end, Home and End go to the first and
+  last tab, and Enter or Space shows the focused tab, so moving focus fetches nothing. The result
+  list is the shown tab's panel. Nothing visible changes.
 
 ## [0.1.0-dev.20260915.0ec47d9c] - 2026-09-16 (Nexus)
 
