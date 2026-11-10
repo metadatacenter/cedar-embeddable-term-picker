@@ -29,13 +29,6 @@
       "value": "1.35",
       "count": 1
     },
-    "c21be31bd6f5fa1cb0f1": {
-      "file": "src/app/search/constraint-table.scss",
-      "rule": "geometry",
-      "property": "height",
-      "value": "22px",
-      "count": 1
-    },
     "cd82c6dee3786d63a935": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "geometry",

@@ -1340,7 +1340,8 @@ test('authors a constraint set in compact tables and applies it as one event', a
   // carried a second one reading the same word a few lines above it.
   await picker.locator('.hierarchy-choice').getByRole('button', { name: 'Select', exact: true }).click();
   await expect(picker.locator('.constraint-table').first().locator('tbody tr')).toHaveCount(2);
-  await expect(picker.locator('.constraint-table td').first()).toHaveCSS('height', '28px');
+  // The 24px minimum target plus compact cell insets and the rule makes this short row 29px.
+  await expect(picker.locator('.constraint-table td').first()).toHaveCSS('height', '29px');
   await expect(picker.locator('.constraint-table td').first()).toHaveCSS('padding-top', '2px');
   await expect(picker.locator('.constraint-table tbody tr').last().locator('.hash')).toHaveAttribute('title', 'hash');
   await expect(picker.locator('.constraint-table tbody tr').last().locator('details')).toHaveCount(0);
@@ -1416,6 +1417,11 @@ test('constraint table typography and actions follow the host styling contract',
   await expect(page.getByRole('button', { name: 'Done', exact: true })).toHaveCSS('color', 'rgb(255, 255, 200)');
   // The remove glyph sits on an unfilled button, so it takes the brand rather than the on-primary white.
   await expect(page.locator('.constraint-row-actions svg')).toHaveCSS('color', 'rgb(80, 20, 120)');
+  // The shared minimum grows the hit area, while the icon and host-scaled text retain their sizes.
+  const remove = page.getByRole('button', { name: 'Remove constraint 1', exact: true });
+  await expect(remove).toHaveCSS('min-height', '24px');
+  expect(await remove.boundingBox()).toMatchObject({ width: 24, height: 24 });
+  expect(await remove.locator('svg').boundingBox()).toMatchObject({ width: 20, height: 20 });
 });
 
 test('in a host of fixed height the table fills it, and an answer of any length leaves it one size', async ({
