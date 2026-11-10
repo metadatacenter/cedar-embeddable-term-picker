@@ -65,6 +65,7 @@ code {
   border-radius: var(--cedar-radius);
 }
 .node {
+  @include spacing.apply(padding-left, term-picker-tree-inset);
   display: flex;
   align-items: baseline;
   gap: var(--cedar-space-1);

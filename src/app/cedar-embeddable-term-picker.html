@@ -120,7 +120,7 @@
               [class.self]="row.self"
               [class.spine]="row.onSpine"
               [class.picked]="isPicked(row)"
-              [style.padding-left.rem]="row.depth * 0.9"
+              [style.--_cetp-tree-depth]="row.depth"
               [attr.aria-level]="row.depth + 1"
               [attr.aria-posinset]="row.position"
               [attr.aria-setsize]="row.setSize"

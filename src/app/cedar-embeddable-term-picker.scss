@@ -178,8 +178,7 @@ input[type='search'] {
   .meaning {
     font-size: var(--cetp-font-size-small);
     color: var(--cetp-color-muted);
-    line-height: 1.5;
-    height: 1.5em;
+    @include patterns.relative-text-line($size: small, $single: true);
     padding-bottom: var(--cedar-space-1);
   }
 
@@ -189,8 +188,7 @@ input[type='search'] {
     display: flex;
     // Tall enough for what is in it, and the same box as the line below.
     font-size: var(--cetp-font-size-small);
-    line-height: 1.5;
-    height: 1.5em;
+    @include patterns.relative-text-line($size: small, $single: true);
 
     code {
       color: var(--cetp-color-muted);
@@ -618,6 +616,7 @@ button {
 }
 
 .node {
+  @include spacing.apply(padding-left, term-picker-tree-inset);
   display: flex;
   align-items: baseline;
   gap: var(--cedar-space-1);
