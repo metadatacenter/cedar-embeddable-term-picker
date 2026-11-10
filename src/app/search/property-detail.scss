@@ -30,7 +30,7 @@ p {
 }
 .releases {
   padding: var(--cedar-space-1);
-  background: var(--cetp-color-tint);
+  background: var(--_cetp-release-panel-surface);
 }
 .release {
   display: flex;
@@ -85,10 +85,10 @@ code {
   overflow-wrap: anywhere;
 }
 button.term:hover {
-  background: var(--cetp-color-tint);
+  background: var(--_cetp-action-hover-surface);
 }
 .self .term {
-  background: var(--cetp-color-tint);
+  background: var(--_cetp-selection-surface);
   color: var(--cetp-color-heading);
   font-weight: var(--cedar-font-weight-medium);
 }

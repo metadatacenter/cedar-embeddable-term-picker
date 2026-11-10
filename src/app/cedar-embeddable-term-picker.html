@@ -199,7 +199,7 @@
       <dd>
         <!-- A name the source tagged with a language is read in that language. -->
         @for (name of hit.matchedLabels; track name.label) {
-        <span class="chip"
+        <span class="chip match"
           ><span [attr.lang]="languageTag(name.language)">{{ name.label }}</span>@if (name.language) { · {{
           name.language }}}</span
         >

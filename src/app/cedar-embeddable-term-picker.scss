@@ -57,11 +57,12 @@
   --cetp-font-size-small: calc(var(--cetp-font-size) + #{tokens.$font-size-small - tokens.$font-size});
   --cetp-font-size-large: calc(var(--cetp-font-size) + #{tokens.$font-size-large - tokens.$font-size});
 
-  // Derived from the brand, so a host that re-points the primary colour gets a tint that matches it
-  // rather than one left behind. A chip and a pinned version share this; the panel behind expanded
-  // rows is the neutral surface, and the two have to stay distinguishable.
-  // At the default primary this is the shared selected surface.
-  --cetp-color-tint: color-mix(in srgb, var(--cetp-color-primary) 12%, #{tokens.$surface-raised});
+  // Each surface follows the host brand, while preserving its own semantic role.
+  // These equal blends are independently owned; none is an alias for selection.
+  --_cetp-selection-surface: #{patterns.selection-tint(var(--cetp-color-primary))};
+  --_cetp-search-match-surface: #{patterns.search-match-tint(var(--cetp-color-primary))};
+  --_cetp-action-hover-surface: #{patterns.action-hover-tint(var(--cetp-color-primary))};
+  --_cetp-release-panel-surface: #{patterns.term-picker-release-panel-tint(var(--cetp-color-primary))};
 
   display: block;
   container-type: inline-size;
@@ -420,7 +421,7 @@ button {
   cursor: pointer;
 
   &.on {
-    background: var(--cetp-color-tint);
+    background: var(--_cetp-selection-surface);
     font-weight: var(--cedar-font-weight-medium);
   }
 
@@ -537,7 +538,7 @@ button {
 
   &.marked,
   &.marked:hover {
-    background: var(--cetp-color-tint);
+    background: var(--_cetp-selection-surface);
   }
 }
 
@@ -636,7 +637,7 @@ button {
   // as another level of indent rather than as emphasis, and the tint, about 1.2:1 against the tree,
   // is too faint to mark the term on its own.
   &.picked > .term {
-    background: var(--cetp-color-tint);
+    background: var(--_cetp-selection-surface);
     @include patterns.selected-frame;
     color: var(--cetp-color-heading);
   }
@@ -669,7 +670,7 @@ button {
     text-align: left;
 
     &:hover {
-      background: var(--cetp-color-tint);
+      background: var(--_cetp-action-hover-surface);
     }
   }
 }
@@ -779,7 +780,7 @@ button {
   // framed in the theme colour, as the picked tree term is.
   &.on,
   &.on:hover {
-    background: var(--cetp-color-tint);
+    background: var(--_cetp-selection-surface);
     @include patterns.selected-frame;
     color: var(--cetp-color-heading);
   }
@@ -906,7 +907,7 @@ button {
 }
 
 mark {
-  background: var(--cetp-color-tint);
+  background: var(--_cetp-search-match-surface);
   color: inherit;
   padding: 0 1px;
 }
@@ -935,12 +936,16 @@ mark {
 
 .chip {
   display: inline-block;
-  background: var(--cetp-color-tint);
+  background: var(--_cetp-selection-surface);
   color: var(--cetp-color-heading);
   font-size: var(--cetp-font-size-small);
   @include spacing.apply(padding, compact-cell);
   border-radius: tokens.$radius;
   margin-right: var(--cedar-space-1);
+
+  &.match {
+    background: var(--_cetp-search-match-surface);
+  }
 
   &.warn {
     background: tokens.$status-warning-surface;
@@ -1037,7 +1042,7 @@ mark {
   white-space: nowrap;
 
   &.pinned {
-    background: var(--cetp-color-tint);
+    background: var(--_cetp-selection-surface);
     color: var(--cetp-color-heading);
     border-radius: tokens.$radius;
     padding: 0 var(--cedar-space-1);

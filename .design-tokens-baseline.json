@@ -1,13 +1,6 @@
 {
   "schema": 1,
   "findings": {
-    "045321ca56e5e0e97377": {
-      "file": "src/app/cedar-embeddable-term-picker.scss",
-      "rule": "color",
-      "property": "--cetp-color-tint",
-      "value": "color-mix(in srgb, var(--cetp-color-primary) 12%, tokens.$surface-raised )",
-      "count": 1
-    },
     "05531533e511bddb9881": {
       "file": "src/app/cedar-embeddable-term-picker.scss",
       "rule": "geometry",

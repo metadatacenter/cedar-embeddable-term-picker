@@ -180,6 +180,53 @@ const scenarios: Record<string, (page: Page) => Promise<void>> = {
   },
 };
 
+test('host-derived tints preserve colors and keep selection, matches, hover and panels independent', async ({
+  page,
+}) => {
+  await scenarios['term-detail'](page);
+  const selected = picker(page).locator('.tree .node.picked > .term');
+  for (const [primary, expected] of [
+    ['#0f7686', [226, 239, 240, 255]],
+    ['#501478', [234, 227, 239, 255]],
+    ['#1d4ed8', [228, 234, 250, 255]],
+  ] as const) {
+    await picker(page).evaluate(
+      (element, primary) => (element as HTMLElement).style.setProperty('--cetp-color-primary', primary),
+      primary,
+    );
+    expect(
+      await selected.evaluate((element) => {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d')!;
+        context.fillStyle = getComputedStyle(element).backgroundColor;
+        context.fillRect(0, 0, 1, 1);
+        return [...context.getImageData(0, 0, 1, 1).data];
+      }),
+    ).toEqual(expected);
+  }
+  const distinguishRoles = () =>
+    picker(page).evaluate((element) => {
+      const style = (element as HTMLElement).style;
+      style.setProperty('--_cetp-selection-surface', 'rgb(1, 2, 3)');
+      style.setProperty('--_cetp-search-match-surface', 'rgb(4, 5, 6)');
+      style.setProperty('--_cetp-action-hover-surface', 'rgb(7, 8, 9)');
+      style.setProperty('--_cetp-release-panel-surface', 'rgb(10, 11, 12)');
+    });
+  await distinguishRoles();
+  await expect(selected).toHaveCSS('background-color', 'rgb(1, 2, 3)');
+  const ancestor = picker(page).locator('.tree .node:not(.picked) > button.term').first();
+  await ancestor.hover();
+  await expect(ancestor).toHaveCSS('background-color', 'rgb(7, 8, 9)');
+  await picker(page).locator('.tab').nth(2).click();
+  await expect(picker(page).locator('.row.oneline mark').first()).toHaveCSS('background-color', 'rgb(4, 5, 6)');
+
+  await propertyDetail(page);
+  await distinguishRoles();
+  await expect(picker(page).locator('cetp-property-detail .self .term')).toHaveCSS('background-color', 'rgb(1, 2, 3)');
+  await picker(page).locator('cetp-property-detail .release-toggle').click();
+  await expect(picker(page).locator('cetp-property-detail .releases')).toHaveCSS('background-color', 'rgb(10, 11, 12)');
+});
+
 for (const { surface, state, width, title } of surfaceCases(registry, scenarios))
   test(title, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 });
