@@ -147,6 +147,10 @@
   tr:has(details[open]) td {
     vertical-align: top;
   }
+  details {
+    // Reflow against this cell's available width, including the host's font size.
+    container: constraint-details / inline-size;
+  }
   dl {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
@@ -161,6 +165,17 @@
   dd {
     margin: 0;
     min-width: 0;
+  }
+}
+
+@container constraint-details (max-width: 14em) {
+  .constraint-table {
+    dl {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    dt:not(:first-child) {
+      margin-top: var(--cedar-space-1);
+    }
   }
 }
 

@@ -1444,6 +1444,62 @@ test('constraint table typography and actions follow the host styling contract',
   }
 });
 
+for (const language of ['en', 'hu']) {
+  test(`constraint details reflow within narrow cells and restore the wide layout (${language})`, async ({ page }) => {
+    await openPicker(page);
+    const picker = page.locator('cedar-embeddable-term-picker');
+    await picker.evaluate((element, language) => {
+      const host = element as HTMLElement & { selectionMode: string; constraintSet: object };
+      host.setAttribute('language', language);
+      host.selectionMode = 'constraints';
+      host.constraintSet = {
+        constraints: [
+          {
+            sourceType: 'ontology-branch',
+            sourceId: 'DOID',
+            branchRootId: 'http://purl.obolibrary.org/obo/DOID_162',
+            branchRootName: 'Malignant neoplasm and its descendants',
+            iri: 'http://purl.obolibrary.org/obo/doid.owl',
+            searchDepth: 0,
+          },
+        ],
+        actions: [],
+      };
+    }, language);
+    await picker.locator('.constraint-table summary').click();
+    const details = picker.locator('.constraint-table dl');
+    await expect(details.locator('dt').first()).toHaveText(language === 'hu' ? 'Azonosító' : 'Identifier');
+    const initialText = (await details.textContent())!;
+    for (const size of [14, 20]) {
+      await picker.evaluate((element, size) => {
+        const host = element as HTMLElement;
+        host.style.setProperty('--cetp-font-size', `${size}px`);
+        host.style.setProperty('--cetp-font-family', size === 20 ? 'Georgia, serif' : '"CEDAR Roboto", sans-serif');
+      }, size);
+      for (const width of [900, 540, 375, 320, 900]) {
+        await page.setViewportSize({ width, height: 1000 });
+        const stacked = width <= 375 || (width === 540 && size === 20);
+        const label = (await details.locator('dt').first().boundingBox())!;
+        const value = (await details.locator('dd').first().boundingBox())!;
+        if (stacked) {
+          expect(value.y).toBeGreaterThanOrEqual(label.y + label.height);
+          expect(value.width).toBeCloseTo((await details.boundingBox())!.width, 1);
+        } else {
+          expect(value.x).toBeGreaterThan(label.x + label.width);
+          expect(value.y).toBeCloseTo(label.y, 1);
+        }
+        expect(value.width).toBeGreaterThan(0);
+        await expect(details).toHaveText(initialText);
+        await expect(details.locator('dd').first()).toHaveCSS('line-height', `${size * 1.5}px`);
+        expect(await picker.locator('.constraint-row-actions button').boundingBox()).toMatchObject({
+          width: 24,
+          height: 24,
+        });
+      }
+    }
+  });
+}
+
 test('in a host of fixed height the table fills it, and an answer of any length leaves it one size', async ({
   page,
 }) => {
