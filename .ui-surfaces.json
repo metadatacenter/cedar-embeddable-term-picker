@@ -54,11 +54,10 @@
       "selector": "cedar-embeddable-term-picker",
       "states": ["open"],
       "test": "browser/tests/surfaces.spec.ts",
-      "scaleDebt": [
+      "scaleRoles": [
         {
-          "property": "background-color",
-          "value": "color(srgb 0.887059 0.935529 0.943059)",
-          "reason": "Approved host-derived tint recipes preserve the 12% blend over white. Selection and search-match roles remain separate; this computed color intentionally differs from the fixed surface-selected."
+          "selector": "mark",
+          "role": "search-match-tint"
         }
       ]
     },
@@ -77,11 +76,10 @@
       "selector": "cedar-embeddable-term-picker",
       "states": ["open"],
       "test": "browser/tests/surfaces.spec.ts",
-      "scaleDebt": [
+      "scaleRoles": [
         {
-          "property": "background-color",
-          "value": "color(srgb 0.887059 0.935529 0.943059)",
-          "reason": "Approved host-derived tint recipes preserve the 12% blend over white. Selection and search-match roles remain separate; this computed color intentionally differs from the fixed surface-selected."
+          "selector": ".child.marked",
+          "role": "selection-tint"
         }
       ]
     },

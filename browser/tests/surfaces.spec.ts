@@ -277,3 +277,14 @@ test('compact text contract rejects local line-height drift inside the picker sh
   });
   await assert.rejects(() => checkSurface(page, surface, 'open', expect, testInfo), /line-height must use/);
 });
+
+for (const scenario of ['ontologies', 'term-detail']) {
+  test(`scoped tint roles follow the host primary inside the ${scenario} shadow tree`, async ({ page }, testInfo) => {
+    await scenarios[scenario](page);
+    const surface = registry.surfaces.find((entry: { scenario: string }) => entry.scenario === scenario);
+    await picker(page).evaluate((element) => {
+      (element as HTMLElement).style.setProperty('--cetp-color-primary', '#65258e');
+    });
+    await checkSurface(page, surface, 'open', expect, testInfo);
+  });
+}
