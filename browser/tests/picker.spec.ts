@@ -1422,6 +1422,26 @@ test('constraint table typography and actions follow the host styling contract',
   await expect(remove).toHaveCSS('min-height', '24px');
   expect(await remove.boundingBox()).toMatchObject({ width: 24, height: 24 });
   expect(await remove.locator('svg').boundingBox()).toMatchObject({ width: 20, height: 20 });
+
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.evaluate((element) => {
+    (element as HTMLElement & { constraintSet: object }).constraintSet = {
+      constraints: [
+        { sourceType: 'ontology-branch', branchRootId: 'urn:test', branchRootName: 'A branch', sourceId: 'TEST' },
+      ],
+      actions: [],
+    };
+  });
+  await picker.locator('.constraint-table summary').click();
+  // Expanded body text follows the host's font size, rather than freezing its line at 21px.
+  for (const size of [14, 16, 20]) {
+    await picker.evaluate(
+      (element, value) => (element as HTMLElement).style.setProperty('--cetp-font-size', `${value}px`),
+      size,
+    );
+    await expect(picker.locator('.constraint-table dd').first()).toHaveCSS('font-size', `${size}px`);
+    await expect(picker.locator('.constraint-table dd').first()).toHaveCSS('line-height', `${size * 1.5}px`);
+  }
 });
 
 test('in a host of fixed height the table fills it, and an answer of any length leaves it one size', async ({

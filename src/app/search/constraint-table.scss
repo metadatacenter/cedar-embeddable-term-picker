@@ -152,7 +152,7 @@
     grid-template-columns: max-content minmax(0, 1fr);
     @include spacing.apply(gap, compact-row);
     margin: var(--cedar-space-1) 0 0;
-    line-height: 1.35;
+    @include patterns.relative-text-line;
   }
   dt {
     font-weight: var(--cedar-font-weight-regular);
