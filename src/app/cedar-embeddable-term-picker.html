@@ -546,7 +546,10 @@
       @for (candidate of visibleCandidates(); track candidate.sourceAcronym) {
       <label class="candidate" [class.on]="isDrafted(candidate.sourceAcronym)">
         <span class="who">{{ candidate.sourceAcronym }}</span>
-        <span class="dim ellipsis">{{ candidateName(candidate.sourceAcronym) }}</span>
+        <!-- A long name gives way to an ellipsis, so its title holds the whole of it. -->
+        <span class="dim ellipsis" [title]="candidateName(candidate.sourceAcronym)">{{
+          candidateName(candidate.sourceAcronym)
+        }}</span>
         <span class="meta inline"
           >{{ candidate.matchCount === undefined ? '' : localizer.number(candidate.matchCount) }}@if
           (candidate.matchCount !== undefined) {<span class="sr-only"> {{ 'narrowing.matchingTerms' | translate }}</span
@@ -673,6 +676,8 @@
             >{{ elide(group.label) }}</span
           >
           @if (group.code) {
+          <!-- As on an ontology row, an unseen space sets the code apart in the row's name. -->
+          <span class="sr-only">&ngsp;</span>
           <span class="who">{{ group.code }}</span>
           } @if (group.hits[0].obsolete) {
           <span class="chip warn">{{ 'results.obsolete' | translate }}</span>
@@ -699,16 +704,23 @@
               (click)="mark(hit); opens.focus({ preventScroll: true })"
               (dblclick)="choose(hit)"
             >
+              <!--
+                The source's name gives way to an ellipsis first, and at a narrow width the whole line
+                does. The button's title holds the whole line, and the name keeps its own.
+              -->
               <button
                 #opens
                 type="button"
                 class="grow ellipsis opens"
+                [title]="childLine(group.hits, hit)"
                 [attr.aria-expanded]="isMarked(hit)"
                 [attr.aria-description]="selectedWords(hit)"
               >
                 <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
                 <span class="who">{{ hit.sourceAcronym }}</span>
-                <span class="dim">· {{ sourceName(hit.sourceAcronym) }}</span>
+                <span class="dim name" [title]="sourceName(hit.sourceAcronym)"
+                  >· {{ sourceName(hit.sourceAcronym) }}</span
+                >
                 <!-- Whose copy this is. Two vocabularies of one name are told apart by it. -->
                 @if (authorityOf(hit.sourceAcronym); as from) {
                 <span class="meta inline dim from">· {{ from }}</span>
@@ -763,16 +775,20 @@
               (click)="mark(hit); opens.focus({ preventScroll: true })"
               (dblclick)="choose(hit)"
             >
+              <!-- The whole line in the button's title and the name in its own, as on the terms tab. -->
               <button
                 #opens
                 type="button"
                 class="grow ellipsis opens"
+                [title]="childLine(group.hits, hit)"
                 [attr.aria-expanded]="isMarked(hit)"
                 [attr.aria-description]="selectedWords(hit)"
               >
                 <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
                 <span class="who">{{ hit.sourceAcronym }}</span>
-                <span class="dim">· {{ sourceName(hit.sourceAcronym) }}</span>
+                <span class="dim name" [title]="sourceName(hit.sourceAcronym)"
+                  >· {{ sourceName(hit.sourceAcronym) }}</span
+                >
                 <!-- Whose copy this is. Two vocabularies of one name are told apart by it. -->
                 @if (authorityOf(hit.sourceAcronym); as from) {
                 <span class="meta inline dim from">· {{ from }}</span>
@@ -784,10 +800,10 @@
                 </span>
                 }
               </button>
-              <span class="meta inline">
-                {{ localizer.plural('counts.descendants', descendantsOf(hit), { count:
-                localizer.number(descendantsOf(hit)) }) }}
-              </span>
+              <!-- At a narrow width the count gives way to the row's name, so its title holds the whole. -->
+              @let descendants = localizer.plural('counts.descendants', descendantsOf(hit), { count:
+              localizer.number(descendantsOf(hit)) });
+              <span class="meta inline" [title]="descendants">{{ descendants }}</span>
               <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
             </div>
             <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />
@@ -811,15 +827,19 @@
           (click)="mark(hit); opens.focus({ preventScroll: true })"
           (dblclick)="choose(hit)"
         >
+          <!-- At a narrow width the line gives way to an ellipsis, so its title holds the whole of it. -->
           <button
             #opens
             type="button"
             class="grow ellipsis opens"
+            [title]="ontologyLine(hit)"
             [attr.aria-expanded]="isMarked(hit)"
             [attr.aria-description]="selectedWords(hit)"
           >
             @let parts = splitName(hit.sourceAcronym);
             <span class="title">{{ parts[0] }}@if (parts[1]) {<mark>{{ parts[1] }}</mark>}{{ parts[2] }}</span>
+            <!-- A margin sets the acronym apart on screen, and this unseen space sets it apart in the row's name. -->
+            <span class="sr-only">&ngsp;</span>
             @let who = splitAcronym(hit.sourceAcronym);
             <span class="who">{{ who[0] }}@if (who[1]) {<mark>{{ who[1] }}</mark>}{{ who[2] }}</span>
             @if (authorityOf(hit.sourceAcronym); as from) {
@@ -926,6 +946,8 @@
             [attr.aria-description]="selectedWords(hit)"
           >
             <span class="title" [title]="hit.termBaseLabel">{{ elide(hit.termBaseLabel) }}</span>
+            <!-- As on an ontology row, an unseen space sets the acronym apart in the row's name. -->
+            <span class="sr-only">&ngsp;</span>
             <span class="who">{{ hit.sourceAcronym }}</span>
             @if (authorityOf(hit.sourceAcronym); as from) {
             <span class="meta inline dim from">· {{ from }}</span>

@@ -1505,13 +1505,48 @@ export class CedarEmbeddableTermPicker {
    * terms that matched, as the row sets them out. The row is one line and gives way to an ellipsis.
    */
   protected valueSetLine(hit: ValueSetHit): string {
-    return [
-      [hit.termBaseLabel ?? '', hit.sourceAcronym].filter((part) => part !== '').join(' '),
-      this.authorityOf(hit.sourceAcronym),
-      this.labelsOf(hit.matchedTerms),
-    ]
-      .filter((part) => part !== '')
-      .join(' · ');
+    return CedarEmbeddableTermPicker.line(
+      [hit.termBaseLabel ?? '', hit.sourceAcronym],
+      [this.authorityOf(hit.sourceAcronym), this.labelsOf(hit.matchedTerms)],
+    );
+  }
+
+  /**
+   * A term or branch row's line in full, for its title: the acronym, the source's name, whose copy it
+   * is, what tells the row from its twins and what replaced an obsolete term. The row is one line,
+   * and the line and each part after the acronym can give way to an ellipsis.
+   */
+  protected childLine(hits: readonly Hit[], hit: ClassHit | BranchHit): string {
+    return CedarEmbeddableTermPicker.line(
+      [hit.sourceAcronym],
+      [
+        this.sourceName(hit.sourceAcronym),
+        this.authorityOf(hit.sourceAcronym),
+        this.distinguisher(hits, hit),
+        hit.type === 'class' && hit.replacedBy
+          ? this.localizer.t('detail.replacedBy', { term: hit.replacedBy.termLabel ?? hit.replacedBy.termIri })
+          : '',
+      ],
+    );
+  }
+
+  /**
+   * An ontology row's line in full, for its title: the name, the acronym and whose copy it is. The
+   * row is one line and gives way to an ellipsis.
+   */
+  protected ontologyLine(hit: OntologyHit): string {
+    return CedarEmbeddableTermPicker.line(
+      [this.sourceName(hit.sourceAcronym), hit.sourceAcronym],
+      [this.authorityOf(hit.sourceAcronym)],
+    );
+  }
+
+  /**
+   * A row's words as the row sets them out: the leading words apart by spaces, then each later part
+   * after a "·". An empty part is left out, as the row leaves it out.
+   */
+  private static line(lead: readonly string[], parts: readonly string[]): string {
+    return [lead.filter((part) => part !== '').join(' '), ...parts].filter((part) => part !== '').join(' · ');
   }
 
   /** What the row shows: the version stepped to, else the one that answered. */

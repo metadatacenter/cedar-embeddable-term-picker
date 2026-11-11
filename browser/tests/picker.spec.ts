@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { Locator, expect, test } from '@playwright/test';
 import {
   branchHit,
   classHit,
@@ -1734,6 +1734,191 @@ test("the selection's source line and a value set's line each carry their whole 
   );
   // The name keeps its own title.
   await expect(line.locator('.title')).toHaveAttribute('title', 'Melanoma Clinical Stage Value Set');
+});
+
+/**
+ * Whether a title holds the whole of what an element shows. A row sets its parts apart by margins,
+ * so its text joins with no space where its title has one, and the two are compared without spaces.
+ */
+async function titleHoldsText(element: Locator): Promise<void> {
+  const [title, text] = await element.evaluate((node) => [node.getAttribute('title') ?? '', node.textContent ?? '']);
+  expect(title.replace(/\s+/g, '')).toBe(text.replace(/\s+/g, ''));
+}
+
+test("a term row's source name carries its whole text as a title", async ({ page }) => {
+  await stubSearch(page, () => MELANOMA);
+  await openPicker(page);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.locator('.rowhead').first().click();
+
+  const row = picker.locator('.child', { hasText: 'NCIT' }).locator('.grow.ellipsis');
+  const name = row.locator('.dim').first();
+  await expect(name).toHaveText('· National Cancer Institute Thesaurus');
+  await expect(name).toHaveAttribute('title', 'National Cancer Institute Thesaurus');
+  // The line's title holds the separator the name's own title leaves out.
+  await expect(row).toHaveAttribute('title', 'NCIT · National Cancer Institute Thesaurus');
+  await titleHoldsText(row);
+  // Not read after the row's name: the button's description is only the words that say it is selected.
+  await expect(row).not.toHaveAccessibleDescription(/Thesaurus/);
+});
+
+test("a branch row's line carries its whole text as a title", async ({ page }) => {
+  await stubSearch(page, () => MELANOMA);
+  await openPicker(page);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.locator('.tab').nth(1).click();
+  await expect(picker.locator('.tab').nth(1)).toHaveAttribute('aria-selected', 'true');
+  await picker.locator('.rowhead').first().click();
+
+  const ncit = picker.locator('.child', { hasText: 'NCIT' }).locator('.grow.ellipsis');
+  await expect(ncit).toHaveAttribute('title', 'NCIT · National Cancer Institute Thesaurus');
+  await titleHoldsText(ncit);
+  await expect(ncit.locator('.dim').first()).toHaveAttribute('title', 'National Cancer Institute Thesaurus');
+  // A twin's line holds what tells it apart, and a source with no name of its own is named by its acronym.
+  const twin = picker.locator('.child', { hasText: 'Neuroendocrine Tumors' }).locator('.grow.ellipsis');
+  await expect(twin).toHaveAttribute('title', 'RH-MESH · RH-MESH · under Neuroendocrine Tumors');
+  await titleHoldsText(twin);
+});
+
+test("an ontology row's line carries its whole text as a title", async ({ page }) => {
+  await stubSearch(page, () => MELANOMA);
+  await openPicker(page);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.locator('.tab').nth(2).click();
+  await expect(picker.locator('.tab').nth(2)).toHaveAttribute('aria-selected', 'true');
+
+  const melo = picker.locator('.row.pick', { hasText: 'MELO' }).locator('.grow.ellipsis');
+  await expect(melo).toHaveAttribute('title', 'Melanoma Ontology MELO');
+  await titleHoldsText(melo);
+  const ncit = picker.locator('.row.pick', { hasText: 'NCIT' }).locator('.grow.ellipsis');
+  await expect(ncit).toHaveAttribute('title', 'National Cancer Institute Thesaurus NCIT');
+  await titleHoldsText(ncit);
+  await expect(ncit).not.toHaveAccessibleDescription(/Thesaurus/);
+});
+
+test('at 320 CSS px a branch row shows the start of its source name, and the count gives way', async ({ page }) => {
+  await stubSearch(page, () => ({
+    ...MELANOMA,
+    results: {
+      branch: results([branchHit('NCIT', 'Melanoma', 'Melanocytic Neoplasm', 321)], { distinctLabelCount: 1 }),
+    },
+  }));
+  // The host page's own gutter would leave the picker narrower than the viewport.
+  await page.addInitScript(() =>
+    document.addEventListener('DOMContentLoaded', () => (document.body.style.margin = '0')),
+  );
+  const picker = page.locator('cedar-embeddable-term-picker');
+  const row = picker.locator('.child', { hasText: 'NCIT' });
+  /** Where the source name sits in its row, and whether the name and the count show whole. */
+  const measured = () =>
+    row.evaluate((child) => {
+      const line = child.querySelector('.grow')!.getBoundingClientRect();
+      const name = child.querySelector('.name')!;
+      const box = name.getBoundingClientRect();
+      const count = child.querySelector(':scope > .meta')!;
+      return {
+        width: box.width,
+        em: parseFloat(getComputedStyle(name).fontSize),
+        inside: box.left >= line.left && box.right <= line.right + 1,
+        nameWhole: name.scrollWidth <= name.clientWidth,
+        countWhole: count.scrollWidth <= count.clientWidth,
+      };
+    });
+
+  await page.setViewportSize({ width: 320, height: 800 });
+  await openPicker(page);
+  await search(page, 'melanoma');
+  await picker.locator('.tab').nth(1).click();
+  await expect(picker.locator('.tab').nth(1)).toHaveAttribute('aria-selected', 'true');
+  await picker.locator('.rowhead').first().click();
+  // The separator, a letter or two and the ellipsis show, inside the row's name. The title completes it.
+  const narrow = await measured();
+  expect(narrow.width).toBeGreaterThanOrEqual(2.5 * narrow.em - 1);
+  expect(narrow.inside).toBe(true);
+  expect(narrow.nameWhole).toBe(false);
+  // The room comes from the count, which ends in an ellipsis and keeps its whole in a title.
+  expect(narrow.countWhole).toBe(false);
+  await expect(row.locator(':scope > .meta')).toHaveAttribute('title', '321 descendants');
+
+  // Where there is room, both show whole, as before.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect.poll(async () => (await measured()).nameWhole).toBe(true);
+  expect((await measured()).countWhole).toBe(true);
+});
+
+test("a row's name sets the acronym apart from the words before it", async ({ page }) => {
+  await stubSearch(page, () => ({
+    ...MELANOMA,
+    results: {
+      ...MELANOMA.results,
+      valueSet: results([
+        {
+          type: 'valueSet',
+          sourceSystem: 'bioportal',
+          sourceAcronym: 'NCIT',
+          termBaseIri: 'http://ncit/C-melanoma-stage',
+          termBaseLabel: 'Melanoma Clinical Stage Value Set',
+          termCount: 12,
+        },
+      ]),
+    },
+  }));
+  await openPicker(page);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+
+  // A margin sets them apart on screen and an unseen space sets them apart in the name, which read
+  // "Melanoma OntologyMELO" without it.
+  const coded = picker.locator('.rowhead', { hasText: '6188' });
+  await expect(coded).toHaveAccessibleName('HIV disease 6188 in 1 ontology');
+
+  await picker.locator('.tab').nth(2).click();
+  await expect(picker.locator('.tab').nth(2)).toHaveAttribute('aria-selected', 'true');
+  await expect(picker.locator('.row.pick', { hasText: 'MELO' }).locator('.grow')).toHaveAccessibleName(
+    'Melanoma Ontology MELO',
+  );
+  await expect(picker.locator('.row.pick', { hasText: 'NCIT' }).locator('.grow')).toHaveAccessibleName(
+    'National Cancer Institute Thesaurus NCIT',
+  );
+
+  await picker.locator('.tab').nth(3).click();
+  await expect(picker.locator('.tab').nth(3)).toHaveAttribute('aria-selected', 'true');
+  await expect(picker.locator('.row.pick > .grow')).toHaveAccessibleName('Melanoma Clinical Stage Value Set NCIT');
+});
+
+test("a narrowing candidate's name carries its whole text as a title", async ({ page }) => {
+  await stubSearch(page, (body) =>
+    body.ontologyOrder === 'matches'
+      ? {
+          sources: [
+            source('NCIT', { name: 'National Cancer Institute Thesaurus' }),
+            source('BERO', { name: 'Biological and Environmental Research Ontology' }),
+          ],
+          results: { ontology: results([ontologyHit('NCIT', 950, false), ontologyHit('BERO', 782, false)]) },
+        }
+      : MELANOMA,
+  );
+  await openPicker(page);
+  await search(page, 'melanoma');
+  await page.locator('cedar-embeddable-term-picker .filter-chip > button').first().click();
+
+  const candidates = page.locator('cedar-embeddable-term-picker .candidate');
+  await expect(candidates).toHaveCount(2);
+  for (const [acronym, name] of [
+    ['NCIT', 'National Cancer Institute Thesaurus'],
+    ['BERO', 'Biological and Environmental Research Ontology'],
+  ]) {
+    const shown = candidates.filter({ hasText: acronym }).locator('.dim.ellipsis');
+    await expect(shown).toHaveText(name);
+    await expect(shown).toHaveAttribute('title', name);
+  }
+  // The box's name is the row's words, the name said once.
+  await expect(candidates.first().locator('input[type=checkbox]')).toHaveAccessibleName(
+    'NCIT National Cancer Institute Thesaurus 950 matching terms',
+  );
 });
 
 test('the narrowing panel opens on the side of its chip that has more room, and is given that room', async ({
