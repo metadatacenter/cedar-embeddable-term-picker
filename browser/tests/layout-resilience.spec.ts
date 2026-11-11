@@ -760,7 +760,15 @@ async function findFaintIndicators({
     (!scope || surfaces.some((outer) => contains(outer, element))) &&
     !excluded.some((outer) => outer !== element && contains(outer, element));
   const style = (element: Element, pseudo?: string): CSSStyleDeclaration => getComputedStyle(element, pseudo);
-  const parse = (colour: string): number[] => (colour.match(/[\d.]+/g) ?? []).map(Number);
+  // A canvas resolves any CSS colour to 0-255 channels. Reading the numbers out of the text would
+  // take a color(srgb ...) fill, whose channels run from 0 to 1, for something near black.
+  const parse = (colour: string): number[] => {
+    const probe = document.createElement('canvas').getContext('2d')!;
+    probe.fillStyle = colour;
+    probe.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = probe.getImageData(0, 0, 1, 1).data;
+    return [r, g, b, a / 255];
+  };
   const over = ([r, g, b, a = 1]: number[], [br, bg, bb]: number[]): number[] => [
     r * a + br * (1 - a),
     g * a + bg * (1 - a),

@@ -537,9 +537,13 @@ button {
     background: var(--cetp-color-surface);
   }
 
+  // The tint, about 1.2:1 against the list, is too faint to mark the row alone, so a marked row is
+  // also framed in the theme colour, as the picked tree term and the current release are. The frame
+  // is a shadow, so the focus ring, an outline, still shows with it.
   &.marked,
   &.marked:hover {
     background: var(--_cetp-selection-surface);
+    @include patterns.selected-frame;
   }
 
   // The row draws the focus ring while its name has focus, since a click anywhere on the row does
