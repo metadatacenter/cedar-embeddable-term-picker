@@ -168,7 +168,7 @@ test("a property's tree states its parents, the property and its children at the
     .getByRole('button', { name: /part of.*in 1 ontology/ })
     .click();
   await picker(page)
-    .getByRole('option', { name: /^part of in RO/ })
+    .getByRole('button', { name: /^part of in RO/ })
     .click();
   const tree = picker(page).getByRole('list', { name: 'Property hierarchy', exact: true });
   const entries = tree.locator('.node');

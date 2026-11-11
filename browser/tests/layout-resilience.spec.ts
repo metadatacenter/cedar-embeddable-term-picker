@@ -46,63 +46,8 @@ const SCROLLS_IN_PLACE: readonly { readonly selector: string; readonly why: stri
   },
 ];
 
-/** Findings that wait on a visible change. */
-const EXCEPTIONS: readonly Exception[] = [
-  {
-    check: 'reflow',
-    kind: 'scrolls',
-    selector: '.history',
-    states: ['the release history'],
-    why:
-      'The release history sets each release in four columns, three of them 19em wide together, so at ' +
-      "320 CSS px it scrolls sideways. Its head's count is left no width and runs over the column beside " +
-      'it, as it does at 375px, and a long release has its tag cut. A release has three facts, and a list ' +
-      'of them is not a table that needs two dimensions. Below some width each release could take two ' +
-      "lines, which changes the history's layout.",
-  },
-  {
-    check: 'reflow',
-    kind: 'overlap',
-    selector: '.releases-head > .grow',
-    states: ['the release history'],
-    why:
-      "At 320 CSS px the release history's head leaves its count no width, so the count is drawn over " +
-      "the column heading beside it. The two-line release that the history's sideways scrolling needs " +
-      'would give the head room for its count.',
-  },
-  {
-    check: 'resize',
-    kind: 'ellipsis',
-    selector: '.chosen .about',
-    states: ['the terms tab', 'the branches tab', 'the release history'],
-    why:
-      'At 640 by 400 the selection\'s source line ends in an ellipsis, and "National Cancer Institute ' +
-      'Thesaurus (NCIT)" loses its acronym. The lines beside it carry their whole text as a title, and ' +
-      'this one carries none. Showing it needs a title, which adds a tooltip, or a line that wraps, which ' +
-      'changes the height of the bar.',
-  },
-  {
-    check: 'resize',
-    kind: 'ellipsis',
-    selector: '.row > .grow.ellipsis',
-    states: ['the value sets tab'],
-    why:
-      "Every result row is one line. At 640 by 400 a value set's row cuts the terms it matched at an " +
-      "ellipsis, and only the value set's own name has a title. Showing the rest needs a title over the " +
-      'whole row, which adds a tooltip, or a row that wraps.',
-  },
-  {
-    check: 'resize',
-    kind: 'clipped',
-    selector: '.filter-popover',
-    states: ['the narrowing panel'],
-    why:
-      'At 640 by 400 the narrowing panel opens under its chip with about 96px of room. Its box clips the ' +
-      'ontologies to choose from and its Clear all, Cancel and Apply buttons until the page is scrolled ' +
-      'and the panel follows the chip up. Showing them at once needs the panel placed above the chip, or ' +
-      'kept tall enough for its finder, a row and its footer, which changes where it is drawn.',
-  },
-];
+/** Findings that wait on a visible change. None waits now. */
+const EXCEPTIONS: readonly Exception[] = [];
 
 /** The CSS 1.4.12 describes, as its understanding document and the common bookmarklet apply it. */
 const SPACING =
@@ -490,11 +435,14 @@ function measure({
       if (!across && !down) continue;
       const size = `${element.scrollWidth}x${element.scrollHeight} in ${element.clientWidth}x${element.clientHeight}`;
       if (across && !down && textOverflow === 'ellipsis') {
-        // An ellipsis loses nothing where the whole text is also a title or a name around it.
-        const whole = visibleText(element);
+        // An ellipsis loses nothing where the whole text is also a title or a name around it. The
+        // two are compared without their spacing: a row sets its cells apart by margins, so its
+        // text joins with no space where its title has one.
+        const unspaced = (text: string) => text.replace(/\s+/g, '');
+        const whole = unspaced(visibleText(element));
         const elsewhere = lineage(element).some((at) =>
-          [at.getAttribute('title'), at.getAttribute('aria-label')].some((said) =>
-            said?.replace(/\s+/g, ' ').includes(whole),
+          [at.getAttribute('title'), at.getAttribute('aria-label')].some(
+            (said) => said !== null && unspaced(said).includes(whole),
           ),
         );
         if (!elsewhere) found('ellipsis', `${size}, and no title or name holds the whole`, element);
@@ -1265,8 +1213,11 @@ for (const [state, reach] of Object.entries(STATES)) {
   });
 }
 
-/** Selected items the picker marks by class rather than by an ARIA state: a picked term and a shown release. */
-const PICKER_SELECTED = ['.picked > .term', '.on'];
+/**
+ * Selected items the picker marks by class rather than by an ARIA state: a picked term, a shown
+ * release and the selected result row.
+ */
+const PICKER_SELECTED = ['.picked > .term', '.on', '.pick.marked'];
 
 for (const [state, reach] of Object.entries(STATES)) {
   test(`icons, focus indicators and selection marks at 1280 CSS px: ${state}`, async ({ page }) => {

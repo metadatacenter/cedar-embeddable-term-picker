@@ -105,32 +105,14 @@ async function expectAccessible(page: Page, state: string): Promise<void> {
 const picker = (page: Page) => page.locator('cedar-embeddable-term-picker');
 
 /**
- * These findings wait on a design decision, and the frontend roadmap's accessibility item records
- * each of them. A result row is an `option` outside any listbox, carries `aria-expanded`, which an
- * option does not take, and holds buttons of its own; giving the list proper semantics changes how
- * the keyboard moves through it. A release-history button is smaller than WCAG 2.2's 24px target,
- * and growing it changes the row's layout. The tree's targets, found when the tree was first
- * checked, wait for the same reason: growing them changes the tree's layout. Anything else that
- * fails these rules fails the test.
+ * Findings that wait on a design decision, each recorded in the frontend roadmap's accessibility
+ * item. None waits now. Anything that fails these rules fails the test.
  *
  * Each exception names its elements by a selector they match. The selector axe-core reports is
  * built from whatever attribute is rarest on the page, so it changes when an unrelated attribute
  * does, and matching its text would excuse other elements or stop excusing these.
  */
-const PENDING: readonly { readonly rule: string; readonly selector: string }[] = [
-  { rule: 'aria-allowed-attr', selector: '.pick' },
-  { rule: 'aria-required-parent', selector: '.pick' },
-  { rule: 'nested-interactive', selector: '.pick' },
-  { rule: 'target-size', selector: 'button.of' },
-  // The releases an open history lists are 22px tall with 2px between them, short of 24px. They
-  // belong to the same release-history decision: growing them lengthens the panel.
-  { rule: 'target-size', selector: '.history button.release' },
-  // A tree's twists are 16px square and its terms 14px tall, one row every 16px, so neither meets
-  // 24px and their 24px circles overlap. Meeting it means taller tree rows, which changes the
-  // tree's layout and so waits on the design too.
-  { rule: 'target-size', selector: '.tree button.twist' },
-  { rule: 'target-size', selector: '.tree button.term' },
-];
+const PENDING: readonly { readonly rule: string; readonly selector: string }[] = [];
 
 /** The rules whose undecided results are settled here rather than discarded. */
 const UNDECIDED = ['color-contrast', 'target-size'];
@@ -149,28 +131,12 @@ const MINIMUM_CONTRAST = 4.5;
 const SETTLED: readonly Settled[] = [
   {
     rule: 'color-contrast',
-    selector: '.releases-head .grow',
-    measured: { ratio: 6.87, text: '#555555', background: '#f4f6f6' },
-    why:
-      "At 375px the history head's first column has no width, and its count wraps out of it over " +
-      "the column beside it. The pixels behind the text are the panel's surface.",
-  },
-  {
-    rule: 'color-contrast',
     selector: '.row.pick:not(.marked) > .meta.inline',
     measured: { ratio: 7.46, text: '#555555', background: '#ffffff' },
     why:
       'At 375px an ontology row takes two lines, and some of the points axe-core samples in the ' +
       "count's box fall outside its text and on the row. Nothing else is drawn there: the pixels " +
       "behind the count are the row's white.",
-  },
-  {
-    rule: 'color-contrast',
-    selector: '.history button.release .tag',
-    measured: { ratio: 6.87, text: '#555555', background: '#f4f6f6' },
-    why:
-      'At 375px in Hungarian a release is wider than the history and its tag is cut at the edge, ' +
-      "which axe-core reads as an overlap. The pixels behind what is drawn are the release's surface.",
   },
 ];
 
@@ -327,7 +293,7 @@ for (const [mode, width] of [
     await rows.first().click();
     await expect(rows.first()).toHaveClass(/marked/);
     await expectAccessible(page, 'marked row');
-    await rows.first().press('Enter');
+    await rows.first().locator('.opens').press('Enter');
     await expectAccessible(page, 'opened row');
   });
 }
@@ -538,7 +504,7 @@ test.describe('each kind of control, hovered and focused', () => {
     "a tree's term": '.tree button.term',
     'the select button': '.hierarchy-choice .use',
     'a tab': '.tab:not(.active)',
-    'a row': '.child.pick',
+    "a row's name": '.child.pick > .opens',
     'the search box': '.search input',
   };
   // Each control gets the normal test deadline instead of sharing it across 52 axe scans.
@@ -647,7 +613,7 @@ test("a property's detail, its releases and their controls, hovered and focused"
   await picker(page)
     .getByRole('button', { name: /part of.*in 1 ontology/ })
     .click();
-  const row = picker(page).getByRole('option', { name: 'part of in RO, object property', exact: true });
+  const row = picker(page).getByRole('button', { name: 'part of in RO, object property', exact: true });
   await row.click();
   await expect(picker(page).locator('cetp-property-detail .tree')).toBeVisible();
   await expectAccessible(page, 'property detail');

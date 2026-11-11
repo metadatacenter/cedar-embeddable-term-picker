@@ -325,12 +325,13 @@ button {
   }
 }
 
-// The panel the chip opens, in the top layer and hung under the chip by `placeNarrowing`. Its width
-// is fixed rather than fitted, so a finder that drops the longest name does not narrow it.
+// The panel the chip opens, in the top layer. `placeNarrowing` hangs it under the chip by its top, or
+// stands it on the chip by its bottom, and gives it the room that side has. Its width is fixed rather
+// than fitted, so a finder that drops the longest name does not narrow it.
 .filter-popover {
   @include patterns.filter-popover(var(--cetp-popover-available, 70vh));
   position: fixed;
-  inset: var(--cetp-popover-top, auto) auto auto var(--cetp-popover-left, auto);
+  inset: var(--cetp-popover-top, auto) auto var(--cetp-popover-bottom, auto) var(--cetp-popover-left, auto);
   margin: 0;
   width: min(32rem, calc(100vw - 2 * var(--cedar-space-4)));
   height: fit-content;
@@ -540,6 +541,52 @@ button {
   &.marked:hover {
     background: var(--_cetp-selection-surface);
   }
+
+  // The row draws the focus ring while its name has focus, since a click anywhere on the row does
+  // what the name does.
+  &:has(> .opens:focus-visible) {
+    @include controls.focus-ring(var(--cetp-color-primary));
+  }
+}
+
+// The list of results and each result in it. Both take the columns of the grid around them, so a
+// row, its history and its detail line up with the rest of the list. They draw boxes rather than
+// taking `display: contents`, whose subtree the shared surface walk does not visit.
+.hits,
+.hit {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// The results grid shares a table host's spare height among its rows. A list held directly in it
+// spans as many of those rows as its results set out, which the template counts, so each row,
+// history and detail keeps its own share.
+.results > .hits,
+.results > .hits > .hit {
+  grid-template-rows: subgrid;
+  grid-row: span var(--_cetp-grid-rows);
+}
+
+// A row's name, as the button that opens its detail. It draws nothing of its own. The row keeps the
+// tint, the hover and the focus ring, so the whole row reads as one control.
+.opens {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  // The opener is a primary glyph on the row's ground, not one on a filled button.
+  --cedar-icon-color: var(--cetp-color-primary);
+  font-size: inherit;
+  text-align: left;
+
+  &:focus-visible {
+    outline: none;
+  }
 }
 
 // Dismissal. A glyph rather than a word: it is the one control on the bar that answers nothing, and
@@ -588,6 +635,12 @@ button {
   &:hover {
     background: var(--cetp-color-surface);
   }
+}
+
+// The count is a target, so it stands as tall as the smallest target may be. Its text and caret
+// keep their sizes. The empty cell of a row with no history to open has no height.
+button.of {
+  min-height: spacing.$target-size-minimum;
 }
 
 // The caret carries the affordance. Without it the count reads as another muted figure beside the
@@ -672,6 +725,21 @@ button {
     &:hover {
       background: var(--_cetp-action-hover-surface);
     }
+  }
+}
+
+// A hierarchy's twist and term are each a target, so each stands as tall as the smallest target may
+// be, and the rows are that far apart. The glyph and the label keep their sizes, on the row's centre
+// line. A leaf's empty twist keeps the width, so terms at one depth start at one place. Held to the
+// hierarchy, because the property detail's tree takes the same class names.
+.detail .node {
+  > .twist {
+    @include patterns.icon-button(small);
+    align-self: center;
+  }
+
+  > .term {
+    min-height: spacing.$target-size-minimum;
   }
 }
 
@@ -799,6 +867,12 @@ button {
   .hash {
     color: var(--cetp-color-muted);
   }
+}
+
+// A release in the history is a target, so it stands as tall as the smallest target may be. Held to
+// the history, because the property detail's releases take the same class name.
+.history .release {
+  min-height: spacing.$target-size-minimum;
 }
 
 .rowhead {
@@ -1028,7 +1102,8 @@ mark {
   padding: var(--cedar-space-1) var(--cedar-space-2);
   border-bottom: 1px solid var(--cetp-color-border);
 
-  &:last-child {
+  // The fold's last row, unless a history or a detail it opened follows it.
+  .hit:last-child > &:last-child {
     border-bottom: none;
   }
 }
@@ -1255,6 +1330,39 @@ mark {
   .tabs {
     flex-wrap: wrap;
     column-gap: var(--cedar-space-3);
+  }
+  // Four columns do not fit, so a release takes two lines: its declared version and its tag, then
+  // its date and its hash. The head keeps to the same two columns. Its count takes the first line
+  // whole, and the names of the date and the hash stand over them on the second.
+  .releases-head,
+  .history .release {
+    grid-template-columns: minmax(0, 1fr) 7.5em;
+    grid-template-areas:
+      'declared tag'
+      'date hash';
+    gap: 0 var(--cedar-space-3);
+
+    .declared {
+      grid-area: declared;
+    }
+    .date {
+      grid-area: date;
+    }
+    .hash {
+      grid-area: hash;
+    }
+    .tag {
+      grid-area: tag;
+    }
+  }
+  .releases-head {
+    .grow {
+      grid-area: 1 / 1 / 2 / -1;
+    }
+    // The head's tag is an empty cell that holds the column at ordinary widths.
+    .tag {
+      display: none;
+    }
   }
 }
 

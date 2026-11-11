@@ -269,6 +269,121 @@ describe('CedarEmbeddableTermPicker', () => {
     expect(shadow(fixture).querySelectorAll('.version').length).toBe(2);
   });
 
+  it("states a value set's line and the selection's source in full, as titles", async () => {
+    client.response = {
+      ...client.response,
+      sources: [{ ...client.response.sources[0], authorityLabel: 'BioPortal' }, client.response.sources[1]],
+      results: {
+        valueSet: {
+          totalCount: 2,
+          countCapped: false,
+          page: 1,
+          pageSize: 25,
+          collection: [
+            {
+              type: 'valueSet',
+              sourceSystem: 'bioportal',
+              sourceAcronym: 'NCIT',
+              termBaseIri: 'http://ncit/C-melanoma-stage',
+              termBaseLabel: 'Melanoma Clinical Stage Value Set',
+              termCount: 12,
+              matchedTerms: [
+                { termIri: 'http://ncit/C-stage-1', termLabel: 'Stage I Cutaneous Melanoma' },
+                { termIri: 'http://ncit/C-stage-2' },
+              ],
+            },
+            // No name, no authority and no matched term: the line is what is left.
+            { type: 'valueSet', sourceSystem: 'bioportal', sourceAcronym: 'DOID', termBaseIri: 'http://doid/vs' },
+          ],
+        },
+      },
+    };
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('selectionMode', 'constraint');
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+
+    const tabs = [...shadow(fixture).querySelectorAll<HTMLButtonElement>('.tab')];
+    tabs[TAB_ORDER.indexOf('valueSet')].click();
+    await fixture.whenStable();
+
+    // The name and the source, whose copy it is, then the terms that matched, an IRI where a term has no label.
+    const lines = [...shadow(fixture).querySelectorAll<HTMLElement>('.row.pick > .grow.ellipsis')];
+    expect(lines.map((line) => line.title)).toEqual([
+      'Melanoma Clinical Stage Value Set NCIT · BioPortal · Stage I Cutaneous Melanoma, http://ncit/C-stage-2',
+      'DOID',
+    ]);
+    // The name keeps its own title inside the line.
+    expect(lines[0].querySelector<HTMLElement>('.title')?.title).toBe('Melanoma Clinical Stage Value Set');
+
+    // The source line's title is its text: a name with its acronym, or the acronym alone.
+    const about = () => shadow(fixture).querySelector<HTMLElement>('.chosen .about');
+    shadow(fixture).querySelectorAll<HTMLElement>('.row.pick')[0].click();
+    await fixture.whenStable();
+    expect(about()?.textContent?.trim()).toBe('National Cancer Institute Thesaurus (NCIT)');
+    expect(about()?.title).toBe('National Cancer Institute Thesaurus (NCIT)');
+    shadow(fixture).querySelectorAll<HTMLElement>('.row.pick')[1].click();
+    await fixture.whenStable();
+    expect(about()?.textContent?.trim()).toBe('DOID');
+    expect(about()?.title).toBe('DOID');
+  });
+
+  it('lists the results, each with its name as the button that opens it', async () => {
+    client.response = {
+      ...client.response,
+      sources: [{ ...client.response.sources[0], versionCount: 3 }, client.response.sources[1]],
+    };
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('selectionMode', 'constraint');
+    fixture.componentRef.setInput('query', 'melanoma');
+    await fixture.whenStable();
+    await settle();
+    await fixture.whenStable();
+    shadow(fixture).querySelector<HTMLButtonElement>('.rowhead')?.click();
+    await fixture.whenStable();
+
+    // One list item a result, in a list, and no row an option or a Tab stop of its own.
+    const items = [...shadow(fixture).querySelectorAll<HTMLElement>('.children > ul.hits > li.hit')];
+    expect(items).toHaveLength(2);
+    const rows = items.map((item) => item.querySelector<HTMLElement>(':scope > .child.pick'));
+    expect(shadow(fixture).querySelectorAll('[role="option"], .pick[tabindex], .pick[aria-selected]')).toHaveLength(0);
+
+    // The row's buttons: its name, and the release count where there are releases to show.
+    const names = rows.map((row) => row?.querySelector<HTMLButtonElement>(':scope > button.opens'));
+    expect(names.map((name) => name?.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      'NCIT· National Cancer Institute Thesaurus',
+      'DOID· DOID',
+    ]);
+    expect(rows.map((row) => row?.querySelectorAll('button').length)).toEqual([2, 1]);
+
+    // Opening a fold selects its first row. The bar's heading names the selection, and so does the
+    // row's button, since a button takes no selected state.
+    expect(names.map((name) => name?.getAttribute('aria-description'))).toEqual(['Selected term', '']);
+    expect(names.map((name) => name?.getAttribute('aria-expanded'))).toEqual(['false', 'false']);
+
+    // A click on the name bubbles to the row, which opens the row's detail inside its list item.
+    names[1]?.click();
+    await fixture.whenStable();
+    expect(names.map((name) => name?.getAttribute('aria-expanded'))).toEqual(['false', 'true']);
+    expect(names.map((name) => name?.getAttribute('aria-description'))).toEqual(['', 'Selected term']);
+    expect(items[1].querySelector('.selection-detail')).not.toBeNull();
+    // A second click closes the detail and keeps the selection.
+    rows[1]?.click();
+    await fixture.whenStable();
+    expect(names[1]?.getAttribute('aria-expanded')).toBe('false');
+    expect(names[1]?.getAttribute('aria-description')).toBe('Selected term');
+    expect(items[1].querySelector('.selection-detail')).toBeNull();
+
+    // The release count opens the history, inside the same list item, and leaves the row unmarked.
+    rows[0]?.querySelector<HTMLButtonElement>('button.of')?.click();
+    await fixture.whenStable();
+    expect(items[0].querySelector('.history')).not.toBeNull();
+    expect(names[0]?.getAttribute('aria-expanded')).toBe('false');
+    expect(names[0]?.getAttribute('aria-description')).toBe('');
+  });
+
   it('emits no version while the author stays on latest', async () => {
     const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
     fixture.componentRef.setInput('selectionMode', 'constraint');

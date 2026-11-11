@@ -109,7 +109,7 @@ async function propertyDetail(page: Page): Promise<() => Promise<void>> {
   await picker(page)
     .getByRole('button', { name: /related to.*in 1 ontology/ })
     .click();
-  await picker(page).getByRole('option', { name: 'related to in RO' }).click();
+  await picker(page).getByRole('button', { name: 'related to in RO' }).click();
   await expect(picker(page).locator('cetp-property-detail .use')).toBeEnabled();
   return async () => {
     await expect.poll(() => !!pending).toBe(true);

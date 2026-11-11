@@ -45,7 +45,7 @@
   <!--
     The button's name is the count it shows, finished by hidden words that say whose releases they
     are. The title says the same for a pointer, and an empty description keeps it from being read
-    after the name. Enter stops here as a click does, so the key opens the history and leaves the
+    after the name. Its click, by pointer or key, stops here, so it opens the history and leaves the
     row it sits in unmarked.
   -->
   <button
@@ -55,7 +55,6 @@
     aria-description=""
     [title]="localizer.plural('stepper.showAllReleases', count, { acronym })"
     (click)="openHistory(acronym); $event.stopPropagation()"
-    (keydown.enter)="$event.stopPropagation()"
   >
     {{ 'stepper.of' | translate: { count } }}
     <span class="sr-only">{{ localizer.plural('stepper.releasesOf', count, { acronym }) }}</span
@@ -72,8 +71,8 @@
   <!--
     That the row opens onto something. A row carried no sign of it, so the panel under it was found
     by clicking a row that looked inert; the group above has a twist and these did not. It follows
-    the row's own state rather than acting on its own, because the row is already the control — a
-    second button here would be a second way to do one thing.
+    the row's own state rather than acting on its own, because the button it sits in is already the
+    control. A second button here would be a second way to do one thing.
   -->
   <span class="opener" [class.open]="isMarked(hit)" aria-hidden="true"
     ><cetp-icon size="small" name="chevron-right"
@@ -356,11 +355,8 @@
           less whichever of the three the store never had, which is why a release that declares no
           version does not print its date twice.
         -->
-      <p class="about">
-        <span class="who">
-          @if (sourceNameIfDistinct(chosen.acronym); as name) { {{ name }} ({{ chosen.acronym }}) } @else { {{
-          chosen.acronym }} }
-        </span>
+      <p class="about" [title]="sourceLine(chosen.acronym)">
+        <span class="who">{{ sourceLine(chosen.acronym) }}</span>
       </p>
       <p class="selection-release">
         @if (authorityOf(chosen.acronym); as from) { <span class="release-part meta inline dim from">{{ from }}</span> }
@@ -651,6 +647,12 @@
     #list
     (scroll)="onScroll($event)"
   >
+    <!--
+      The results are a list. Each item holds a row and the history and detail the row opens, so a
+      screen reader finds those panels inside the result they belong to. The row's name is the
+      button that opens its detail and is the row's Tab stop. A click anywhere on the row does the
+      same and moves focus to that button, so a key pressed next acts on the row clicked.
+    -->
     @switch (activeTab()) { @case ('class') { @for (group of labelGroups(); track group.label) {
     <div class="row group" [class.open]="expanded() === group.label">
       <button
@@ -687,42 +689,48 @@
       </button>
       @if (expanded() === group.label) {
       <div class="children">
-        @for (hit of group.hits; track hit.termIri) {
-        <div
-          class="child oneline pick"
-          tabindex="0"
-          [class.marked]="isSelected(hit)"
-          role="option"
-          [attr.aria-selected]="isSelected(hit)"
-          [attr.aria-expanded]="isMarked(hit)"
-          (click)="mark(hit)"
-          (dblclick)="choose(hit)"
-          (keydown.enter)="mark(hit)"
-        >
-          <span class="grow ellipsis">
-            <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
-            <span class="who">{{ hit.sourceAcronym }}</span>
-            <span class="dim">· {{ sourceName(hit.sourceAcronym) }}</span>
-            <!-- Whose copy this is. Two vocabularies of one name are told apart by it. -->
-            @if (authorityOf(hit.sourceAcronym); as from) {
-            <span class="meta inline dim from">· {{ from }}</span>
-            } @if (distinguisher(group.hits, hit); as apart) {
-            <span class="meta inline dim under" [title]="apart"
-              >· @if (distinguishedById(group.hits, hit)) {
-              <code class="hash">{{ apart }}</code>
-              } @else { {{ apart }} }
-            </span>
-            } @if (hit.replacedBy) {
-            <span class="meta inline dim">
-              · {{ 'detail.replacedBy' | translate: { term: hit.replacedBy.termLabel ?? hit.replacedBy.termIri } }}
-            </span>
-            }
-          </span>
-          <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
-        </div>
-        <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />
-        <ng-container *ngTemplateOutlet="detail; context: { $implicit: hit }" />
-        }
+        <ul class="hits">
+          @for (hit of group.hits; track hit.termIri) {
+          <li class="hit">
+            <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -- the row's name is its keyboard route, and a click on the row does what a click on the name does -->
+            <div
+              class="child oneline pick"
+              [class.marked]="isSelected(hit)"
+              (click)="mark(hit); opens.focus({ preventScroll: true })"
+              (dblclick)="choose(hit)"
+            >
+              <button
+                #opens
+                type="button"
+                class="grow ellipsis opens"
+                [attr.aria-expanded]="isMarked(hit)"
+                [attr.aria-description]="selectedWords(hit)"
+              >
+                <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
+                <span class="who">{{ hit.sourceAcronym }}</span>
+                <span class="dim">· {{ sourceName(hit.sourceAcronym) }}</span>
+                <!-- Whose copy this is. Two vocabularies of one name are told apart by it. -->
+                @if (authorityOf(hit.sourceAcronym); as from) {
+                <span class="meta inline dim from">· {{ from }}</span>
+                } @if (distinguisher(group.hits, hit); as apart) {
+                <span class="meta inline dim under" [title]="apart"
+                  >· @if (distinguishedById(group.hits, hit)) {
+                  <code class="hash">{{ apart }}</code>
+                  } @else { {{ apart }} }
+                </span>
+                } @if (hit.replacedBy) {
+                <span class="meta inline dim">
+                  · {{ 'detail.replacedBy' | translate: { term: hit.replacedBy.termLabel ?? hit.replacedBy.termIri } }}
+                </span>
+                }
+              </button>
+              <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
+            </div>
+            <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />
+            <ng-container *ngTemplateOutlet="detail; context: { $implicit: hit }" />
+          </li>
+          }
+        </ul>
       </div>
       }
     </div>
@@ -745,79 +753,93 @@
       </button>
       @if (expanded() === group.label) {
       <div class="children">
-        @for (hit of group.hits; track hit.termBaseIri) {
-        <div
-          class="child oneline pick"
-          tabindex="0"
-          [class.marked]="isSelected(hit)"
-          role="option"
-          [attr.aria-selected]="isSelected(hit)"
-          [attr.aria-expanded]="isMarked(hit)"
-          (click)="mark(hit)"
-          (dblclick)="choose(hit)"
-          (keydown.enter)="mark(hit)"
-        >
-          <span class="grow ellipsis">
-            <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
-            <span class="who">{{ hit.sourceAcronym }}</span>
-            <span class="dim">· {{ sourceName(hit.sourceAcronym) }}</span>
-            <!-- Whose copy this is. Two vocabularies of one name are told apart by it. -->
-            @if (authorityOf(hit.sourceAcronym); as from) {
-            <span class="meta inline dim from">· {{ from }}</span>
-            } @if (distinguisher(group.hits, hit); as apart) {
-            <span class="meta inline dim under" [title]="apart"
-              >· @if (distinguishedById(group.hits, hit)) {
-              <code class="hash">{{ apart }}</code>
-              } @else { {{ apart }} }
-            </span>
-            }
-          </span>
-          <span class="meta inline">
-            {{ localizer.plural('counts.descendants', descendantsOf(hit), { count:
-            localizer.number(descendantsOf(hit)) }) }}
-          </span>
-          <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
-        </div>
-        <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />
-        <ng-container *ngTemplateOutlet="detail; context: { $implicit: hit }" />
-        }
+        <ul class="hits">
+          @for (hit of group.hits; track hit.termBaseIri) {
+          <li class="hit">
+            <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -- the row's name is its keyboard route, and a click on the row does what a click on the name does -->
+            <div
+              class="child oneline pick"
+              [class.marked]="isSelected(hit)"
+              (click)="mark(hit); opens.focus({ preventScroll: true })"
+              (dblclick)="choose(hit)"
+            >
+              <button
+                #opens
+                type="button"
+                class="grow ellipsis opens"
+                [attr.aria-expanded]="isMarked(hit)"
+                [attr.aria-description]="selectedWords(hit)"
+              >
+                <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
+                <span class="who">{{ hit.sourceAcronym }}</span>
+                <span class="dim">· {{ sourceName(hit.sourceAcronym) }}</span>
+                <!-- Whose copy this is. Two vocabularies of one name are told apart by it. -->
+                @if (authorityOf(hit.sourceAcronym); as from) {
+                <span class="meta inline dim from">· {{ from }}</span>
+                } @if (distinguisher(group.hits, hit); as apart) {
+                <span class="meta inline dim under" [title]="apart"
+                  >· @if (distinguishedById(group.hits, hit)) {
+                  <code class="hash">{{ apart }}</code>
+                  } @else { {{ apart }} }
+                </span>
+                }
+              </button>
+              <span class="meta inline">
+                {{ localizer.plural('counts.descendants', descendantsOf(hit), { count:
+                localizer.number(descendantsOf(hit)) }) }}
+              </span>
+              <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
+            </div>
+            <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />
+            <ng-container *ngTemplateOutlet="detail; context: { $implicit: hit }" />
+          </li>
+          }
+        </ul>
       </div>
       }
     </div>
     } @empty { @if (response()) {
     <p class="empty">{{ 'results.noBranches' | translate }}</p>
-    } } } @case ('ontology') { @for (hit of ontologies(); track hit.sourceAcronym) {
-    <div
-      class="row oneline pick"
-      tabindex="0"
-      [class.marked]="isSelected(hit)"
-      role="option"
-      [attr.aria-selected]="isSelected(hit)"
-      [attr.aria-expanded]="isMarked(hit)"
-      (click)="mark(hit)"
-      (dblclick)="choose(hit)"
-      (keydown.enter)="mark(hit)"
-    >
-      <span class="grow ellipsis">
-        @let parts = splitName(hit.sourceAcronym);
-        <span class="title">{{ parts[0] }}@if (parts[1]) {<mark>{{ parts[1] }}</mark>}{{ parts[2] }}</span>
-        @let who = splitAcronym(hit.sourceAcronym);
-        <span class="who">{{ who[0] }}@if (who[1]) {<mark>{{ who[1] }}</mark>}{{ who[2] }}</span>
-        @if (authorityOf(hit.sourceAcronym); as from) {
-        <span class="meta inline dim from">· {{ from }}</span>
-        }
-      </span>
-      <span class="meta inline">
-        @if (hit.matchCount) { {{ localizer.plural('counts.terms', hit.matchCount, { count:
-        localizer.number(hit.matchCount) }) }} } @else { {{ 'results.noTermsMatch' | translate }} }
-      </span>
-      <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
-    </div>
-    <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />
-    <ng-container *ngTemplateOutlet="detail; context: { $implicit: hit }" />
-    } @empty { @if (response()) {
+    } } } @case ('ontology') { @if (ontologies().length) {
+    <ul class="hits" [style.--_cetp-grid-rows]="gridRowsOf(ontologies())">
+      @for (hit of ontologies(); track hit.sourceAcronym) {
+      <li class="hit" [style.--_cetp-grid-rows]="gridRowsOf([hit])">
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -- the row's name is its keyboard route, and a click on the row does what a click on the name does -->
+        <div
+          class="row oneline pick"
+          [class.marked]="isSelected(hit)"
+          (click)="mark(hit); opens.focus({ preventScroll: true })"
+          (dblclick)="choose(hit)"
+        >
+          <button
+            #opens
+            type="button"
+            class="grow ellipsis opens"
+            [attr.aria-expanded]="isMarked(hit)"
+            [attr.aria-description]="selectedWords(hit)"
+          >
+            @let parts = splitName(hit.sourceAcronym);
+            <span class="title">{{ parts[0] }}@if (parts[1]) {<mark>{{ parts[1] }}</mark>}{{ parts[2] }}</span>
+            @let who = splitAcronym(hit.sourceAcronym);
+            <span class="who">{{ who[0] }}@if (who[1]) {<mark>{{ who[1] }}</mark>}{{ who[2] }}</span>
+            @if (authorityOf(hit.sourceAcronym); as from) {
+            <span class="meta inline dim from">· {{ from }}</span>
+            }
+          </button>
+          <span class="meta inline">
+            @if (hit.matchCount) { {{ localizer.plural('counts.terms', hit.matchCount, { count:
+            localizer.number(hit.matchCount) }) }} } @else { {{ 'results.noTermsMatch' | translate }} }
+          </span>
+          <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
+        </div>
+        <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />
+        <ng-container *ngTemplateOutlet="detail; context: { $implicit: hit }" />
+      </li>
+      }
+    </ul>
+    } @else if (response()) {
     <p class="empty">{{ 'results.noOntologies' | translate }}</p>
-    } } } @case ('property') { @if (response()?.errors?.property; as message) {
+    } } @case ('property') { @if (response()?.errors?.property; as message) {
     <p role="alert" class="selection-error" [attr.lang]="messageLanguage(message)">{{ localizer.say(message) }}</p>
     } @for (group of propertyGroups(); track group.label) {
     <div class="row group" [class.open]="expanded() === group.label">
@@ -835,73 +857,93 @@
       </button>
       @if (expanded() === group.label) {
       <div class="children">
-        @for (hit of group.hits; track keyOf(hit)) {
-        <div
-          class="child oneline pick"
-          tabindex="0"
-          role="option"
-          [attr.aria-label]="propertyRowName(hit)"
-          [attr.aria-selected]="isSelected(hit)"
-          [attr.aria-expanded]="isMarked(hit)"
-          [class.marked]="isSelected(hit)"
-          (click)="mark(hit)"
-          (keydown.enter)="mark(hit)"
-          (dblclick)="choose(hit)"
-        >
-          <span class="grow ellipsis">
-            <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
-            <span class="who">{{ hit.sourceAcronym }}</span>
-            @if (sourceNameIfDistinct(hit.sourceAcronym); as name) { <span class="dim">· {{ name }}</span> } @if
-            (authorityOf(hit.sourceAcronym); as from) { <span class="meta inline dim from">· {{ from }}</span> }
-          </span>
-          <!--
-            A space keeps the kind a word apart from the source in the row's text, as the two cells
-            are apart on screen. The row is a grid, which renders a space between its cells as nothing.
-          -->
-          &ngsp;<span class="meta inline">{{ 'results.propertyKind.' + hit.propertyKind | translate }}</span>
-        </div>
-        @if (isMarked(hit)) {
-        <cetp-property-detail
-          [hit]="hit"
-          [allowVersions]="!effectiveSources().length"
-          (focused)="picked.set($event)"
-          (chosen)="choose($event)"
-        />
-        } }
+        <ul class="hits">
+          @for (hit of group.hits; track keyOf(hit)) {
+          <li class="hit">
+            <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -- the row's name is its keyboard route, and a click on the row does what a click on the name does -->
+            <div
+              class="child oneline pick"
+              [class.marked]="isSelected(hit)"
+              (click)="mark(hit); opens.focus({ preventScroll: true })"
+              (dblclick)="choose(hit)"
+            >
+              <button
+                #opens
+                type="button"
+                class="grow ellipsis opens"
+                [attr.aria-label]="propertyRowName(hit)"
+                [attr.aria-expanded]="isMarked(hit)"
+                [attr.aria-description]="selectedWords(hit)"
+              >
+                <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
+                <span class="who">{{ hit.sourceAcronym }}</span>
+                @if (sourceNameIfDistinct(hit.sourceAcronym); as name) { <span class="dim">· {{ name }}</span> } @if
+                (authorityOf(hit.sourceAcronym); as from) { <span class="meta inline dim from">· {{ from }}</span> }
+              </button>
+              <!--
+                A space keeps the kind a word apart from the source in the row's text, as the two cells
+                are apart on screen. The row is a grid, which renders a space between its cells as nothing.
+              -->
+              &ngsp;<span class="meta inline">{{ 'results.propertyKind.' + hit.propertyKind | translate }}</span>
+            </div>
+            @if (isMarked(hit)) {
+            <cetp-property-detail
+              [hit]="hit"
+              [allowVersions]="!effectiveSources().length"
+              (focused)="picked.set($event)"
+              (chosen)="choose($event)"
+            />
+            }
+          </li>
+          }
+        </ul>
       </div>
       }
     </div>
     } @empty { @if (response()) { @if (!response()?.errors?.property) {
     <p class="empty">{{ 'results.noProperties' | translate }}</p>
-    } } } } @case ('valueSet') { @for (hit of valueSets(); track hit.termBaseIri) {
-    <div
-      class="row oneline pick"
-      tabindex="0"
-      [class.marked]="isSelected(hit)"
-      role="option"
-      [attr.aria-selected]="isSelected(hit)"
-      [attr.aria-expanded]="isMarked(hit)"
-      (click)="mark(hit)"
-      (dblclick)="choose(hit)"
-      (keydown.enter)="mark(hit)"
-    >
-      <span class="grow ellipsis">
-        <span class="title" [title]="hit.termBaseLabel">{{ elide(hit.termBaseLabel) }}</span>
-        <span class="who">{{ hit.sourceAcronym }}</span>
-        @if (authorityOf(hit.sourceAcronym); as from) {
-        <span class="meta inline dim from">· {{ from }}</span>
-        } @if (labelsOf(hit.matchedTerms); as matched) {
-        <span class="meta inline dim">· {{ matched }}</span>
-        }
-      </span>
-      <span class="meta inline">{{ localizer.plural('counts.values', hit.termCount) }}</span>
-      <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
-    </div>
-    <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />
-    <ng-container *ngTemplateOutlet="detail; context: { $implicit: hit }" />
-    } @empty { @if (response()) {
+    } } } } @case ('valueSet') { @if (valueSets().length) {
+    <ul class="hits" [style.--_cetp-grid-rows]="gridRowsOf(valueSets())">
+      @for (hit of valueSets(); track hit.termBaseIri) {
+      <li class="hit" [style.--_cetp-grid-rows]="gridRowsOf([hit])">
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -- the row's name is its keyboard route, and a click on the row does what a click on the name does -->
+        <div
+          class="row oneline pick"
+          [class.marked]="isSelected(hit)"
+          (click)="mark(hit); opens.focus({ preventScroll: true })"
+          (dblclick)="choose(hit)"
+        >
+          <!--
+            The line gives way to an ellipsis, which can take the terms that matched, so its title holds
+            the whole of it. The name keeps its own title, since a long one is elided.
+          -->
+          <button
+            #opens
+            type="button"
+            class="grow ellipsis opens"
+            [title]="valueSetLine(hit)"
+            [attr.aria-expanded]="isMarked(hit)"
+            [attr.aria-description]="selectedWords(hit)"
+          >
+            <span class="title" [title]="hit.termBaseLabel">{{ elide(hit.termBaseLabel) }}</span>
+            <span class="who">{{ hit.sourceAcronym }}</span>
+            @if (authorityOf(hit.sourceAcronym); as from) {
+            <span class="meta inline dim from">· {{ from }}</span>
+            } @if (labelsOf(hit.matchedTerms); as matched) {
+            <span class="meta inline dim">· {{ matched }}</span>
+            }
+          </button>
+          <span class="meta inline">{{ localizer.plural('counts.values', hit.termCount) }}</span>
+          <ng-container *ngTemplateOutlet="stepper; context: { $implicit: hit.sourceAcronym }" />
+        </div>
+        <ng-container *ngTemplateOutlet="history; context: { $implicit: hit }" />
+        <ng-container *ngTemplateOutlet="detail; context: { $implicit: hit }" />
+      </li>
+      }
+    </ul>
+    } @else if (response()) {
     <p class="empty">{{ 'results.noValueSets' | translate }}</p>
-    } } } }
+    } } }
     <!--
       What the bottom of the list is doing. Only while it is growing: a first search has nothing yet
       to be more of, and the tab strip already says that one is running. Inside the list rather than
