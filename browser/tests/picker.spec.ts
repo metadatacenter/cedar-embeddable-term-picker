@@ -1603,6 +1603,9 @@ test("a tree's twists and terms, a row's release count and a release are each a 
   const count = ncit.locator('button.of');
   expect((await count.boundingBox())!.height).toBe(24);
   await expect(count).toHaveCSS('font-size', '12px');
+  // The caret is drawn in the count's own colour, so it shows on the row's ground.
+  const countColor = await count.evaluate((button) => getComputedStyle(button).color);
+  await expect(count.locator('.caret svg')).toHaveCSS('color', countColor);
   // A row with no history to open keeps an empty cell, which takes no height.
   await picker.locator('.tab').nth(2).click();
   const empty = await picker.locator('.row.pick', { hasText: 'MELO' }).locator('span.of').boundingBox();

@@ -627,6 +627,8 @@ button {
   border: none;
   border-radius: tokens.$radius;
   color: var(--cetp-color-primary);
+  // As for the tree's twist: an unfilled button names its icon colour, or the caret stays white.
+  --cedar-icon-color: var(--cetp-color-primary);
   font-size: var(--cetp-font-size-small);
   white-space: nowrap;
   padding: 0 var(--cedar-space-1);
