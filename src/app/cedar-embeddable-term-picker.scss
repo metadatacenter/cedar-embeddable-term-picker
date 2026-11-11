@@ -489,9 +489,13 @@ button {
 // up down the list instead of each row packing its own trailing cells against the right edge. The
 // rows are their own boxes — they tint when marked and rule off from each other — so they take the
 // columns through `subgrid` rather than by dissolving into the grid with `display: contents`.
+//
+// The first column is never narrower than the row's padding and room for a letter and the
+// ellipsis, so a row's name always shows its start. The release gives way to make that room and ends
+// in an ellipsis, and its title holds the whole. The count and the release count keep their widths.
 .results {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+  grid-template-columns: minmax(calc(1.5em + var(--cedar-space-2)), 1fr) max-content minmax(0, max-content) max-content;
   column-gap: var(--cedar-space-3);
 
   // The list scrolls and grows as it is scrolled, rather than paging. A common query matches ten
@@ -960,8 +964,14 @@ button.of {
   align-items: baseline;
   min-width: min-content;
 
+  // The acronym keeps its whole width while the row has room for it. Past that point it gives way
+  // to an ellipsis, though 2.5em of it always shows, and its title holds the whole.
   .who {
     flex: 0 0 auto;
+    max-width: max(2.5em, var(--_cetp-acronym-room));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .dim,
@@ -1065,11 +1075,51 @@ mark {
 //
 // The first column is never narrower than the least width of a row's name. The second gives way to
 // make that room, whether it holds a branch's descendant count, a term's release or a property's
-// kind. The others keep their widths.
+// kind. The third holds a branch's release or a term's release count. Its least width is the least
+// of what it holds, so the release gives way too and the count keeps its width. The fourth keeps its
+// width.
 .children {
   display: grid;
-  grid-template-columns: minmax(auto, 1fr) minmax(0, max-content) max-content max-content;
+  grid-template-columns: minmax(auto, 1fr) minmax(0, max-content) minmax(auto, max-content) max-content;
   column-gap: var(--cedar-space-3);
+}
+
+// A child row's frame is the fixed room around and between its cells: the picker's padding, the
+// list's inset, the row's padding, three column gaps, the opener, and the margins that set the
+// acronym and the source name apart.
+$child-row-frame: 2 * tokens.$space-3 + (tokens.$space-6 + tokens.$space-2) + 2 * tokens.$space-2 + 3 *
+  tokens.$space-3 + (tokens.$icon-size-small + tokens.$space-1) + 2 * tokens.$space-1;
+
+// A release count's button holds its padding, a gap and the caret. Its words, "of" and two digits,
+// take about 2.3em more.
+$release-count-frame: 3 * tokens.$space-1 + tokens.$icon-size-small;
+
+// A child row's acronym may be as wide as the host less what the rest of the row takes when each
+// part that gives way is at its least. That is the row's frame, 2.5em of the source name, and the
+// least of each later column: 2.5em of a release, a count or a kind, and a whole release count. An
+// acronym within this width shows whole and leaves the row's layout unchanged, so the limit shortens
+// an acronym only where the row has no other room to give.
+.children {
+  --_cetp-row-least: calc(#{$child-row-frame} + 2.5 * var(--cetp-font-size));
+  --_cetp-column-least: calc(2.5 * var(--cetp-font-size-small));
+  --_cetp-release-count: calc(#{$release-count-frame} + 2.3 * var(--cetp-font-size-small));
+}
+
+// A term row's later columns hold its release and its release count.
+.children.terms {
+  --_cetp-acronym-room: calc(100cqi - var(--_cetp-row-least) - var(--_cetp-column-least) - var(--_cetp-release-count));
+}
+
+// A branch row's later columns hold its descendant count, its release and its release count.
+.children.branches {
+  --_cetp-acronym-room: calc(
+    100cqi - var(--_cetp-row-least) - 2 * var(--_cetp-column-least) - var(--_cetp-release-count)
+  );
+}
+
+// A property row's later column holds its kind.
+.children.properties {
+  --_cetp-acronym-room: calc(100cqi - var(--_cetp-row-least) - var(--_cetp-column-least));
 }
 
 // A pin naming an extraction a later one corrected. Marked rather than alarming: the pin resolves,
@@ -1114,9 +1164,10 @@ mark {
   text-align: right;
 }
 
-// The column that gives way to a row's name ends in an ellipsis, and its title holds the whole.
+// A column that gives way to a row's name ends in an ellipsis, and its title holds the whole.
 .child > .meta.inline,
-.child > .version {
+.child > .version,
+.row > .version {
   overflow: hidden;
   text-overflow: ellipsis;
 }

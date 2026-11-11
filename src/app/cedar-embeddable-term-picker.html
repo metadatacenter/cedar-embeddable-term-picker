@@ -693,7 +693,7 @@
         <span class="meta inline"> {{ localizer.plural('counts.inOntologies', group.hits.length) }} </span>
       </button>
       @if (expanded() === group.label) {
-      <div class="children">
+      <div class="children terms">
         <ul class="hits">
           @for (hit of group.hits; track hit.termIri) {
           <li class="hit">
@@ -717,7 +717,7 @@
                 [attr.aria-description]="selectedWords(hit)"
               >
                 <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
-                <span class="who">{{ hit.sourceAcronym }}</span>
+                <span class="who" [title]="hit.sourceAcronym">{{ hit.sourceAcronym }}</span>
                 <span class="dim name" [title]="sourceName(hit.sourceAcronym)"
                   >· {{ sourceName(hit.sourceAcronym) }}</span
                 >
@@ -764,7 +764,7 @@
         </span>
       </button>
       @if (expanded() === group.label) {
-      <div class="children">
+      <div class="children branches">
         <ul class="hits">
           @for (hit of group.hits; track hit.termBaseIri) {
           <li class="hit">
@@ -775,7 +775,7 @@
               (click)="mark(hit); opens.focus({ preventScroll: true })"
               (dblclick)="choose(hit)"
             >
-              <!-- The whole line in the button's title and the name in its own, as on the terms tab. -->
+              <!-- As on the terms tab, the button's title holds the whole line and the name keeps its own. -->
               <button
                 #opens
                 type="button"
@@ -785,7 +785,7 @@
                 [attr.aria-description]="selectedWords(hit)"
               >
                 <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
-                <span class="who">{{ hit.sourceAcronym }}</span>
+                <span class="who" [title]="hit.sourceAcronym">{{ hit.sourceAcronym }}</span>
                 <span class="dim name" [title]="sourceName(hit.sourceAcronym)"
                   >· {{ sourceName(hit.sourceAcronym) }}</span
                 >
@@ -876,7 +876,7 @@
         <span class="meta inline">{{ localizer.plural('counts.inOntologies', group.hits.length) }}</span>
       </button>
       @if (expanded() === group.label) {
-      <div class="children">
+      <div class="children properties">
         <ul class="hits">
           @for (hit of group.hits; track keyOf(hit)) {
           <li class="hit">
@@ -887,24 +887,31 @@
               (click)="mark(hit); opens.focus({ preventScroll: true })"
               (dblclick)="choose(hit)"
             >
+              <!-- As on the terms tab, the button's title holds the whole line and the name keeps its own. -->
               <button
                 #opens
                 type="button"
                 class="grow ellipsis opens"
+                [title]="propertyLine(hit)"
                 [attr.aria-label]="propertyRowName(hit)"
                 [attr.aria-expanded]="isMarked(hit)"
                 [attr.aria-description]="selectedWords(hit)"
               >
                 <ng-container *ngTemplateOutlet="opener; context: { $implicit: hit }" />
-                <span class="who">{{ hit.sourceAcronym }}</span>
-                @if (sourceNameIfDistinct(hit.sourceAcronym); as name) { <span class="dim">· {{ name }}</span> } @if
-                (authorityOf(hit.sourceAcronym); as from) { <span class="meta inline dim from">· {{ from }}</span> }
+                <span class="who" [title]="hit.sourceAcronym">{{ hit.sourceAcronym }}</span>
+                @if (sourceNameIfDistinct(hit.sourceAcronym); as name) {
+                <span class="dim name" [title]="name">· {{ name }}</span>
+                } @if (authorityOf(hit.sourceAcronym); as from) {
+                <span class="meta inline dim from">· {{ from }}</span>
+                }
               </button>
               <!--
                 A space keeps the kind a word apart from the source in the row's text, as the two cells
                 are apart on screen. The row is a grid, which renders a space between its cells as nothing.
+                At a narrow width the kind gives way to the row's name, so its title holds the whole.
               -->
-              &ngsp;<span class="meta inline">{{ 'results.propertyKind.' + hit.propertyKind | translate }}</span>
+              @let kind = 'results.propertyKind.' + hit.propertyKind | translate;
+              &ngsp;<span class="meta inline" [title]="kind">{{ kind }}</span>
             </div>
             @if (isMarked(hit)) {
             <cetp-property-detail

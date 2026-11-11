@@ -91,15 +91,70 @@ const ANSWER = {
 
 const PROPERTY = { iri: 'urn:part', kind: 'object', label: 'part of', obsolete: false, parents: ['urn:related'] };
 
-/** Answers the search, NCIT's release history, a tree for any term, and the property endpoints. */
-async function stubAll(page: Page): Promise<void> {
+/** An acronym of 24 characters without a space, longer than a row at 320 CSS px can show whole. */
+const LONG_ACRONYM = 'OBOEXTENDEDANATOMYSUBSET';
+/** A release of 20 characters, the longest a row shows whole rather than shortened in the middle. */
+const LONG_RELEASE = '2026-06-30.build.417';
+
+/**
+ * A source with that acronym, that release and a release count of two digits answers on every tab,
+ * beside a source of ordinary length.
+ */
+const LONG_ANSWER = {
+  sources: [
+    source(LONG_ACRONYM, {
+      name: 'National Cancer Institute Thesaurus',
+      versionCount: 15,
+      declaredVersion: LONG_RELEASE,
+    }),
+    source('DOID', { name: 'Human Disease Ontology', versionCount: 15, declaredVersion: '2026-06-30' }),
+  ],
+  results: {
+    class: results(
+      [
+        classHit(LONG_ACRONYM, 'Melanoma', { descendantCount: 321, under: 'Melanocytic Neoplasm' }),
+        classHit('DOID', 'melanoma', { descendantCount: 31 }),
+      ],
+      { totalCount: 2, distinctLabelCount: 1 },
+    ),
+    branch: results(
+      [
+        branchHit(LONG_ACRONYM, 'Melanoma', 'Melanocytic Neoplasm', 321),
+        branchHit('DOID', 'Melanoma', 'cell type cancer', 31),
+      ],
+      { totalCount: 2, distinctLabelCount: 1 },
+    ),
+    ontology: results([ontologyHit(LONG_ACRONYM, 950, false), ontologyHit('DOID', 0, false)]),
+    valueSet: results([
+      {
+        type: 'valueSet',
+        sourceSystem: 'bioportal',
+        sourceAcronym: LONG_ACRONYM,
+        termBaseIri: 'http://long/C-melanoma-stage',
+        termBaseLabel: 'Melanoma Clinical Stage Value Set',
+        termCount: 12,
+      },
+    ]),
+  },
+};
+
+interface Answer {
+  readonly sources: readonly object[];
+  readonly results: Readonly<Record<string, object>>;
+}
+
+/**
+ * Answers the search, the first source's release history, a tree for any term, and the property
+ * endpoints, which find a property in the source named.
+ */
+async function stubAll(page: Page, answer: Answer = ANSWER, propertySource = 'RO'): Promise<void> {
   await stubSearch(page, (body) =>
     body.includeVersions
-      ? { sources: [ANSWER.sources[0]], results: { ontology: results([]) } }
+      ? { sources: [answer.sources[0]], results: { ontology: results([]) } }
       : {
-          ...ANSWER,
+          ...answer,
           results: Object.fromEntries(
-            Object.entries(ANSWER.results).filter(([kind]) => !body.types || body.types.includes(kind)),
+            Object.entries(answer.results).filter(([kind]) => !body.types || body.types.includes(kind)),
           ),
         },
   );
@@ -128,7 +183,13 @@ async function stubAll(page: Page): Promise<void> {
         items:
           (route.request().postDataJSON().offset ?? 0) > 0
             ? []
-            : [{ sourceAcronym: 'RO', versionId: 'ro-v2', property: { ...PROPERTY, literals: [], hasChildren: true } }],
+            : [
+                {
+                  sourceAcronym: propertySource,
+                  versionId: 'ro-v2',
+                  property: { ...PROPERTY, literals: [], hasChildren: true },
+                },
+              ],
       },
     }),
   );
@@ -144,7 +205,7 @@ async function stubAll(page: Page): Promise<void> {
     route.fulfill({
       json: {
         selected: {
-          sourceAcronym: 'RO',
+          sourceAcronym: propertySource,
           versionId: 'ro-v2',
           property: {
             ...PROPERTY,
@@ -323,6 +384,115 @@ for (const [state, reach] of Object.entries(STATES)) {
     await reach(page);
     await park(page);
     await check(page, expect, { check: 'spacing', state, exceptions: EXCEPTIONS });
+  });
+}
+
+/** Searches with every kind of result asked for, from a source whose acronym and release are long. */
+async function answeredLong(page: Page): Promise<void> {
+  await stubAll(page, LONG_ANSWER, LONG_ACRONYM);
+  await page.goto('/?mode=constraints');
+  await picker(page).locator('.picker').waitFor();
+  await picker(page).evaluate((element) =>
+    Object.assign(element, { termTypes: ['class', 'branch', 'ontology', 'valueSet', 'property'] }),
+  );
+  await search(page, 'melanoma');
+  await expect(picker(page).locator('.tab')).toHaveCount(5);
+}
+
+/**
+ * Each kind of result row, with a group's rows unfolded under its heading, and what its release does
+ * at 320 CSS px: give way to the row's other parts, show whole, or not appear.
+ */
+const LONG_STATES: Readonly<
+  Record<string, { reach: (page: Page) => Promise<void>; release: 'cut' | 'whole' | 'absent' }>
+> = {
+  'the terms tab': { reach: (page) => picker(page).locator('.rowhead').first().click(), release: 'cut' },
+  'the branches tab': {
+    reach: async (page) => {
+      await showTab(page, 1);
+      await picker(page).locator('.rowhead').first().click();
+    },
+    release: 'cut',
+  },
+  'the ontologies tab': { reach: (page) => showTab(page, 2), release: 'cut' },
+  'the value sets tab': { reach: (page) => showTab(page, 3), release: 'whole' },
+  'the properties tab': {
+    reach: async (page) => {
+      await showTab(page, 4);
+      await picker(page).locator('.rowhead').first().click();
+    },
+    release: 'absent',
+  },
+};
+
+/**
+ * How the long source's row shows its acronym and its release: whether each is cut short, and its
+ * title. A group's row sets the acronym apart, and a list row runs it into its name, where the row's
+ * title holds it. It also says whether every row's cells lie within the row.
+ */
+async function longRow(page: Page) {
+  return picker(page).evaluate((element, acronym) => {
+    const root = element.shadowRoot!;
+    const rows = [...root.querySelectorAll('.row.pick, .child')];
+    const within = rows.every((row) => {
+      const box = row.getBoundingClientRect();
+      return [...row.children].every((cell) => {
+        const { left, right, width } = cell.getBoundingClientRect();
+        return width === 0 || (left >= box.left - 1 && right <= box.right + 1);
+      });
+    });
+    const row = rows.find((candidate) => candidate.textContent!.includes(acronym))!;
+    const shown = (node: Element | null) =>
+      node && { cut: node.scrollWidth > node.clientWidth + 1, title: node.getAttribute('title') ?? '' };
+    const who = row.querySelector('.who')!;
+    return {
+      within,
+      acronym: shown(who.closest('.child') ? who : row.querySelector('.opens')),
+      release: shown(row.querySelector(':scope > .version')),
+    };
+  }, LONG_ACRONYM);
+}
+
+/**
+ * Every kind of result row fits at 320 CSS px however long its source's acronym and release. Each
+ * gives way to an ellipsis and keeps its whole text in a title, as the rest of the row's cut text
+ * does. Where the row has room, the two show whole.
+ */
+for (const [state, { reach, release }] of Object.entries(LONG_STATES)) {
+  test(`reflow at 320 CSS px with a long acronym and release: ${state}`, async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.reflow);
+    // The host page's own gutter would leave the picker narrower than the viewport.
+    await page.addInitScript(() =>
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+      }),
+    );
+    await answeredLong(page);
+    await reach(page);
+    expect((await picker(page).boundingBox())?.width).toBe(320);
+    await park(page);
+    await check(page, expect, {
+      check: 'reflow',
+      state: `${state}, with a long acronym`,
+      exceptions: EXCEPTIONS,
+      scrollsInPlace: SCROLLS_IN_PLACE,
+    });
+
+    const narrow = await longRow(page);
+    expect(narrow.within, 'every cell within its row').toBe(true);
+    expect(narrow.acronym?.cut, 'the acronym is cut short').toBe(true);
+    expect(narrow.acronym?.title).toContain(LONG_ACRONYM);
+    if (release === 'absent') {
+      expect(narrow.release).toBeNull();
+    } else {
+      expect(narrow.release?.cut, 'the release is cut short').toBe(release === 'cut');
+      expect(narrow.release?.title).toBe(`Version ${LONG_RELEASE}`);
+    }
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect.poll(async () => (await longRow(page)).acronym?.cut, 'the acronym shows whole').toBe(false);
+    if (release !== 'absent') expect((await longRow(page)).release?.cut, 'the release shows whole').toBe(false);
   });
 }
 

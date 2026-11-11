@@ -1531,6 +1531,18 @@ export class CedarEmbeddableTermPicker {
   }
 
   /**
+   * A property row's line in full, for its title: the acronym, the source's name where it says more
+   * than the acronym, and whose copy it is. The row is one line, and each part can give way to an
+   * ellipsis.
+   */
+  protected propertyLine(hit: PropertyHit): string {
+    return CedarEmbeddableTermPicker.line(
+      [hit.sourceAcronym],
+      [this.sourceNameIfDistinct(hit.sourceAcronym), this.authorityOf(hit.sourceAcronym)],
+    );
+  }
+
+  /**
    * An ontology row's line in full, for its title: the name, the acronym and whose copy it is. The
    * row is one line and gives way to an ellipsis.
    */
