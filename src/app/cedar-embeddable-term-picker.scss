@@ -955,10 +955,10 @@ button.of {
 // two are laid out as a row of their own and the ontology name gives way first, its acronym having
 // already identified it.
 //
-// The row is never narrower than its opener, its acronym and the start of the ontology name.
-// Squeezed to no width, the name showed nothing, and a title on it could not be hovered. Each part
-// that gives way starts from its whole width but adds nothing to that least width, so the least
-// width holds the opener, the acronym and the start of the name.
+// The row is never narrower than its opener, its acronym, the start of the ontology name and the
+// start of what tells the row from its twins. Squeezed to no width, either showed nothing, and a
+// title on it could not be hovered. Each part that gives way starts from its whole
+// width but adds only its least to the row's least width.
 .child .grow {
   display: flex;
   align-items: baseline;
@@ -993,9 +993,17 @@ button.of {
     min-width: 2.5em;
   }
 
+  // What tells the row from its twins, a parent or an identifier, keeps the same room. The acronym
+  // and the later columns give way to make it.
   .under {
     flex: 0 1 max-content;
+    min-width: 2.5em;
   }
+}
+
+// The parent alone, which only a narrow row shows.
+.under .bare-parent {
+  display: none;
 }
 
 // Every result row is one line: title and acronym on the left, the facts that distinguish it on
@@ -1120,6 +1128,14 @@ $release-count-frame: 3 * tokens.$space-1 + tokens.$icon-size-small;
 // A property row's later column holds its kind.
 .children.properties {
   --_cetp-acronym-room: calc(100cqi - var(--_cetp-row-least) - var(--_cetp-column-least));
+}
+
+// A twin row's least width also holds a margin and 2.5em of what tells it from its twins. Where the
+// group shows a release count, the acronym leaves that room too, so the release is not squeezed to
+// nothing. Where it shows none, the room kept for one already holds it, and the
+// acronym keeps its width.
+.children:has(.child > button.of) .child .grow:has(.under) .who {
+  max-width: max(2.5em, var(--_cetp-acronym-room) - #{tokens.$space-1} - 2.5 * var(--cetp-font-size-small));
 }
 
 // A pin naming an extraction a later one corrected. Marked rather than alarming: the pin resolves,
@@ -1404,6 +1420,19 @@ $release-count-frame: 3 * tokens.$space-1 + tokens.$icon-size-small;
   }
   .chosen.awaiting {
     display: none;
+  }
+  // Twins share the word before a parent's name, so a narrow row shows the name alone and the
+  // ellipsis cuts the name instead. The whole text stays in the row's accessible text and in its
+  // title. The separator is drawn apart from the name, so the title holds all the text the row
+  // shows, and is silent, since the hidden text already says it.
+  .under .full-parent {
+    @include patterns.visually-hidden;
+  }
+  .under .bare-parent {
+    display: inline;
+  }
+  .under:has(> .bare-parent)::before {
+    content: '· ' / '';
   }
   // A tighter gap keeps the four tabs on one row while few of them carry a count. A count on every
   // tab still wraps the row at phone width, at any gap.

@@ -138,6 +138,41 @@ const LONG_ANSWER = {
   },
 };
 
+/**
+ * Two of a group's rows come from RH-MESH and are told apart only by their parents, whose names
+ * begin differently. The source has a release and a release count, so every column of those rows
+ * holds something.
+ */
+const TWIN_ANSWER = {
+  sources: [
+    source('RH-MESH', { versionCount: 12, declaredVersion: '2014-03-11' }),
+    source('NCIT', { name: 'National Cancer Institute Thesaurus', versionCount: 3, declaredVersion: '26.07d' }),
+  ],
+  results: {
+    class: results(
+      [
+        classHit('RH-MESH', 'Melanoma', { descendantCount: 13, under: 'Neuroendocrine Tumors' }),
+        classHit('RH-MESH', 'melanoma', { descendantCount: 13, under: 'Skin Neoplasms' }),
+        classHit('NCIT', 'Melanoma', { descendantCount: 321, under: 'Melanocytic Neoplasm' }),
+      ],
+      { totalCount: 3, distinctLabelCount: 1 },
+    ),
+    branch: results(
+      [
+        branchHit('RH-MESH', 'Melanoma', 'Neuroendocrine Tumors', 13),
+        branchHit('RH-MESH', 'Melanoma', 'Skin Neoplasms', 13),
+        branchHit('NCIT', 'Melanoma', 'Melanocytic Neoplasm', 321),
+      ],
+      { totalCount: 3, distinctLabelCount: 1 },
+    ),
+    ontology: results([ontologyHit('NCIT', 950, false)]),
+    valueSet: results([]),
+  },
+};
+
+/** What tells the two RH-MESH rows apart. */
+const TWIN_PARENTS = ['under Neuroendocrine Tumors', 'under Skin Neoplasms'];
+
 interface Answer {
   readonly sources: readonly object[];
   readonly results: Readonly<Record<string, object>>;
@@ -493,6 +528,92 @@ for (const [state, { reach, release }] of Object.entries(LONG_STATES)) {
     await page.setViewportSize({ width: 1280, height: 800 });
     await expect.poll(async () => (await longRow(page)).acronym?.cut, 'the acronym shows whole').toBe(false);
     if (release !== 'absent') expect((await longRow(page)).release?.cut, 'the release shows whole').toBe(false);
+  });
+}
+
+/** The terms and branches tabs, each with the group that holds the two RH-MESH rows unfolded. */
+const TWIN_STATES: Readonly<Record<string, (page: Page) => Promise<void>>> = {
+  'the terms tab': (page) => picker(page).locator('.rowhead').first().click(),
+  'the branches tab': async (page) => {
+    await showTab(page, 1);
+    await picker(page).locator('.rowhead').first().click();
+  },
+};
+
+/**
+ * Each row's distinguisher: whether it is cut short, its title, and the text it shows. The text
+ * shown is every character drawn wholly before the ellipsis, leaving out text hidden in a box
+ * clipped to a pixel.
+ */
+async function distinguishers(page: Page) {
+  return picker(page).evaluate((element) =>
+    [...element.shadowRoot!.querySelectorAll('.child .under')].map((node) => {
+      const cut = node.scrollWidth > node.clientWidth + 1;
+      const context = document.createElement('canvas').getContext('2d')!;
+      context.font = getComputedStyle(node).font;
+      const end = node.getBoundingClientRect().right - (cut ? context.measureText('…').width : 0);
+      const range = document.createRange();
+      const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+      let shown = '';
+      for (let text = walker.nextNode() as Text | null; text; text = walker.nextNode() as Text | null) {
+        if (text.parentElement!.getBoundingClientRect().width <= 1) continue;
+        for (let at = 0; at < text.data.length; at++) {
+          range.setStart(text, at);
+          range.setEnd(text, at + 1);
+          const { width, right } = range.getBoundingClientRect();
+          if (width > 0 && right <= end + 0.5) shown += text.data[at];
+        }
+      }
+      return { cut, title: node.getAttribute('title') ?? '', shown: shown.replace(/\s+/g, ' ').trim() };
+    }),
+  );
+}
+
+/**
+ * Two rows of one source keep what tells them apart at 320 CSS px. Squeezed to no width, the
+ * parent showed nothing and the rows read identically. It now gives way to an ellipsis and keeps
+ * its whole text in a title, and where the row has room it shows whole.
+ */
+for (const [state, reach] of Object.entries(TWIN_STATES)) {
+  test(`reflow at 320 CSS px with two rows of one source: ${state}`, async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.reflow);
+    // The host page's own gutter would leave the picker narrower than the viewport.
+    await page.addInitScript(() =>
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+      }),
+    );
+    await stubAll(page, TWIN_ANSWER);
+    await page.goto('/?mode=constraints');
+    await picker(page).locator('.picker').waitFor();
+    await search(page, 'melanoma');
+    await reach(page);
+    expect((await picker(page).boundingBox())?.width).toBe(320);
+    await park(page);
+    await check(page, expect, {
+      check: 'reflow',
+      state: `${state}, with two rows of one source`,
+      exceptions: EXCEPTIONS,
+      scrollsInPlace: SCROLLS_IN_PLACE,
+    });
+
+    // The check measured the narrow rows it exists for: both parents are present and cut short.
+    const narrow = await distinguishers(page);
+    expect(narrow.map(({ title }) => title)).toEqual(TWIN_PARENTS);
+    expect(narrow.every(({ cut }) => cut), 'each parent is cut short').toBe(true);
+
+    // Twins share the word before the parent, so a narrow row shows the parent's name first, and
+    // the two rows show different text.
+    await page.setViewportSize({ width: 375, height: 640 });
+    await expect
+      .poll(async () => new Set((await distinguishers(page)).map(({ shown }) => shown)).size, 'two different starts')
+      .toBe(TWIN_PARENTS.length);
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect
+      .poll(async () => (await distinguishers(page)).some(({ cut }) => cut), 'each parent shows whole')
+      .toBe(false);
   });
 }
 

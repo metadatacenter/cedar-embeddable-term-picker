@@ -1739,9 +1739,13 @@ test("the selection's source line and a value set's line each carry their whole 
 /**
  * Whether a title holds the whole of what an element shows. A row sets its parts apart by margins,
  * so its text joins with no space where its title has one, and the two are compared without spaces.
+ * The text is the rendered text, which leaves out what a row draws only at another width.
  */
 async function titleHoldsText(element: Locator): Promise<void> {
-  const [title, text] = await element.evaluate((node) => [node.getAttribute('title') ?? '', node.textContent ?? '']);
+  const [title, text] = await element.evaluate((node) => [
+    node.getAttribute('title') ?? '',
+    (node as HTMLElement).innerText,
+  ]);
   expect(title.replace(/\s+/g, '')).toBe(text.replace(/\s+/g, ''));
 }
 

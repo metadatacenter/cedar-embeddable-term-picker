@@ -1989,6 +1989,14 @@ export class CedarEmbeddableTermPicker {
   }
 
   /**
+   * The parent a row's distinguisher names. A narrow row shows it without the word before it, which
+   * every twin shares, so its ellipsis cuts the name rather than the word.
+   */
+  protected distinguishingParent(hit: Hit): string {
+    return this.parentOf(hit);
+  }
+
+  /**
    * One choice for a whole set of twins, not one a row.
    *
    * Deciding per row gave BAO's two rows a parent on one and an identifier on the other, so the

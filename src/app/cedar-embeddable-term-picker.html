@@ -726,9 +726,13 @@
                 <span class="meta inline dim from">· {{ from }}</span>
                 } @if (distinguisher(group.hits, hit); as apart) {
                 <span class="meta inline dim under" [title]="apart"
-                  >· @if (distinguishedById(group.hits, hit)) {
+                  >@if (distinguishedById(group.hits, hit)) {·
                   <code class="hash">{{ apart }}</code>
-                  } @else { {{ apart }} }
+                  } @else {
+                  <!-- The separator and the parent are separate text nodes, so a wide line draws as it always has. -->
+                  <span class="full-parent">· <ng-container>{{ apart }}</ng-container></span
+                  ><span class="bare-parent" aria-hidden="true">{{ distinguishingParent(hit) }}</span>
+                  }
                 </span>
                 } @if (hit.replacedBy) {
                 <span class="meta inline dim">
@@ -794,9 +798,13 @@
                 <span class="meta inline dim from">· {{ from }}</span>
                 } @if (distinguisher(group.hits, hit); as apart) {
                 <span class="meta inline dim under" [title]="apart"
-                  >· @if (distinguishedById(group.hits, hit)) {
+                  >@if (distinguishedById(group.hits, hit)) {·
                   <code class="hash">{{ apart }}</code>
-                  } @else { {{ apart }} }
+                  } @else {
+                  <!-- The separator and the parent are separate text nodes, so a wide line draws as it always has. -->
+                  <span class="full-parent">· <ng-container>{{ apart }}</ng-container></span
+                  ><span class="bare-parent" aria-hidden="true">{{ distinguishingParent(hit) }}</span>
+                  }
                 </span>
                 }
               </button>
