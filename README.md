@@ -2,298 +2,223 @@
 
 [![Test](https://github.com/metadatacenter/cedar-embeddable-term-picker/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/metadatacenter/cedar-embeddable-term-picker/actions/workflows/test.yml)
 
-A reusable Web Component for choosing what constrains a CEDAR field: an
-ontology, a branch of one, an individual class, a value set, or a property.
+The CEDAR Embeddable Term Picker (CETP) puts vocabulary search and selection
+inside a web application. Authors search once across ontologies, branches,
+individual terms, value sets, and ontology properties, then choose the entries
+their application needs.
 
-An author types one search term and sees how many matches each of those five
-kinds has, then opens the one they came for. Refining the query updates every
-count at once. This inverts the choice the CEDAR Workbench asks for today,
-where an author picks a search mode before searching and only then discovers
-whether that mode has anything to offer.
+A controlled-term field needs more than labels: it must identify which
+vocabulary, branch, or set of terms provides its allowed values. CETP lets
+authors discover and assemble those definitions visually, preserving the
+identifiers and vocabulary versions that make metadata interpretable across
+applications.
 
-The component replaces the controlled-term picker in the Template Designer
-(`cedar-template-editor/app/scripts/controlled-term/`), which is its host.
-Template authoring is where constraints are written, so that is where the picker
-belongs; the [CEDAR Embeddable Editor](https://github.com/metadatacenter/cedar-embeddable-editor)
-covers metadata viewing and entry and does its own value lookup when a form is
-filled.
+CETP ships as a standard Web Component for plain HTML or a framework application.
+It needs a compatible CEDAR terminology service for search; the host controls
+that connection and decides how to apply and store selections.
 
-It reads from the CEDAR terminology server, which serves ontologies, classes
-and value sets either from the versioned local store or from BioPortal. The
-component is published as a custom element, `<cedar-embeddable-term-picker>`, rendered in
-shadow DOM so a host page's stylesheet cannot reach inside it.
+## How the Components Fit Together
 
-Properties are a tab within CETP. They are read only from the terminology server's
-versioned SQLite store, with object, datatype and annotation properties sharing
-the ontology snapshot and version identity used for classes. Parents and children
-are browsable, including properties with multiple parents.
+CEDAR provides three components for designing templates, choosing vocabularies,
+and collecting metadata:
 
-## Status
+| Component | Role |
+|---|---|
+| [CEDAR Embeddable Designer (CED)](https://metadatacenter.readthedocs.io/en/latest/cedar-embeddable-designer/) | Authors templates and reusable elements, including their fields, structure, constraints, and defaults. The included Field Designer authors standalone fields. |
+| [CEDAR Embeddable Term Picker (CETP)](https://metadatacenter.readthedocs.io/en/latest/cedar-embeddable-term-picker/) | Searches vocabularies and selects field constraints and default terms during authoring. It also supports ontology-property selection. |
+| [CEDAR Embeddable Editor (CEE)](https://metadatacenter.readthedocs.io/en/latest/cedar-embeddable-editor/) | Renders a template for metadata entry or read-only display and returns the resulting metadata instance. |
 
-It searches. One query answers all enabled tabs against the CEDAR terminology
-server's version-aware search, folding repeated labels into a row apiece,
-ranking ontologies by what they hold, narrowing to the ones an author names,
-paging through the rest, and stepping a constraint back through an ontology's
-releases.
+In a typical workflow, an author designs a template in CED and uses CETP to
+choose its controlled vocabularies and default terms. CED applies those
+selections to the field definition. The host stores the template and supplies
+a selected version to CEE, which collects the metadata instance the host saves.
 
-The embeddable designer uses it for vocabulary constraints and controlled-term
-default values. It also runs in its own development host.
+Each component is a separate package. A host using CED loads CETP and configures
+the designer's terminology endpoint; CED manages its embedded pickers. CEE also
+provides CED's form preview, and its included CEF widget supplies individual
+field controls. The host owns authentication, template version choices, and
+saving templates and instances.
 
-Planned work, and the decisions already taken, are tracked with the rest of
-versioning in
-[VERSIONING-ROADMAP.md](https://github.com/metadatacenter/cedar-development/blob/develop/ops/VERSIONING-ROADMAP.md)
-— the picker exists to author versioned constraints, so it has no roadmap of its
-own.
+CETP can also be embedded independently: the host receives selections and
+decides how to apply them. A host filling an existing template needs only CEE,
+whose controlled-term fields perform their own lookup through the configured
+terminology service. See
+[Your First Embedded Designer](https://metadatacenter.readthedocs.io/en/latest/cedar-embeddable-designer/first-designer/)
+to use the picker within template authoring and
+[Your First Embedded Editor](https://metadatacenter.readthedocs.io/en/latest/cedar-embeddable-editor/first-editor/)
+to collect metadata from the resulting template.
 
-## Theming
+## Documentation
 
-A host may set these ten custom properties on the element, and they are the whole surface:
+The [CEDAR Embeddable Term Picker documentation](https://metadatacenter.readthedocs.io/en/latest/cedar-embeddable-term-picker/)
+covers installation, service requirements, constraint sets, default terms,
+properties, vocabulary versions, configuration, and appearance.
+
+[Your First Embedded Term Picker](https://metadatacenter.readthedocs.io/en/latest/cedar-embeddable-term-picker/first-picker/)
+builds a working page connected to your terminology service.
+[Constraints and Selections](https://metadatacenter.readthedocs.io/en/latest/cedar-embeddable-term-picker/selections/)
+explains the inputs and events a host uses.
+
+## Installing
+
+Stable releases are published on npm as
+[`cedar-embeddable-term-picker`](https://www.npmjs.com/package/cedar-embeddable-term-picker):
+
+```shell
+npm install cedar-embeddable-term-picker
+```
+
+To check the current stable release:
+
+```shell
+npm view cedar-embeddable-term-picker version
+```
+
+The package contains `cedar-embeddable-term-picker.js`, the self-contained bundle,
+and TypeScript declarations for the element and selection types. Copy the bundle
+to the application's static assets and load it with a regular `<script>` tag.
+It is a classic script, not an ES module. The host does not need to install Angular.
+
+### Hosts That Already Supply CEDAR Fonts
+
+The default bundle includes CEDAR Roboto 400 and 500. Hosts that already register
+those fonts globally can instead load `cedar-embeddable-term-picker.host-fonts.js`.
+Both variants register the same element and API; load only one. The host-font
+variant falls back to the configured font stack when the faces are absent.
+
+## Embedding
+
+The example assumes your application proxies `/terminology/` to a compatible
+CEDAR terminology server. Configure that proxy first, or use your deployment's
+absolute service base URL:
+
+```html
+<cedar-embeddable-term-picker></cedar-embeddable-term-picker>
+
+<script src="/assets/cedar-embeddable-term-picker.js"></script>
+<script type="module">
+  await customElements.whenDefined('cedar-embeddable-term-picker');
+  const picker = document.querySelector('cedar-embeddable-term-picker');
+
+  picker.terminologyBaseUrl = new URL('/terminology/', location.origin).href;
+  picker.termTypes = ['ontology', 'branch', 'class', 'valueSet'];
+  picker.constraintSet = { constraints: [], actions: [] };
+  picker.addEventListener('constraintsSelected', (event) => {
+    console.log('Selected constraints:', event.detail);
+  });
+  picker.addEventListener('cancelled', () => {
+    console.log('Keep the host’s previous constraints.');
+  });
+  picker.query = 'melanoma';
+</script>
+```
+
+Set properties after `customElements.whenDefined()`, with the service and
+selection settings before the query. Arrays, objects, and numbers must be
+JavaScript properties, rather than HTML attributes.
+
+The picker uses the CEDAR terminology server's version-aware search API, not
+BioPortal directly. An older deployment providing only metadata-entry
+autocomplete is insufficient. Without `terminologyBaseUrl`, requests go to
+the host page's own origin. A separate origin needs CORS support; keep upstream
+credentials on the server.
+
+## Constraints and Selections
+
+One query updates result counts across all enabled categories. The author adds
+entries to a draft table, reviews them, and presses **Done** to return the full
+set. The host owns its original set until that result is applied.
+
+| Event                 | Meaning                                                           |
+| --------------------- | ----------------------------------------------------------------- |
+| `constraintsChanged`  | The in-progress draft changed; there is no completed-set payload. |
+| `constraintsSelected` | **Done** returns `{ constraints, actions }`.                      |
+| `cancelled`           | The host can close the picker without applying the draft.         |
+
+Preserve both constraints and actions, including identifiers, source information,
+and pinned versions. Existing exclusions and result-position actions are retained;
+their authoring controls and constraint reordering are not available in this
+release. Serialization belongs to the host's model library.
+
+`termTypes` chooses among `ontology`, `branch`, `class`, `valueSet`, and `property`.
+Omitting it enables all five; an empty array enables none. `maximumTerms` is an
+optional positive whole-number limit on table entries. A whole ontology counts
+as one entry.
+
+For an individual default term, use a fresh picker with `selectionMode = 'term'`,
+supply the field's set through `fieldConstraints`, and listen for `selected`.
+Leave `termTypes` and `maximumTerms` unset, because assigning either selects the
+table workflow. The search respects the field's constraints, but the host should
+verify the chosen default against the current field before applying it.
+
+Property selection uses `termTypes = ['property']`. Returned properties are
+distinct from class/value constraints; the host decides where to store them.
+Property lookup requires extracted property data in the terminology server's
+versioned store.
+
+See [Constraints and Selections](https://metadatacenter.readthedocs.io/en/latest/cedar-embeddable-term-picker/selections/)
+for result shapes, vocabulary and version scopes, and compatibility with earlier
+single-selection integrations.
+
+## Appearance and Language
+
+Set `language` to `en` or `hu`, as a property or attribute. English is the
+default. Language can change at runtime, and multiple pickers can use different
+languages and service URLs. Server-provided vocabulary labels are not translated.
+
+The component uses Shadow DOM. Its supported CSS custom properties let a host
+adjust colors, fonts, and text size without styling private component selectors:
 
 ```css
 cedar-embeddable-term-picker {
-  --cetp-color-primary: #0f7686; /* buttons, the active tab, the focus ring */
-  --cetp-color-on-primary: #ffffff; /* text on the primary */
-  --cetp-color-heading: #0b3938; /* row titles and labels */
-  --cetp-color-text: rgba(0, 0, 0, 0.87);
-  --cetp-color-muted: #555555; /* counts, versions, everything supporting */
-  --cetp-color-surface: #f5f5f5; /* the panel behind expanded rows */
-  --cetp-color-border: #d7e0df;
-  --cetp-color-warning: #b45309; /* obsolete terms, sources that were not searched */
-  --cetp-font-family: 'CEDAR Roboto', 'Helvetica Neue', sans-serif;
+  --cetp-color-primary: #0f7686;
   --cetp-font-size: 14px;
 }
 ```
 
-Rules in a host page take precedence over the component's own, so these are defaults rather than a
-floor. The constraint table uses this same contract. Each picker owns its terminology client, so multiple instances may use different server URLs.
+[Configuration and Appearance](https://metadatacenter.readthedocs.io/en/latest/cedar-embeddable-term-picker/configuration/)
+lists all settings and style properties, explains framework integration, and
+provides service troubleshooting guidance.
 
-Two values are derived and not settable: the type scale moves with `--cetp-font-size`, so a
-larger base reads as a larger component rather than a broken one, and the tint behind chips and
-pinned versions is mixed from `--cetp-color-primary`, so re-pointing the brand does not leave it
-behind.
+## TypeScript
 
-Nothing else is host API. Row geometry, control padding, the radius of a chip and the meaning of a
-colour stay with the component: a host able to re-point them individually could make an obsolete
-term look like an ordinary one, which is the failure the contract exists to prevent. The CEDAR
-Embeddable Editor reaches the same rule from the other side — its Material internals are not host
-API either.
+The package exports declarations for the element and its selection data:
 
-## Requirements
+```typescript
+import type { CedarEmbeddableTermPickerElement } from 'cedar-embeddable-term-picker';
 
-Node 24.22.1, the version `.nvmrc` pins and CI runs. Angular 22 accepts
-`^22.22.3 || ^24.15.0 || >=26`; 24 is the active LTS where 22 is in maintenance.
-Nothing here needs Java, and nothing needs the CEDAR stack running until the
-component starts reading from it.
-
-## Running It
-
-```shell
-npm install
-npm start
+await customElements.whenDefined('cedar-embeddable-term-picker');
+const picker = document.querySelector('cedar-embeddable-term-picker') as CedarEmbeddableTermPickerElement;
+picker.language = 'en';
 ```
 
-This serves a development host on port 4500 — a page standing in for the
-Template Designer, which sets the element's `query` attribute and listens for
-its `cancelled` event. Nothing on that page ships.
+These are type-only imports. Load the classic script for element registration;
+it exports no runtime constructors or helpers.
 
-## Building and Testing
+## Developing the Component
 
-| Command                    | What it does                                                                                                       |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `npm run build:production` | the custom element and its host-fonts counterpart, both under `dist/`                                              |
-| `npm test`                 | unit tests, through the Angular CLI's Vitest builder, then the untranslated-string guard                           |
-| `npm run lint`             | ESLint over TypeScript and templates, Prettier included                                                            |
-| `npm run typecheck`        | `tsc` over every file under `src/`                                                                                 |
-| `npm run dist`             | the distribution: two scripts, their declarations, and a staged package                                            |
-| `npm run check:fresh`      | a check that both scripts in `dist-bundle/`, and the builds they came from, match the current sources              |
-| `npm run test:ci`          | the gate: lint, typecheck, tests, the production build, the browser tests and the distribution                     |
-| `npm run test:visual`      | desktop and narrow CEE-style pixel baselines for both builds in pinned ARM Linux Docker (run `npm run dist` first) |
-| `npm run audit:prod`       | advisories against what actually ships                                                                             |
-
-`npm run build:production` records beside each build a fingerprint of what it was compiled
-from: `src/`, `public/`, `scripts/`, the root configuration files including `package-lock.json`,
-and the installed design tokens and model library. `npm run bundle` refuses a build whose inputs
-have changed since, and copies the record into each script's manifest. `npm run check:fresh` fails
-when either script or its record is missing, when the inputs or the build have changed since the
-script was made, or when the script's bytes differ from its manifest. It compares contents, not
-timestamps, so touching a file changes nothing and an edit that keeps its timestamp still fails.
-Rebuild with `npm run dist`. The browser tests, the visual baselines and the packaging step run
-the check before they use the prebuilt output, so none of them can test or stage a stale build. A
-sibling that loads `dist-bundle/` from this checkout, as the designer's browser suite does through
-`PICKER_BUNDLE`, can run `npm --prefix ../cedar-embeddable-term-picker run check:fresh` first.
-
-Every string the picker shows is stated in `src/assets/i18n/en.json` and
-`hu.json`, which must declare the same keys. The guard `npm test` ends with,
-`scripts/i18n-guard.test.mjs`, fails on template text, a read attribute or a
-message written outside those files. A deliberate exception goes in
-`i18n-allowlist.json` with its reason, and an entry that no longer matches
-anything fails too.
-
-GitHub Actions runs the gate and visual baselines on push and pull request. The
-visual runner uses Playwright 1.64.1 on ARM Linux both locally and in CI, with no
-pixel difference allowance. To review an intentional visual change, run `npm run dist` first,
-then run `npm run test:visual -- --update-snapshots` and inspect both images. The build is zoneless, so
-change detection runs on signals rather than on `zone.js` patching the browser's
-async APIs: a view updates on a microtask after a signal is set, and
-`await fixture.whenStable()` is what a spec waits on.
-
-Fuller development notes are in
-[VERSIONING-RUNBOOK.md](https://github.com/metadatacenter/cedar-development/blob/develop/ops/VERSIONING-RUNBOOK.md),
-which covers running, building and releasing the picker alongside the store it
-reads.
-
-## Packaging
+For source builds, use the Node version in `.nvmrc`:
 
 ```shell
+nvm use
+npm ci
 npm run dist
 ```
 
-The command builds the picker twice, once with its fonts and once without. It flattens each
-build's module output into one classic script with esbuild, holds each script to its own size
-ceiling, and stages `dist-npm/cedar-embeddable-term-picker/` from those exact bytes. The
-staging step builds nothing of its own — it copies the files the size gate measured — and
-verifies the result byte for byte afterwards. The second script is described under
-[Hosts That Already Supply CEDAR Fonts](#hosts-that-already-supply-cedar-fonts).
+`npm start` runs the development host on port 4500. `npm run test:ci` runs the
+main checks; `npm run test:visual` runs the visual baselines. These are contributor
+commands; embedding the published package requires no component build.
 
-A host loads the script with a plain `<script>` tag and then has
-`<cedar-embeddable-term-picker>`. Properties configure its search and selection mode; two events report selection
-and cancellation:
+[Development notes](https://github.com/metadatacenter/cedar-embeddable-term-picker/blob/develop/docs/development.md)
+cover source setup, testing, and coordinated host builds. Within a CEDAR checkout,
+use `cedarcli build frontends` for a local source build and deployment, or
+`cedarcli test frontends` for the source build and checks. The reactor supplies
+current local dependencies automatically.
 
-```html
-<cedar-embeddable-term-picker id="picker"></cedar-embeddable-term-picker>
-<script src="cedar-embeddable-term-picker.js"></script>
-<script>
-  const picker = document.getElementById('picker');
-  picker.terminologyBaseUrl = 'https://terminology.metadatacenter.org/';
-  picker.query = 'melanoma';
-  picker.language = 'hu'; // Or the language="hu" attribute. Omit for English.
-  picker.termTypes = ['ontology', 'class', 'branch', 'valueSet'];
-  picker.maximumTerms = 4; // Omit for unlimited selections.
-  picker.constraintSet = { constraints: [], actions: [] };
-  picker.addEventListener('constraintsSelected', (event) => console.log(event.detail));
-  picker.addEventListener('cancelled', () => picker.remove());
-</script>
-```
-
-`terminologyBaseUrl` is what makes the picker embeddable at all. Unset, it asks
-its own origin for `/search`, which is what the development server's proxy
-answers and what no host page has.
-
-`language` selects the language of every string the picker shows: `en`, the
-default, or `hu`. It can be set as a property or as the `language` attribute, and
-changed at any time; the picker redraws at once, including a message already on
-screen. Any other value falls back to `en`. Each element holds its own language,
-so two pickers on one page can differ. Counts are grouped the way the chosen
-language groups digits. Both translation maps, in `src/assets/i18n`, are compiled
-into the script, so nothing is fetched at runtime. Labels, identifiers and
-messages that come from the terminology server are shown as the server sent them.
-
-The default workflow collects selections in the table at the top. Assign `constraintSet = { constraints: [], actions: [] }` (or the existing set).
-Selections add to the draft. Its tables let authors inspect and remove
-individual entries and edit branch depth. Term
-exclusions (`delete`) and result positions (`move`, zero-based) are preserved actions;
-their authoring controls and constraint reordering are deferred. Use the bin icon to
-remove a constraint.
-`constraintsSelected` emits the complete draft when **Done** is pressed;
-`constraintsChanged` signals that the draft has changed (for invalidating pending
-host validation). `cancelled` leaves the host's original set unchanged. The import-free
-`ControlledTermSet`, `ControlledTermConfig` and `ControlledTermAction` declarations
-ship with the public API. Serialization belongs to the host's model library.
-
-`termTypes` accepts any array of `class`, `branch`, `ontology`, `valueSet` and
-`property`. Omit it to enable all five; `[]` enables none. For a property-only
-picker, set `termTypes = ['property']`. `maximumTerms` is an optional positive
-whole number and counts table entries across all enabled types: a whole ontology
-or branch counts as one entry. At the limit, trying to select another entry shows
-an error; the author must remove an entry before adding another. Existing entries
-are never silently trimmed when the limit changes. Omitting the limit allows any
-number of selections. These inputs are JavaScript properties (arrays and numbers).
-
-Property entries have `sourceType: 'ontology-property'`, `sourceId` (the property
-IRI), `sourceName`, `ontologyId`, `propertyKind` (`object`, `datatype`, or
-`annotation`) and a `version.id` naming the exact ontology snapshot. They are
-picker selections, not class value constraints; a host decides where to store them.
-Property lookups use `/properties/search`, `/properties/hierarchy` and
-`/properties/versions`. A release without extracted properties reports an error
-and is not replaced by a different release or a direct BioPortal result.
-
-Explicit `selectionMode = 'constraint'` retains the single-selection `selected`
-event for existing hosts. For a field default use `selectionMode = 'term'`, which
-only emits individual terms. Setting either `termTypes` or `maximumTerms` selects
-the table workflow instead of these legacy single-selection modes. `sources` accepts source systems, acronyms and version
-selectors. When several scopes are supplied, a vocabulary/release selector searches
-one at a time, including distinct pins of the same ontology. An empty list searches
-all sources.
-
-For a default, give the picker the field's own constraints instead, as
-`fieldConstraints = { constraints, actions }` in the shape `constraintsSelected`
-emits. In term mode the picker then searches within them through the terminology
-server's `bioportal/integrated-search`, the route the metadata editor offers a
-field's values by, so it offers only terms an instance of the field may hold: those
-under each branch to its depth, each listed class, each value set's values and each
-ontology's terms, at any release a constraint pins and less any term an action
-removes. The strip above the results shows one chip for each constraint, with its
-kind, what it names, its source and any pinned release. `fieldConstraints` takes
-precedence over `sources`, which can only say which ontologies to search. The host
-should still verify a chosen default, since the field can change while the picker
-is open.
-
-Which registry a package belongs to is derived from its version rather than
-passed at publish time: a version carrying `-dev.` names the CEDAR Nexus under
-`@org.metadatacenter`, anything else is a release for public npmjs, unscoped. A
-snapshot therefore cannot reach npmjs by forgetting a flag.
-
-Development snapshots are published to CEDAR Nexus as
-`@org.metadatacenter/cedar-embeddable-term-picker`; the split Designer host pins
-an exact version for registry installs. Local `cedarcli build frontends` automatically supplies
-current component sources, including uncommitted edits; `cedarcli test frontends` checks them
-without deployment. Neither requires publication, manual pin updates or follow-up approval.
-Releases are published to public npmjs as `cedar-embeddable-term-picker`. Browser tests
-accept `PORT` to avoid colliding with a running local demo.
-
-### Hosts That Already Supply CEDAR Fonts
-
-A page that loads several CEDAR components, such as the Template Designer with CEE, CETP
-and CED, downloads the CEDAR Roboto faces once for each component that embeds them. The
-faces account for about 122 kB of the picker's script, or 94 kB gzipped.
-
-The default `cedar-embeddable-term-picker.js` remains self-contained. It embeds CEDAR
-Roboto 400 and 500 and registers them in the document. A host that registers those faces
-itself can load `cedar-embeddable-term-picker.host-fonts.js` instead. Both scripts register
-`<cedar-embeddable-term-picker>` with the same properties and events, so load only one. The
-host-fonts script embeds no font at all, because the picker draws its icons as inline SVG.
-Without the host's faces, text falls back to the rest of the `--cetp-font-family` stack.
-
-The host registers both weights from the design-token package, in its global stylesheet:
-
-```scss
-@use '@org.metadatacenter/cedar-design-tokens/fonts';
-```
-
-A host without Sass links the package's compiled `fonts.css` instead.
-
-The stylesheet has to be a document stylesheet, because browsers ignore `@font-face`
-declared inside a shadow root. Each script has its own manifest, `bundle-manifest.json` or
-`bundle-manifest.host-fonts.json`, which records its size and SHA-256 digest. The package
-carries both scripts and both manifests.
-
-## Browser Support
-
-The component requires native Custom Elements v1 and native Shadow DOM, and
-supports the browser targets of the Angular version each release is built with.
-It does not polyfill its host page.
+The package also includes `integration.mjs` for coordinated Angular builds with
+matching runtime dependencies. Ordinary embeds use the self-contained script
+above.
 
 ## License
 
-BSD 2-Clause, in [license.txt](license.txt).
-
-### Coordinated host build
-
-The package also includes `integration.mjs`, an AOT-compiled ES module with host fonts and external
-Angular, RxJS, translation and model dependencies. It is an input to a coordinated Angular application
-build, not a script to load directly in a browser. `integration-manifest.json` records its digest and
-exact runtime versions (including the model content digest); the host must verify those identities
-before combining components. The Template Designer demonstrates this build.
-
-The default package entry, standalone script, host-fonts script and public element APIs are unchanged.
-Standalone consumers do not need to install Angular or change their embedding code.
+[BSD 2-Clause](https://github.com/metadatacenter/cedar-embeddable-term-picker/blob/develop/license.txt).

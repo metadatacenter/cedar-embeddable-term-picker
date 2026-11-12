@@ -167,7 +167,7 @@ test('a property description is read in the language its literal carries', async
   await picker.evaluate((node) => ((node as HTMLElement & { termTypes: string[] }).termTypes = ['property']));
   await picker.locator('input[type=search]').fill('part');
   await picker.getByRole('button', { name: /part of.*in 1 ontology/ }).click();
-  await picker.getByRole('option', { name: 'part of in RO' }).click();
+  await picker.getByRole('button', { name: 'part of in RO' }).click();
   const description = picker.locator('cetp-property-detail .description');
   await expect(description).toHaveText('une relation de partie (fr)');
   await expect(description.locator('[lang]')).toHaveText('une relation de partie');
@@ -357,7 +357,7 @@ test("a property search's or a property's failure is read in the server's Englis
     .getByRole('button', { name: /part of/ })
     .first()
     .click();
-  await picker.getByRole('option', { name: /^part of/ }).click();
+  await picker.getByRole('button', { name: /^part of \(RO\)/ }).click();
   const failure = picker.locator('cetp-property-detail [role=alert]');
   await expect(failure).toHaveText('No property urn:part in RO at ro-v1.');
   await expect(failure).toHaveAttribute('lang', 'en');

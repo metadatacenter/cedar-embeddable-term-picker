@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { Locator, expect, test } from '@playwright/test';
 import {
   branchHit,
   classHit,
@@ -816,8 +816,7 @@ test('a click marks a row and a second act chooses it', async ({ page }) => {
   // Enter reaches the same decision, because a double click has no keyboard equivalent.
   // Enter opens the row rather than committing it: a keyboard gets the look a double click gave a
   // mouse for free, and the panel it opens carries the control that writes the constraint.
-  await rows.first().focus();
-  await rows.first().press('Enter');
+  await rows.first().locator('.opens').press('Enter');
   expect(chosen).toHaveLength(1);
   await expect(rows.first()).toHaveClass(/marked/);
 
@@ -1340,7 +1339,8 @@ test('authors a constraint set in compact tables and applies it as one event', a
   // carried a second one reading the same word a few lines above it.
   await picker.locator('.hierarchy-choice').getByRole('button', { name: 'Select', exact: true }).click();
   await expect(picker.locator('.constraint-table').first().locator('tbody tr')).toHaveCount(2);
-  await expect(picker.locator('.constraint-table td').first()).toHaveCSS('height', '28px');
+  // The 24px minimum target plus compact cell insets and the rule makes this short row 29px.
+  await expect(picker.locator('.constraint-table td').first()).toHaveCSS('height', '29px');
   await expect(picker.locator('.constraint-table td').first()).toHaveCSS('padding-top', '2px');
   await expect(picker.locator('.constraint-table tbody tr').last().locator('.hash')).toHaveAttribute('title', 'hash');
   await expect(picker.locator('.constraint-table tbody tr').last().locator('details')).toHaveCount(0);
@@ -1416,7 +1416,88 @@ test('constraint table typography and actions follow the host styling contract',
   await expect(page.getByRole('button', { name: 'Done', exact: true })).toHaveCSS('color', 'rgb(255, 255, 200)');
   // The remove glyph sits on an unfilled button, so it takes the brand rather than the on-primary white.
   await expect(page.locator('.constraint-row-actions svg')).toHaveCSS('color', 'rgb(80, 20, 120)');
+  // The shared minimum grows the hit area, while the icon and host-scaled text retain their sizes.
+  const remove = page.getByRole('button', { name: 'Remove constraint 1', exact: true });
+  await expect(remove).toHaveCSS('min-height', '24px');
+  expect(await remove.boundingBox()).toMatchObject({ width: 24, height: 24 });
+  expect(await remove.locator('svg').boundingBox()).toMatchObject({ width: 20, height: 20 });
+
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.evaluate((element) => {
+    (element as HTMLElement & { constraintSet: object }).constraintSet = {
+      constraints: [
+        { sourceType: 'ontology-branch', branchRootId: 'urn:test', branchRootName: 'A branch', sourceId: 'TEST' },
+      ],
+      actions: [],
+    };
+  });
+  await picker.locator('.constraint-table summary').click();
+  // Expanded body text follows the host's font size, rather than freezing its line at 21px.
+  for (const size of [14, 16, 20]) {
+    await picker.evaluate(
+      (element, value) => (element as HTMLElement).style.setProperty('--cetp-font-size', `${value}px`),
+      size,
+    );
+    await expect(picker.locator('.constraint-table dd').first()).toHaveCSS('font-size', `${size}px`);
+    await expect(picker.locator('.constraint-table dd').first()).toHaveCSS('line-height', `${size * 1.5}px`);
+  }
 });
+
+for (const language of ['en', 'hu']) {
+  test(`constraint details reflow within narrow cells and restore the wide layout (${language})`, async ({ page }) => {
+    await openPicker(page);
+    const picker = page.locator('cedar-embeddable-term-picker');
+    await picker.evaluate((element, language) => {
+      const host = element as HTMLElement & { selectionMode: string; constraintSet: object };
+      host.setAttribute('language', language);
+      host.selectionMode = 'constraints';
+      host.constraintSet = {
+        constraints: [
+          {
+            sourceType: 'ontology-branch',
+            sourceId: 'DOID',
+            branchRootId: 'http://purl.obolibrary.org/obo/DOID_162',
+            branchRootName: 'Malignant neoplasm and its descendants',
+            iri: 'http://purl.obolibrary.org/obo/doid.owl',
+            searchDepth: 0,
+          },
+        ],
+        actions: [],
+      };
+    }, language);
+    await picker.locator('.constraint-table summary').click();
+    const details = picker.locator('.constraint-table dl');
+    await expect(details.locator('dt').first()).toHaveText(language === 'hu' ? 'Azonosító' : 'Identifier');
+    const initialText = (await details.textContent())!;
+    for (const size of [14, 20]) {
+      await picker.evaluate((element, size) => {
+        const host = element as HTMLElement;
+        host.style.setProperty('--cetp-font-size', `${size}px`);
+        host.style.setProperty('--cetp-font-family', size === 20 ? 'Georgia, serif' : '"CEDAR Roboto", sans-serif');
+      }, size);
+      for (const width of [900, 540, 375, 320, 900]) {
+        await page.setViewportSize({ width, height: 1000 });
+        const stacked = width <= 375 || (width === 540 && size === 20);
+        const label = (await details.locator('dt').first().boundingBox())!;
+        const value = (await details.locator('dd').first().boundingBox())!;
+        if (stacked) {
+          expect(value.y).toBeGreaterThanOrEqual(label.y + label.height);
+          expect(value.width).toBeCloseTo((await details.boundingBox())!.width, 1);
+        } else {
+          expect(value.x).toBeGreaterThan(label.x + label.width);
+          expect(value.y).toBeCloseTo(label.y, 1);
+        }
+        expect(value.width).toBeGreaterThan(0);
+        await expect(details).toHaveText(initialText);
+        await expect(details.locator('dd').first()).toHaveCSS('line-height', `${size * 1.5}px`);
+        expect(await picker.locator('.constraint-row-actions button').boundingBox()).toMatchObject({
+          width: 24,
+          height: 24,
+        });
+      }
+    }
+  });
+}
 
 test('in a host of fixed height the table fills it, and an answer of any length leaves it one size', async ({
   page,
@@ -1453,3 +1534,499 @@ test('in a host of fixed height the table fills it, and an answer of any length 
   expect(await listed.boundingBox()).toEqual(few);
   expect(await footer.boundingBox()).toEqual(foot);
 });
+
+const RELEASES = [
+  { id: 'hash-c-0123456789abcdef', effectiveDate: '2026-07-01T00:00:00.000-07:00', declaredVersion: '26.07d' },
+  { id: 'hash-b-0123456789abcdef', effectiveDate: '2026-06-03T00:00:00.000-07:00', declaredVersion: '26.06e' },
+  { id: 'hash-a-0123456789abcdef', effectiveDate: '2026-05-06T00:00:00.000-07:00' },
+];
+
+/** Answers the search, NCIT's three releases, and a tree with a parent and two children. */
+async function stubReleasesAndTree(page: import('@playwright/test').Page): Promise<void> {
+  await stubSearch(page, (body) =>
+    body.includeVersions
+      ? {
+          sources: [
+            source('NCIT', {
+              name: 'National Cancer Institute Thesaurus',
+              versionCount: 3,
+              declaredVersion: '26.07d',
+              versions: RELEASES,
+            }),
+          ],
+          results: { ontology: results([]) },
+        }
+      : MELANOMA,
+  );
+  await stubHierarchy(page, (query) => ({
+    sourceAcronym: query.get('sourceAcronym'),
+    termIri: query.get('termIri'),
+    termLabel: 'Melanoma',
+    path: [{ termIri: 'http://ncit/Neoplasm', termLabel: 'Melanocytic Neoplasm' }],
+    children: [
+      { termIri: 'http://ncit/Acral', termLabel: 'Acral Melanoma', hasChildren: true, descendantCount: 3 },
+      { termIri: 'http://ncit/Nodular', termLabel: 'Nodular Melanoma', hasChildren: false, descendantCount: 0 },
+    ],
+    childCount: 2,
+    descendantCount: 321,
+  }));
+}
+
+test("a tree's twists and terms, a row's release count and a release are each a 24px target", async ({ page }) => {
+  await stubReleasesAndTree(page);
+  await openPicker(page);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.locator('.rowhead').first().click();
+  const ncit = picker.locator('.child', { hasText: 'NCIT' });
+  await ncit.click();
+  const nodes = picker.locator('.tree .node');
+  await expect(nodes).toHaveCount(4);
+
+  // The rows stand 24px apart, and each twist and term fills its row's height.
+  const tops = await nodes.evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().top));
+  for (const [index, top] of tops.entries()) if (index) expect(top - tops[index - 1]).toBeCloseTo(24, 1);
+  for (const twist of await picker.locator('.tree button.twist').all())
+    expect(await twist.boundingBox()).toMatchObject({ width: 24, height: 24 });
+  for (const term of await picker.locator('.tree button.term').all())
+    expect((await term.boundingBox())!.height).toBe(24);
+  // A leaf's empty twist keeps the width, so terms at one depth start at one place.
+  const starts = await picker
+    .locator('.tree .node[aria-level="3"] > .term')
+    .evaluateAll((terms) => terms.map((term) => term.getBoundingClientRect().left));
+  expect(starts).toHaveLength(2);
+  expect(starts[0]).toBe(starts[1]);
+  // The glyph and the label are the sizes they were.
+  expect(await picker.locator('.tree button.twist svg').first().boundingBox()).toMatchObject({ width: 16, height: 16 });
+  await expect(picker.locator('.tree button.term').first()).toHaveCSS('font-size', '12px');
+
+  const count = ncit.locator('button.of');
+  expect((await count.boundingBox())!.height).toBe(24);
+  await expect(count).toHaveCSS('font-size', '12px');
+  // The caret is drawn in the count's own colour, so it shows on the row's ground.
+  const countColor = await count.evaluate((button) => getComputedStyle(button).color);
+  await expect(count.locator('.caret svg')).toHaveCSS('color', countColor);
+  // A row with no history to open keeps an empty cell, which takes no height.
+  await picker.locator('.tab').nth(2).click();
+  const empty = await picker.locator('.row.pick', { hasText: 'MELO' }).locator('span.of').boundingBox();
+  expect(empty?.height ?? 0).toBe(0);
+
+  await picker.locator('.tab').first().click();
+  await ncit.locator('button.of').click();
+  const releases = picker.locator('.history button.release');
+  await expect(releases).toHaveCount(3);
+  const boxes = await releases.evaluateAll((buttons) =>
+    buttons.map((button) => {
+      const box = button.getBoundingClientRect();
+      return { top: box.top, height: box.height };
+    }),
+  );
+  for (const [index, box] of boxes.entries()) {
+    expect(box.height).toBe(24);
+    if (index) expect(box.top - boxes[index - 1].top).toBeCloseTo(24, 1);
+  }
+  await expect(releases.first()).toHaveCSS('font-size', '12px');
+});
+
+for (const width of [375, 320]) {
+  test(`at ${width}px a release takes two lines, and the history does not scroll sideways`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await stubReleasesAndTree(page);
+    await openPicker(page);
+    await search(page, 'melanoma');
+    const picker = page.locator('cedar-embeddable-term-picker');
+    await picker.locator('.rowhead').first().click();
+    await picker.locator('.child', { hasText: 'NCIT' }).locator('button.of').click();
+    await expect(picker.locator('.history button.release')).toHaveCount(3);
+
+    const history = picker.locator('.history');
+    expect(await history.evaluate((box) => box.scrollWidth <= box.clientWidth)).toBe(true);
+    const box = (locator: import('@playwright/test').Locator) =>
+      locator.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+      });
+    // The declared version and the tag, then the date and the hash under them.
+    const release = picker.locator('.history button.release').first();
+    const [declared, tag, date, hash] = await Promise.all(
+      ['.declared', '.tag', '.date', '.hash'].map((part) => box(release.locator(part))),
+    );
+    expect(date.top).toBeGreaterThanOrEqual(declared.bottom);
+    expect(hash.top).toBeGreaterThanOrEqual(tag.bottom);
+    expect(date.left).toBe(declared.left);
+    expect(hash.left).toBe(tag.left);
+    expect(hash.right).toBeLessThanOrEqual((await box(release)).right);
+    // The head's count has the first line, and the names of the date and the hash stand over them.
+    const head = picker.locator('.releases-head');
+    const [count, dateName, hashName] = await Promise.all(
+      ['.grow', '.date', '.hash'].map((part) => box(head.locator(part))),
+    );
+    expect(dateName.top).toBeGreaterThanOrEqual(count.bottom);
+    expect(dateName.left).toBe(date.left);
+    expect(hashName.left).toBe(hash.left);
+  });
+}
+
+test('at an ordinary width a release keeps its four columns on one line', async ({ page }) => {
+  await stubReleasesAndTree(page);
+  await openPicker(page);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.locator('.rowhead').first().click();
+  await picker.locator('.child', { hasText: 'NCIT' }).locator('button.of').click();
+  const release = picker.locator('.history button.release').first();
+  await expect(release).toBeVisible();
+  const cells = await release.locator('.declared, .date, .hash, .tag').evaluateAll((parts) =>
+    parts.map((part) => {
+      const rect = part.getBoundingClientRect();
+      return { left: rect.left, middle: rect.top + rect.height / 2 };
+    }),
+  );
+  expect(cells).toHaveLength(4);
+  for (const [index, cell] of cells.entries()) {
+    expect(Math.abs(cell.middle - cells[0].middle)).toBeLessThan(1);
+    if (index) expect(cell.left).toBeGreaterThan(cells[index - 1].left);
+  }
+});
+
+test("the selection's source line and a value set's line each carry their whole text as a title", async ({ page }) => {
+  await stubSearch(page, () => ({
+    ...MELANOMA,
+    results: {
+      ...MELANOMA.results,
+      valueSet: results([
+        {
+          type: 'valueSet',
+          sourceSystem: 'bioportal',
+          sourceAcronym: 'NCIT',
+          termBaseIri: 'http://ncit/C-melanoma-stage',
+          termBaseLabel: 'Melanoma Clinical Stage Value Set',
+          termCount: 12,
+          matchedTerms: [
+            { termIri: 'http://ncit/C-stage-1', termLabel: 'Stage I Cutaneous Melanoma' },
+            { termIri: 'http://ncit/C-stage-2', termLabel: 'Stage II Cutaneous Melanoma' },
+          ],
+        },
+      ]),
+    },
+  }));
+  await openPicker(page);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+
+  // A source whose name says more than its acronym, then one known by its acronym alone.
+  await picker.locator('.tab').nth(2).click();
+  await picker.locator('.row.pick', { hasText: 'NCIT' }).click();
+  const about = picker.locator('.chosen .about');
+  await expect(about).toHaveText('National Cancer Institute Thesaurus (NCIT)');
+  await expect(about).toHaveAttribute('title', 'National Cancer Institute Thesaurus (NCIT)');
+  await picker.locator('.row.pick', { hasText: 'MELO' }).click();
+  await expect(about).toHaveAttribute('title', 'Melanoma Ontology (MELO)');
+
+  // The line's title is the line: the name, the source, then the terms that matched. The tab is
+  // waited for, since the list redraws a moment after the click and the ontologies' rows match too.
+  await picker.locator('.tab').nth(3).click();
+  await expect(picker.locator('.tab').nth(3)).toHaveAttribute('aria-selected', 'true');
+  const line = picker.locator('.row.pick > .grow.ellipsis');
+  await expect(line).toHaveAttribute(
+    'title',
+    'Melanoma Clinical Stage Value Set NCIT · Stage I Cutaneous Melanoma, Stage II Cutaneous Melanoma',
+  );
+  // The name keeps its own title.
+  await expect(line.locator('.title')).toHaveAttribute('title', 'Melanoma Clinical Stage Value Set');
+});
+
+/**
+ * Whether a title holds the whole of what an element shows. A row sets its parts apart by margins,
+ * so its text joins with no space where its title has one, and the two are compared without spaces.
+ * The text is the rendered text, which leaves out what a row draws only at another width.
+ */
+async function titleHoldsText(element: Locator): Promise<void> {
+  const [title, text] = await element.evaluate((node) => [
+    node.getAttribute('title') ?? '',
+    (node as HTMLElement).innerText,
+  ]);
+  expect(title.replace(/\s+/g, '')).toBe(text.replace(/\s+/g, ''));
+}
+
+test("a term row's source name carries its whole text as a title", async ({ page }) => {
+  await stubSearch(page, () => MELANOMA);
+  await openPicker(page);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.locator('.rowhead').first().click();
+
+  const row = picker.locator('.child', { hasText: 'NCIT' }).locator('.grow.ellipsis');
+  const name = row.locator('.dim').first();
+  await expect(name).toHaveText('· National Cancer Institute Thesaurus');
+  await expect(name).toHaveAttribute('title', 'National Cancer Institute Thesaurus');
+  // The line's title holds the separator the name's own title leaves out.
+  await expect(row).toHaveAttribute('title', 'NCIT · National Cancer Institute Thesaurus');
+  await titleHoldsText(row);
+  // Not read after the row's name: the button's description is only the words that say it is selected.
+  await expect(row).not.toHaveAccessibleDescription(/Thesaurus/);
+});
+
+test("a branch row's line carries its whole text as a title", async ({ page }) => {
+  await stubSearch(page, () => MELANOMA);
+  await openPicker(page);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.locator('.tab').nth(1).click();
+  await expect(picker.locator('.tab').nth(1)).toHaveAttribute('aria-selected', 'true');
+  await picker.locator('.rowhead').first().click();
+
+  const ncit = picker.locator('.child', { hasText: 'NCIT' }).locator('.grow.ellipsis');
+  await expect(ncit).toHaveAttribute('title', 'NCIT · National Cancer Institute Thesaurus');
+  await titleHoldsText(ncit);
+  await expect(ncit.locator('.dim').first()).toHaveAttribute('title', 'National Cancer Institute Thesaurus');
+  // A twin's line holds what tells it apart, and a source with no name of its own is named by its acronym.
+  const twin = picker.locator('.child', { hasText: 'Neuroendocrine Tumors' }).locator('.grow.ellipsis');
+  await expect(twin).toHaveAttribute('title', 'RH-MESH · RH-MESH · under Neuroendocrine Tumors');
+  await titleHoldsText(twin);
+});
+
+test("an ontology row's line carries its whole text as a title", async ({ page }) => {
+  await stubSearch(page, () => MELANOMA);
+  await openPicker(page);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.locator('.tab').nth(2).click();
+  await expect(picker.locator('.tab').nth(2)).toHaveAttribute('aria-selected', 'true');
+
+  const melo = picker.locator('.row.pick', { hasText: 'MELO' }).locator('.grow.ellipsis');
+  await expect(melo).toHaveAttribute('title', 'Melanoma Ontology MELO');
+  await titleHoldsText(melo);
+  const ncit = picker.locator('.row.pick', { hasText: 'NCIT' }).locator('.grow.ellipsis');
+  await expect(ncit).toHaveAttribute('title', 'National Cancer Institute Thesaurus NCIT');
+  await titleHoldsText(ncit);
+  await expect(ncit).not.toHaveAccessibleDescription(/Thesaurus/);
+});
+
+test('at 320 CSS px a branch row shows the start of its source name, and the count gives way', async ({ page }) => {
+  await stubSearch(page, () => ({
+    ...MELANOMA,
+    results: {
+      branch: results([branchHit('NCIT', 'Melanoma', 'Melanocytic Neoplasm', 321)], { distinctLabelCount: 1 }),
+    },
+  }));
+  // The host page's own gutter would leave the picker narrower than the viewport.
+  await page.addInitScript(() =>
+    document.addEventListener('DOMContentLoaded', () => (document.body.style.margin = '0')),
+  );
+  const picker = page.locator('cedar-embeddable-term-picker');
+  const row = picker.locator('.child', { hasText: 'NCIT' });
+  /** Where the source name sits in its row, and whether the name and the count show whole. */
+  const measured = () =>
+    row.evaluate((child) => {
+      const line = child.querySelector('.grow')!.getBoundingClientRect();
+      const name = child.querySelector('.name')!;
+      const box = name.getBoundingClientRect();
+      const count = child.querySelector(':scope > .meta')!;
+      return {
+        width: box.width,
+        em: parseFloat(getComputedStyle(name).fontSize),
+        inside: box.left >= line.left && box.right <= line.right + 1,
+        nameWhole: name.scrollWidth <= name.clientWidth,
+        countWhole: count.scrollWidth <= count.clientWidth,
+      };
+    });
+
+  await page.setViewportSize({ width: 320, height: 800 });
+  await openPicker(page);
+  await search(page, 'melanoma');
+  await picker.locator('.tab').nth(1).click();
+  await expect(picker.locator('.tab').nth(1)).toHaveAttribute('aria-selected', 'true');
+  await picker.locator('.rowhead').first().click();
+  // The separator, a letter or two and the ellipsis show, inside the row's name. The title completes it.
+  const narrow = await measured();
+  expect(narrow.width).toBeGreaterThanOrEqual(2.5 * narrow.em - 1);
+  expect(narrow.inside).toBe(true);
+  expect(narrow.nameWhole).toBe(false);
+  // The room comes from the count, which ends in an ellipsis and keeps its whole in a title.
+  expect(narrow.countWhole).toBe(false);
+  await expect(row.locator(':scope > .meta')).toHaveAttribute('title', '321 descendants');
+
+  // Where there is room, both show whole, as before.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect.poll(async () => (await measured()).nameWhole).toBe(true);
+  expect((await measured()).countWhole).toBe(true);
+});
+
+test("a row's name sets the acronym apart from the words before it", async ({ page }) => {
+  await stubSearch(page, () => ({
+    ...MELANOMA,
+    results: {
+      ...MELANOMA.results,
+      valueSet: results([
+        {
+          type: 'valueSet',
+          sourceSystem: 'bioportal',
+          sourceAcronym: 'NCIT',
+          termBaseIri: 'http://ncit/C-melanoma-stage',
+          termBaseLabel: 'Melanoma Clinical Stage Value Set',
+          termCount: 12,
+        },
+      ]),
+    },
+  }));
+  await openPicker(page);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+
+  // A margin sets them apart on screen and an unseen space sets them apart in the name, which read
+  // "Melanoma OntologyMELO" without it.
+  const coded = picker.locator('.rowhead', { hasText: '6188' });
+  await expect(coded).toHaveAccessibleName('HIV disease 6188 in 1 ontology');
+
+  await picker.locator('.tab').nth(2).click();
+  await expect(picker.locator('.tab').nth(2)).toHaveAttribute('aria-selected', 'true');
+  await expect(picker.locator('.row.pick', { hasText: 'MELO' }).locator('.grow')).toHaveAccessibleName(
+    'Melanoma Ontology MELO',
+  );
+  await expect(picker.locator('.row.pick', { hasText: 'NCIT' }).locator('.grow')).toHaveAccessibleName(
+    'National Cancer Institute Thesaurus NCIT',
+  );
+
+  await picker.locator('.tab').nth(3).click();
+  await expect(picker.locator('.tab').nth(3)).toHaveAttribute('aria-selected', 'true');
+  await expect(picker.locator('.row.pick > .grow')).toHaveAccessibleName('Melanoma Clinical Stage Value Set NCIT');
+});
+
+test("a narrowing candidate's name carries its whole text as a title", async ({ page }) => {
+  await stubSearch(page, (body) =>
+    body.ontologyOrder === 'matches'
+      ? {
+          sources: [
+            source('NCIT', { name: 'National Cancer Institute Thesaurus' }),
+            source('BERO', { name: 'Biological and Environmental Research Ontology' }),
+          ],
+          results: { ontology: results([ontologyHit('NCIT', 950, false), ontologyHit('BERO', 782, false)]) },
+        }
+      : MELANOMA,
+  );
+  await openPicker(page);
+  await search(page, 'melanoma');
+  await page.locator('cedar-embeddable-term-picker .filter-chip > button').first().click();
+
+  const candidates = page.locator('cedar-embeddable-term-picker .candidate');
+  await expect(candidates).toHaveCount(2);
+  for (const [acronym, name] of [
+    ['NCIT', 'National Cancer Institute Thesaurus'],
+    ['BERO', 'Biological and Environmental Research Ontology'],
+  ]) {
+    const shown = candidates.filter({ hasText: acronym }).locator('.dim.ellipsis');
+    await expect(shown).toHaveText(name);
+    await expect(shown).toHaveAttribute('title', name);
+  }
+  // The box's name is the row's words, the name said once.
+  await expect(candidates.first().locator('input[type=checkbox]')).toHaveAccessibleName(
+    'NCIT National Cancer Institute Thesaurus 950 matching terms',
+  );
+});
+
+test('the narrowing panel opens on the side of its chip that has more room, and is given that room', async ({
+  page,
+}) => {
+  await stubSearch(page, (body) =>
+    body.ontologyOrder === 'matches'
+      ? {
+          sources: [
+            source('NCIT', { name: 'National Cancer Institute Thesaurus' }),
+            source('BERO', { name: 'Biological and Environmental Research Ontology' }),
+          ],
+          results: { ontology: results([ontologyHit('NCIT', 950, false), ontologyHit('BERO', 782, false)]) },
+        }
+      : MELANOMA,
+  );
+  await page.goto('/?mode=constraints');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.locator('.picker').waitFor();
+  await search(page, 'melanoma');
+  const chip = picker.locator('.filter-chip');
+  const panel = picker.locator('.filter-popover');
+  /** The chip, the panel, the room the panel was given, and the room each side of the chip has. */
+  const placed = () =>
+    picker.evaluate((host) => {
+      const chip = host.shadowRoot!.querySelector('.filter-chip')!.getBoundingClientRect();
+      const panel = host.shadowRoot!.querySelector<HTMLElement>('.filter-popover')!;
+      const gap = parseFloat(getComputedStyle(panel).getPropertyValue('--cedar-space-2'));
+      const box = panel.getBoundingClientRect();
+      return {
+        chip: { top: chip.top, bottom: chip.bottom },
+        panel: { top: box.top, bottom: box.bottom },
+        given: parseFloat(panel.style.getPropertyValue('--cetp-popover-available')),
+        above: chip.top - 2 * gap,
+        below: innerHeight - chip.bottom - 2 * gap,
+        gap,
+      };
+    });
+
+  // An ordinary window leaves more room under the chip, and the panel hangs there as before.
+  await chip.locator('button').first().click();
+  await expect(panel.locator('.candidate')).toHaveCount(2);
+  const under = await placed();
+  expect(under.below).toBeGreaterThan(under.above);
+  expect(under.panel.top).toBeCloseTo(under.chip.bottom + under.gap, 1);
+  expect(under.given).toBeCloseTo(under.below, 1);
+  await page.keyboard.press('Escape');
+  await expect(panel).toHaveCount(0);
+
+  // A short window leaves more room over the chip. The panel stands on the chip, whole.
+  await page.setViewportSize({ width: 640, height: 400 });
+  await chip.locator('button').first().click();
+  await expect(panel.locator('.candidate')).toHaveCount(2);
+  const over = await placed();
+  expect(over.above).toBeGreaterThan(over.below);
+  expect(over.panel.bottom).toBeCloseTo(over.chip.top - over.gap, 1);
+  expect(over.panel.top).toBeGreaterThanOrEqual(over.gap);
+  expect(over.given).toBeCloseTo(over.above, 1);
+  await expect(panel.getByRole('button', { name: 'Apply', exact: true })).toBeInViewport({ ratio: 1 });
+
+  // A resize that returns the room below moves the panel back under the chip.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect.poll(async () => (await placed()).panel.top).toBeGreaterThan((await placed()).chip.bottom);
+});
+
+for (const mode of ['constraints', 'constraint']) {
+  test(`a result's row, history and detail each take a row of the results grid, ${mode}`, async ({ page }) => {
+    await stubReleasesAndTree(page);
+    await page.goto(`/?mode=${mode}`);
+    // A table host of fixed height leaves the grid spare height to share among its rows.
+    await page.evaluate(() => {
+      (document.querySelector('cedar-embeddable-term-picker') as HTMLElement).style.height = '900px';
+    });
+    const picker = page.locator('cedar-embeddable-term-picker');
+    await picker.locator('.picker').waitFor();
+    await search(page, 'melanoma');
+    await picker.locator('.tab').nth(2).click();
+    const rows = picker.locator('.row.pick');
+    await rows.filter({ hasText: 'NCIT' }).locator('button.of').click();
+    await expect(picker.locator('.history button.release')).toHaveCount(3);
+    await rows.filter({ hasText: 'MELO' }).locator(':scope > .meta.inline').click();
+    await expect(picker.locator('.selection-detail')).toHaveCount(1);
+
+    // Each list item spans as many rows as it holds boxes, and none of them overlaps the one before.
+    const laid = await picker.evaluate((host) =>
+      [...host.shadowRoot!.querySelectorAll('.results > .hits > .hit')].map((item) => {
+        const boxes = [...item.children].flatMap((child) =>
+          getComputedStyle(child).display === 'contents' ? [...child.children] : [child],
+        );
+        return {
+          span: getComputedStyle(item).gridRowStart,
+          boxes: boxes.map((box) => {
+            const rect = box.getBoundingClientRect();
+            return { top: rect.top, bottom: rect.bottom };
+          }),
+        };
+      }),
+    );
+    // MELO with its detail, which a table draws as one box and the single pick as its list and its
+    // button, then NCIT with its history.
+    expect(laid.map((item) => item.span)).toEqual([`span ${mode === 'constraints' ? 2 : 3}`, 'span 2']);
+    for (const item of laid) expect(item.boxes).toHaveLength(Number(item.span.split(' ')[1]));
+    const boxes = laid.flatMap((item) => item.boxes);
+    for (const [index, box] of boxes.entries())
+      if (index) expect(box.top).toBeGreaterThanOrEqual(boxes[index - 1].bottom - 0.5);
+  });
+}

@@ -20,6 +20,26 @@ async function places(entries: Locator): Promise<string[]> {
   );
 }
 
+// The existing hierarchy spacing is 0.9rem per level, independent of the component's font size.
+// Check both a normal page root and the small root commonly used by embedding applications.
+async function indentation(page: Page, entries: Locator): Promise<void> {
+  for (const rootSize of [16, 10]) {
+    await page.evaluate((size) => {
+      document.documentElement.style.fontSize = `${size}px`;
+    }, rootSize);
+    await picker(page).evaluate((host) => (host as HTMLElement).style.setProperty('--cetp-font-size', '16px'));
+    const drawn = await entries.evaluateAll((items) =>
+      items.map((item) => ({
+        level: Number(item.getAttribute('aria-level')),
+        indent: parseFloat(getComputedStyle(item).paddingLeft),
+      })),
+    );
+    for (const row of drawn) expect(row.indent).toBeCloseTo((row.level - 1) * 0.9 * rootSize, 3);
+  }
+  await page.evaluate(() => document.documentElement.style.removeProperty('font-size'));
+  await picker(page).evaluate((host) => (host as HTMLElement).style.removeProperty('--cetp-font-size'));
+}
+
 /** A term's own subtree, keyed by the IRI asked about, so opening a node draws different children. */
 const SUBTREES: Readonly<Record<string, object>> = {
   'http://ncit/Melanoma': {
@@ -75,6 +95,7 @@ test("a term's tree states each entry's level, its place among its siblings and 
   );
   // The path is one entry a level, and the term's three children are the fourth level.
   expect(await places(entries)).toEqual(['1 1 1', '2 1 1', '3 1 1', '4 1 3', '4 2 3', '4 3 3']);
+  await indentation(page, entries);
   // The levels are the accessible ones, not only attributes.
   await expect(tree.getByRole('listitem', { level: 4 })).toHaveCount(3);
   await expect(tree.getByRole('listitem', { level: 3 })).toHaveText(/Melanoma/);
@@ -85,6 +106,7 @@ test("a term's tree states each entry's level, its place among its siblings and 
   await expect(entries.nth(4)).toHaveText(/Acral A/);
   await expect(entries.nth(3)).toContainText('2 of 5');
   expect(await places(entries)).toEqual(['1 1 1', '2 1 1', '3 1 1', '4 1 3', '5 1 5', '5 2 5', '4 2 3', '4 3 3']);
+  await indentation(page, entries);
 });
 
 test("a property's tree states its parents, the property and its children at their levels", async ({ page }) => {
@@ -146,7 +168,7 @@ test("a property's tree states its parents, the property and its children at the
     .getByRole('button', { name: /part of.*in 1 ontology/ })
     .click();
   await picker(page)
-    .getByRole('option', { name: /^part of in RO/ })
+    .getByRole('button', { name: /^part of in RO/ })
     .click();
   const tree = picker(page).getByRole('list', { name: 'Property hierarchy', exact: true });
   const entries = tree.locator('.node');
@@ -155,6 +177,7 @@ test("a property's tree states its parents, the property and its children at the
   // Two parents, then the property under them, then its children, whose number is not yet known.
   expect(drawn.slice(0, 4)).toEqual(['1 1 2', '1 2 2', '2 1 1', '3 1 -1']);
   expect(drawn.at(-1)).toEqual('3 50 -1');
+  await indentation(page, entries);
 
   // The next page is short, so the set ends with it.
   await picker(page).getByRole('button', { name: 'More children', exact: true }).click();
@@ -163,6 +186,7 @@ test("a property's tree states its parents, the property and its children at the
   expect(read.slice(3, 4)).toEqual(['3 1 52']);
   expect(read.at(-1)).toEqual('3 52 52');
   await expect(tree.getByRole('listitem', { level: 3 })).toHaveCount(52);
+  await indentation(page, entries);
 });
 
 test("the bar's two captions are headings, and the search's still names its field", async ({ page }) => {

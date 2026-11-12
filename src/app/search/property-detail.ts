@@ -72,7 +72,13 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
         <div class="hierarchy-choice">
           <ol class="tree" [attr.aria-label]="'property.hierarchy' | translate">
             @for (iri of tree.selected.property.parents; track iri; let i = $index) {
-              <li class="node" aria-level="1" [attr.aria-posinset]="i + 1" [attr.aria-setsize]="parents">
+              <li
+                class="node"
+                [style.--_cetp-tree-depth]="0"
+                aria-level="1"
+                [attr.aria-posinset]="i + 1"
+                [attr.aria-setsize]="parents"
+              >
                 <span class="twist" aria-hidden="true"><cetp-icon size="small" name="chevron-down" /></span>
                 @if (ancestor(iri); as parent) {
                   <button type="button" class="term" [title]="iri" (click)="navigate(parent)">
@@ -85,7 +91,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
             }
             <li
               class="node self"
-              [style.padding-left.rem]="parents ? 0.9 : 0"
+              [style.--_cetp-tree-depth]="parents ? 1 : 0"
               [attr.aria-level]="parents ? 2 : 1"
               aria-posinset="1"
               aria-setsize="1"
@@ -100,7 +106,7 @@ import { PropertyHit, PropertyHierarchy, PropertySummary, VersionInfo } from './
             @for (child of tree.children; track child.iri; let i = $index) {
               <li
                 class="node"
-                [style.padding-left.rem]="parents ? 1.8 : 0.9"
+                [style.--_cetp-tree-depth]="parents ? 2 : 1"
                 [attr.aria-level]="parents ? 3 : 2"
                 [attr.aria-posinset]="i + 1"
                 [attr.aria-setsize]="more() ? -1 : tree.children.length"

@@ -71,6 +71,7 @@ import {
   TermRef,
   TreeRow,
   SelectedConstraint,
+  ValueSetHit,
   VersionInfo,
   isBranchHit,
   isClassHit,
@@ -158,6 +159,15 @@ export interface LabelGroup {
 
 /** Stands in for a parameter while a phrase is split around it, and is never shown. */
 const PARAMETER_MARK = '\u0000';
+
+/** The noun the bar's heading gives a selection of each kind of result. */
+const SELECTION_NOUNS: Readonly<Record<Hit['type'], Selection['noun']>> = {
+  class: 'term',
+  branch: 'branch',
+  ontology: 'ontology',
+  valueSet: 'valueSet',
+  property: 'property',
+};
 
 @Component({
   selector: CETP_TAG,
@@ -1120,7 +1130,7 @@ export class CedarEmbeddableTermPicker {
   }
 
   /**
-   * Shows the panel in the top layer, under its chip, and moves focus into it.
+   * Shows the panel in the top layer, beside its chip, and moves focus into it.
    *
    * The top layer, because the panel has to escape two clips: the host's dialog scrolls, and the
    * picker's own inline-size containment would otherwise hold a fixed-position panel inside it.
@@ -1137,7 +1147,12 @@ export class CedarEmbeddableTermPicker {
   private readonly placeOnScroll = (): void => this.placeNarrowing();
 
   /**
-   * Hangs the panel under its chip, and tells it how much room is left below.
+   * Hangs the panel under its chip, or stands it on the chip where more room is above than below,
+   * and tells it how much room that side has.
+   *
+   * A zoomed window can leave under the chip less room than the panel's finder, one row and its
+   * buttons need, with most of the window above it. The panel opened above keeps its foot at the
+   * chip, so a list that arrives later grows upwards.
    *
    * Again on a resize and on any scroll outside the picker, since the chip moves with the host page
    * and the panel, in the top layer, does not.
@@ -1149,11 +1164,19 @@ export class CedarEmbeddableTermPicker {
     if (!popover || !chip) return;
     const anchor = chip.getBoundingClientRect();
     const gap = parseFloat(getComputedStyle(popover).getPropertyValue('--cedar-space-2')) || 8;
-    const top = anchor.bottom + gap;
     const left = Math.max(gap, Math.min(anchor.left, window.innerWidth - popover.offsetWidth - gap));
-    popover.style.setProperty('--cetp-popover-top', `${top}px`);
+    // Each side's room runs from the gap beside the chip to the gap at the window's edge.
+    const below = window.innerHeight - anchor.bottom - 2 * gap;
+    const above = anchor.top - 2 * gap;
+    if (above > below) {
+      popover.style.removeProperty('--cetp-popover-top');
+      popover.style.setProperty('--cetp-popover-bottom', `${window.innerHeight - anchor.top + gap}px`);
+    } else {
+      popover.style.removeProperty('--cetp-popover-bottom');
+      popover.style.setProperty('--cetp-popover-top', `${anchor.bottom + gap}px`);
+    }
     popover.style.setProperty('--cetp-popover-left', `${left}px`);
-    popover.style.setProperty('--cetp-popover-available', `${Math.max(0, window.innerHeight - top - gap)}px`);
+    popover.style.setProperty('--cetp-popover-available', `${Math.max(0, above > below ? above : below)}px`);
   }
 
   /** Escape closes the panel and nothing else, and Tab stays inside it, as Workspace's filters do. */
@@ -1447,7 +1470,8 @@ export class CedarEmbeddableTermPicker {
   }
 
   /**
-   * A property row's accessible name: the property in its source, then the words the row shows.
+   * The accessible name of a property row's button: the property in its source, then the words the
+   * row shows.
    *
    * The row shows the source and the kind of property, and the property's label is on the group
    * above it, so the name carries both. The row's own words come last and in the order shown, so
@@ -1468,6 +1492,73 @@ export class CedarEmbeddableTermPicker {
   protected sourceNameIfDistinct(acronym: string): string {
     const name = this.sourceOf(acronym)?.sourceName;
     return name === undefined || name === acronym ? '' : name;
+  }
+
+  /** The selection's source as the bar states it: its name with the acronym after it, or the acronym alone. */
+  protected sourceLine(acronym: string): string {
+    const name = this.sourceNameIfDistinct(acronym);
+    return name === '' ? acronym : `${name} (${acronym})`;
+  }
+
+  /**
+   * A value set row's line in full, for its title: the name, the source, whose copy it is and the
+   * terms that matched, as the row sets them out. The row is one line and gives way to an ellipsis.
+   */
+  protected valueSetLine(hit: ValueSetHit): string {
+    return CedarEmbeddableTermPicker.line(
+      [hit.termBaseLabel ?? '', hit.sourceAcronym],
+      [this.authorityOf(hit.sourceAcronym), this.labelsOf(hit.matchedTerms)],
+    );
+  }
+
+  /**
+   * A term or branch row's line in full, for its title: the acronym, the source's name, whose copy it
+   * is, what tells the row from its twins and what replaced an obsolete term. The row is one line,
+   * and the line and each part after the acronym can give way to an ellipsis.
+   */
+  protected childLine(hits: readonly Hit[], hit: ClassHit | BranchHit): string {
+    return CedarEmbeddableTermPicker.line(
+      [hit.sourceAcronym],
+      [
+        this.sourceName(hit.sourceAcronym),
+        this.authorityOf(hit.sourceAcronym),
+        this.distinguisher(hits, hit),
+        hit.type === 'class' && hit.replacedBy
+          ? this.localizer.t('detail.replacedBy', { term: hit.replacedBy.termLabel ?? hit.replacedBy.termIri })
+          : '',
+      ],
+    );
+  }
+
+  /**
+   * A property row's line in full, for its title: the acronym, the source's name where it says more
+   * than the acronym, and whose copy it is. The row is one line, and each part can give way to an
+   * ellipsis.
+   */
+  protected propertyLine(hit: PropertyHit): string {
+    return CedarEmbeddableTermPicker.line(
+      [hit.sourceAcronym],
+      [this.sourceNameIfDistinct(hit.sourceAcronym), this.authorityOf(hit.sourceAcronym)],
+    );
+  }
+
+  /**
+   * An ontology row's line in full, for its title: the name, the acronym and whose copy it is. The
+   * row is one line and gives way to an ellipsis.
+   */
+  protected ontologyLine(hit: OntologyHit): string {
+    return CedarEmbeddableTermPicker.line(
+      [this.sourceName(hit.sourceAcronym), hit.sourceAcronym],
+      [this.authorityOf(hit.sourceAcronym)],
+    );
+  }
+
+  /**
+   * A row's words as the row sets them out: the leading words apart by spaces, then each later part
+   * after a "·". An empty part is left out, as the row leaves it out.
+   */
+  private static line(lead: readonly string[], parts: readonly string[]): string {
+    return [lead.filter((part) => part !== '').join(' '), ...parts].filter((part) => part !== '').join(' · ');
   }
 
   /** What the row shows: the version stepped to, else the one that answered. */
@@ -1557,6 +1648,21 @@ export class CedarEmbeddableTermPicker {
 
   protected isHistoryOpen(acronym: string): boolean {
     return this.historyFor() === acronym;
+  }
+
+  /**
+   * How many rows of the results grid an ontology or value set result takes: its row, the history
+   * the row opens, and the detail. The detail is one row in a table, where it draws a grid of its
+   * own. Elsewhere it lays its definition list and its button out in the results grid, on a row
+   * each. The list items of those two tabs span this many rows, so each row, history and detail
+   * takes its own share of a table host's spare height.
+   */
+  protected gridRowsOf(hits: readonly (OntologyHit | ValueSetHit)[]): number {
+    const detail = this.tableMode() ? 1 : 2;
+    return hits.reduce(
+      (rows, hit) => rows + 1 + (this.isHistoryOpen(hit.sourceAcronym) ? 1 : 0) + (this.isMarked(hit) ? detail : 0),
+      0,
+    );
   }
 
   /** Opens the full history under the row, or closes it if this row already has it open. */
@@ -1883,6 +1989,14 @@ export class CedarEmbeddableTermPicker {
   }
 
   /**
+   * The parent a row's distinguisher names. A narrow row shows it without the word before it, which
+   * every twin shares, so its ellipsis cuts the name rather than the word.
+   */
+  protected distinguishingParent(hit: Hit): string {
+    return this.parentOf(hit);
+  }
+
+  /**
    * One choice for a whole set of twins, not one a row.
    *
    * Deciding per row gave BAO's two rows a parent on one and an identifier on the other, so the
@@ -1937,6 +2051,16 @@ export class CedarEmbeddableTermPicker {
   protected isMarked(hit: Hit): boolean {
     const marked = this.marked();
     return marked !== null && this.keyOf(marked) === this.keyOf(hit);
+  }
+
+  /**
+   * What a result row's button says after its name: that the row is the selection, in the words of
+   * the bar's heading. A button takes no selected state, and the row's tint alone says nothing to a
+   * screen reader. Empty otherwise, which also keeps a title on the button from being read after its
+   * name.
+   */
+  protected selectedWords(hit: Hit): string {
+    return this.isSelected(hit) ? this.localizer.t(`selection.heading.${SELECTION_NOUNS[hit.type]}`) : '';
   }
 
   /**

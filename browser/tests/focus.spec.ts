@@ -136,15 +136,85 @@ test('Enter on a row’s release count opens the history, as a click does, and l
     await expect(count).toHaveAttribute('aria-expanded', 'true');
     await expect(picker(page).locator('.history')).toHaveCount(1);
     await expect(row).not.toHaveClass(/marked/);
-    await expect(row).toHaveAttribute('aria-expanded', 'false');
+    await expect(row.locator('.opens')).toHaveAttribute('aria-expanded', 'false');
     await expect(picker(page).locator('.selection-detail')).toHaveCount(0);
     expect(await focused(count)).toBe(true);
   }
 
-  // Enter on the row itself still marks it.
-  await rows.first().press('Enter');
+  // Enter on the row's name still marks it.
+  await rows.first().locator('.opens').press('Enter');
   await expect(rows.first()).toHaveClass(/marked/);
   await expect(picker(page).locator('.selection-detail')).toHaveCount(1);
+});
+
+test('each result is a list item whose name is a button, reached by Tab and ringed on its row', async ({ page }) => {
+  await stubSearch(page, () => ANSWER);
+  await page.goto('/?mode=constraint');
+  await picker(page).locator('.picker').waitFor();
+  const chosen: unknown[] = [];
+  await page.exposeFunction('recordChoice', (constraint: unknown) => chosen.push(constraint));
+  await picker(page).evaluate((element) =>
+    element.addEventListener('selected', (event) =>
+      (window as unknown as { recordChoice: (c: unknown) => void }).recordChoice((event as CustomEvent).detail),
+    ),
+  );
+  await search(page, 'melanoma');
+  await picker(page).locator('.tab').nth(2).click();
+
+  // The list holds the results, one item each, and each item holds its row's two buttons.
+  const items = picker(page).getByRole('tabpanel').getByRole('list').first().getByRole('listitem');
+  await expect(items).toHaveCount(2);
+  await expect(picker(page).getByRole('option')).toHaveCount(0);
+  const name = (index: number) => items.nth(index).getByRole('button').first();
+  const count = (index: number) => items.nth(index).getByRole('button', { name: /^of \d/ });
+  await expect(name(0)).toHaveAccessibleName(/^Melanoma Ontology ?MELO$/);
+  await expect(name(0)).toHaveAttribute('aria-expanded', 'false');
+  await expect(count(0)).toHaveAccessibleName('of 2 releases of MELO');
+  const rows = picker(page).locator('.row.pick');
+  const ring = (index: number) => rows.nth(index).evaluate((row) => getComputedStyle(row).outlineStyle);
+
+  // Each row's name is its Tab stop, then its release count. The ring is drawn on the row, only
+  // while the name has focus.
+  await picker(page).locator('.tab').nth(2).focus();
+  await page.keyboard.press('Tab');
+  expect(await focused(name(0))).toBe(true);
+  expect(await ring(0)).toBe('solid');
+  await expect(name(0)).toHaveCSS('outline-style', 'none');
+  await page.keyboard.press('Tab');
+  expect(await focused(count(0))).toBe(true);
+  expect(await ring(0)).toBe('none');
+  await page.keyboard.press('Tab');
+  expect(await focused(name(1))).toBe(true);
+  expect(await ring(1)).toBe('solid');
+
+  // Space opens the row's detail, as Enter does, and either closes it again. The row stays the
+  // selection, which its button states after its name.
+  await page.keyboard.press('Space');
+  await expect(name(1)).toHaveAttribute('aria-expanded', 'true');
+  await expect(rows.nth(1)).toHaveClass(/marked/);
+  await expect(name(1)).toHaveAccessibleDescription('Selected ontology');
+  await expect(items.nth(1).locator('.selection-detail')).toHaveCount(1);
+  await page.keyboard.press('Enter');
+  await expect(name(1)).toHaveAttribute('aria-expanded', 'false');
+  await expect(name(1)).toHaveAccessibleDescription('Selected ontology');
+  await expect(picker(page).locator('.selection-detail')).toHaveCount(0);
+  await page.keyboard.press('Enter');
+  await expect(name(1)).toHaveAttribute('aria-expanded', 'true');
+  expect(chosen).toHaveLength(0);
+
+  // A click anywhere on a row opens it and moves focus to its name, so the next key acts on it.
+  await rows.first().locator(':scope > .meta.inline').click();
+  await expect(name(0)).toHaveAttribute('aria-expanded', 'true');
+  await expect(name(1)).toHaveAttribute('aria-expanded', 'false');
+  await expect(name(1)).toHaveAccessibleDescription('');
+  expect(await focused(name(0))).toBe(true);
+  await page.keyboard.press('Enter');
+  await expect(name(0)).toHaveAttribute('aria-expanded', 'false');
+
+  // A double click anywhere on a row chooses it.
+  await rows.nth(1).locator('.version').dblclick();
+  expect(chosen).toHaveLength(1);
+  expect((chosen[0] as { sourceAcronym: string }).sourceAcronym).toBe('NCIT');
 });
 
 test("choosing a property's release, or reading more of its children, keeps focus in the detail", async ({ page }) => {

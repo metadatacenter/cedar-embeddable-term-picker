@@ -76,11 +76,11 @@ test('property-only table enforces the maximum and browses parents at the select
   await expect(picker.getByRole('tab')).toHaveCount(1);
   await picker.locator('input[type=search]').fill('part');
   await picker.getByRole('button', { name: /part of.*in 1 ontology/ }).click();
-  await picker.getByRole('option', { name: 'part of in RO' }).click();
+  await picker.getByRole('button', { name: 'part of in RO' }).click();
   await expect(picker.getByRole('button', { name: 'related to', exact: true })).toBeVisible();
   const details = picker.locator('cetp-property-detail');
   const detailBox = (await details.boundingBox())!;
-  const sourceBox = (await picker.getByRole('option', { name: 'part of in RO' }).boundingBox())!;
+  const sourceBox = (await picker.locator('.child.pick', { hasText: 'RO' }).boundingBox())!;
   expect(Math.abs(detailBox.width - sourceBox.width)).toBeLessThan(2);
   const releaseBox = (await details.locator('.release-toolbar').boundingBox())!;
   const treeBox = (await details.locator('.tree').boundingBox())!;

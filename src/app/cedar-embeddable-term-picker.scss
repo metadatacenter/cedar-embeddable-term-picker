@@ -57,11 +57,12 @@
   --cetp-font-size-small: calc(var(--cetp-font-size) + #{tokens.$font-size-small - tokens.$font-size});
   --cetp-font-size-large: calc(var(--cetp-font-size) + #{tokens.$font-size-large - tokens.$font-size});
 
-  // Derived from the brand, so a host that re-points the primary colour gets a tint that matches it
-  // rather than one left behind. A chip and a pinned version share this; the panel behind expanded
-  // rows is the neutral surface, and the two have to stay distinguishable.
-  // At the default primary this is the shared selected surface.
-  --cetp-color-tint: color-mix(in srgb, var(--cetp-color-primary) 12%, #{tokens.$surface-raised});
+  // Each surface follows the host brand, while preserving its own semantic role.
+  // These equal blends are independently owned; none is an alias for selection.
+  --_cetp-selection-surface: #{patterns.selection-tint(var(--cetp-color-primary))};
+  --_cetp-search-match-surface: #{patterns.search-match-tint(var(--cetp-color-primary))};
+  --_cetp-action-hover-surface: #{patterns.action-hover-tint(var(--cetp-color-primary))};
+  --_cetp-release-panel-surface: #{patterns.term-picker-release-panel-tint(var(--cetp-color-primary))};
 
   display: block;
   container-type: inline-size;
@@ -178,8 +179,7 @@ input[type='search'] {
   .meaning {
     font-size: var(--cetp-font-size-small);
     color: var(--cetp-color-muted);
-    line-height: 1.5;
-    height: 1.5em;
+    @include patterns.relative-text-line($size: small, $single: true);
     padding-bottom: var(--cedar-space-1);
   }
 
@@ -189,8 +189,7 @@ input[type='search'] {
     display: flex;
     // Tall enough for what is in it, and the same box as the line below.
     font-size: var(--cetp-font-size-small);
-    line-height: 1.5;
-    height: 1.5em;
+    @include patterns.relative-text-line($size: small, $single: true);
 
     code {
       color: var(--cetp-color-muted);
@@ -326,12 +325,13 @@ button {
   }
 }
 
-// The panel the chip opens, in the top layer and hung under the chip by `placeNarrowing`. Its width
-// is fixed rather than fitted, so a finder that drops the longest name does not narrow it.
+// The panel the chip opens, in the top layer. `placeNarrowing` hangs it under the chip by its top, or
+// stands it on the chip by its bottom, and gives it the room that side has. Its width is fixed rather
+// than fitted, so a finder that drops the longest name does not narrow it.
 .filter-popover {
   @include patterns.filter-popover(var(--cetp-popover-available, 70vh));
   position: fixed;
-  inset: var(--cetp-popover-top, auto) auto auto var(--cetp-popover-left, auto);
+  inset: var(--cetp-popover-top, auto) auto var(--cetp-popover-bottom, auto) var(--cetp-popover-left, auto);
   margin: 0;
   width: min(32rem, calc(100vw - 2 * var(--cedar-space-4)));
   height: fit-content;
@@ -422,7 +422,7 @@ button {
   cursor: pointer;
 
   &.on {
-    background: var(--cetp-color-tint);
+    background: var(--_cetp-selection-surface);
     font-weight: var(--cedar-font-weight-medium);
   }
 
@@ -489,9 +489,13 @@ button {
 // up down the list instead of each row packing its own trailing cells against the right edge. The
 // rows are their own boxes — they tint when marked and rule off from each other — so they take the
 // columns through `subgrid` rather than by dissolving into the grid with `display: contents`.
+//
+// The first column is never narrower than the row's padding and room for a letter and the
+// ellipsis, so a row's name always shows its start. The release gives way to make that room and ends
+// in an ellipsis, and its title holds the whole. The count and the release count keep their widths.
 .results {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+  grid-template-columns: minmax(calc(1.5em + var(--cedar-space-2)), 1fr) max-content minmax(0, max-content) max-content;
   column-gap: var(--cedar-space-3);
 
   // The list scrolls and grows as it is scrolled, rather than paging. A common query matches ten
@@ -537,9 +541,59 @@ button {
     background: var(--cetp-color-surface);
   }
 
+  // The tint, about 1.2:1 against the list, is too faint to mark the row alone, so a marked row is
+  // also framed in the theme colour, as the picked tree term and the current release are. The frame
+  // is a shadow, so the focus ring, an outline, still shows with it.
   &.marked,
   &.marked:hover {
-    background: var(--cetp-color-tint);
+    background: var(--_cetp-selection-surface);
+    @include patterns.selected-frame;
+  }
+
+  // The row draws the focus ring while its name has focus, since a click anywhere on the row does
+  // what the name does.
+  &:has(> .opens:focus-visible) {
+    @include controls.focus-ring(var(--cetp-color-primary));
+  }
+}
+
+// The list of results and each result in it. Both take the columns of the grid around them, so a
+// row, its history and its detail line up with the rest of the list. They draw boxes rather than
+// taking `display: contents`, whose subtree the shared surface walk does not visit.
+.hits,
+.hit {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// The results grid shares a table host's spare height among its rows. A list held directly in it
+// spans as many of those rows as its results set out, which the template counts, so each row,
+// history and detail keeps its own share.
+.results > .hits,
+.results > .hits > .hit {
+  grid-template-rows: subgrid;
+  grid-row: span var(--_cetp-grid-rows);
+}
+
+// A row's name, as the button that opens its detail. It draws nothing of its own. The row keeps the
+// tint, the hover and the focus ring, so the whole row reads as one control.
+.opens {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  // The opener is a primary glyph on the row's ground, not one on a filled button.
+  --cedar-icon-color: var(--cetp-color-primary);
+  font-size: inherit;
+  text-align: left;
+
+  &:focus-visible {
+    outline: none;
   }
 }
 
@@ -581,6 +635,8 @@ button {
   border: none;
   border-radius: tokens.$radius;
   color: var(--cetp-color-primary);
+  // As for the tree's twist: an unfilled button names its icon colour, or the caret stays white.
+  --cedar-icon-color: var(--cetp-color-primary);
   font-size: var(--cetp-font-size-small);
   white-space: nowrap;
   padding: 0 var(--cedar-space-1);
@@ -589,6 +645,12 @@ button {
   &:hover {
     background: var(--cetp-color-surface);
   }
+}
+
+// The count is a target, so it stands as tall as the smallest target may be. Its text and caret
+// keep their sizes. The empty cell of a row with no history to open has no height.
+button.of {
+  min-height: spacing.$target-size-minimum;
 }
 
 // The caret carries the affordance. Without it the count reads as another muted figure beside the
@@ -618,6 +680,7 @@ button {
 }
 
 .node {
+  @include spacing.apply(padding-left, term-picker-tree-inset);
   display: flex;
   align-items: baseline;
   gap: var(--cedar-space-1);
@@ -637,7 +700,7 @@ button {
   // as another level of indent rather than as emphasis, and the tint, about 1.2:1 against the tree,
   // is too faint to mark the term on its own.
   &.picked > .term {
-    background: var(--cetp-color-tint);
+    background: var(--_cetp-selection-surface);
     @include patterns.selected-frame;
     color: var(--cetp-color-heading);
   }
@@ -670,8 +733,23 @@ button {
     text-align: left;
 
     &:hover {
-      background: var(--cetp-color-tint);
+      background: var(--_cetp-action-hover-surface);
     }
+  }
+}
+
+// A hierarchy's twist and term are each a target, so each stands as tall as the smallest target may
+// be, and the rows are that far apart. The glyph and the label keep their sizes, on the row's centre
+// line. A leaf's empty twist keeps the width, so terms at one depth start at one place. Held to the
+// hierarchy, because the property detail's tree takes the same class names.
+.detail .node {
+  > .twist {
+    @include patterns.icon-button(small);
+    align-self: center;
+  }
+
+  > .term {
+    min-height: spacing.$target-size-minimum;
   }
 }
 
@@ -780,7 +858,7 @@ button {
   // framed in the theme colour, as the picked tree term is.
   &.on,
   &.on:hover {
-    background: var(--cetp-color-tint);
+    background: var(--_cetp-selection-surface);
     @include patterns.selected-frame;
     color: var(--cetp-color-heading);
   }
@@ -799,6 +877,12 @@ button {
   .hash {
     color: var(--cetp-color-muted);
   }
+}
+
+// A release in the history is a target, so it stands as tall as the smallest target may be. Held to
+// the history, because the property detail's releases take the same class name.
+.history .release {
+  min-height: spacing.$target-size-minimum;
 }
 
 .rowhead {
@@ -870,17 +954,29 @@ button {
 // is distinguishable: ACESO merges three vocabularies and labels a class "Disease" in each. So the
 // two are laid out as a row of their own and the ontology name gives way first, its acronym having
 // already identified it.
+//
+// The row is never narrower than its opener, its acronym, the start of the ontology name and the
+// start of what tells the row from its twins. Squeezed to no width, either showed nothing, and a
+// title on it could not be hovered. Each part that gives way starts from its whole
+// width but adds only its least to the row's least width.
 .child .grow {
   display: flex;
   align-items: baseline;
-  min-width: 0;
+  min-width: min-content;
 
+  // The acronym keeps its whole width while the row has room for it. Past that point it gives way
+  // to an ellipsis, though 2.5em of it always shows, and its title holds the whole.
   .who {
     flex: 0 0 auto;
+    max-width: max(2.5em, var(--_cetp-acronym-room));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .dim,
   .under {
+    width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -889,12 +985,25 @@ button {
   // The name gives way first and by far: it is the part the acronym beside it already identified,
   // and the parent is the part that tells two rows of one ontology apart.
   .dim {
-    flex: 0 8 auto;
+    flex: 0 8 max-content;
   }
 
-  .under {
-    flex: 0 1 auto;
+  // Room for the separator, a letter or two and the ellipsis. The title holds the rest.
+  .name {
+    min-width: 2.5em;
   }
+
+  // What tells the row from its twins, a parent or an identifier, keeps the same room. The acronym
+  // and the later columns give way to make it.
+  .under {
+    flex: 0 1 max-content;
+    min-width: 2.5em;
+  }
+}
+
+// The parent alone, which only a narrow row shows.
+.under .bare-parent {
+  display: none;
 }
 
 // Every result row is one line: title and acronym on the left, the facts that distinguish it on
@@ -907,7 +1016,7 @@ button {
 }
 
 mark {
-  background: var(--cetp-color-tint);
+  background: var(--_cetp-search-match-surface);
   color: inherit;
   padding: 0 1px;
 }
@@ -936,12 +1045,16 @@ mark {
 
 .chip {
   display: inline-block;
-  background: var(--cetp-color-tint);
+  background: var(--_cetp-selection-surface);
   color: var(--cetp-color-heading);
   font-size: var(--cetp-font-size-small);
   @include spacing.apply(padding, compact-cell);
   border-radius: tokens.$radius;
   margin-right: var(--cedar-space-1);
+
+  &.match {
+    background: var(--_cetp-search-match-surface);
+  }
 
   &.warn {
     background: tokens.$status-warning-surface;
@@ -967,10 +1080,62 @@ mark {
 // The children of one group get the same treatment among themselves. They cannot take the outer
 // columns — a group row spans them all and the children sit inside it — so they declare their own,
 // which is enough: what an author compares is one ontology against another within a term.
+//
+// The first column is never narrower than the least width of a row's name. The second gives way to
+// make that room, whether it holds a branch's descendant count, a term's release or a property's
+// kind. The third holds a branch's release or a term's release count. Its least width is the least
+// of what it holds, so the release gives way too and the count keeps its width. The fourth keeps its
+// width.
 .children {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+  grid-template-columns: minmax(auto, 1fr) minmax(0, max-content) minmax(auto, max-content) max-content;
   column-gap: var(--cedar-space-3);
+}
+
+// A child row's frame is the fixed room around and between its cells: the picker's padding, the
+// list's inset, the row's padding, three column gaps, the opener, and the margins that set the
+// acronym and the source name apart.
+$child-row-frame: 2 * tokens.$space-3 + (tokens.$space-6 + tokens.$space-2) + 2 * tokens.$space-2 + 3 *
+  tokens.$space-3 + (tokens.$icon-size-small + tokens.$space-1) + 2 * tokens.$space-1;
+
+// A release count's button holds its padding, a gap and the caret. Its words, "of" and two digits,
+// take about 2.3em more.
+$release-count-frame: 3 * tokens.$space-1 + tokens.$icon-size-small;
+
+// A child row's acronym may be as wide as the host less what the rest of the row takes when each
+// part that gives way is at its least. That is the row's frame, 2.5em of the source name, and the
+// least of each later column: 2.5em of a release, a count or a kind, and a whole release count. An
+// acronym within this width shows whole and leaves the row's layout unchanged, so the limit shortens
+// an acronym only where the row has no other room to give.
+.children {
+  --_cetp-row-least: calc(#{$child-row-frame} + 2.5 * var(--cetp-font-size));
+  --_cetp-column-least: calc(2.5 * var(--cetp-font-size-small));
+  --_cetp-release-count: calc(#{$release-count-frame} + 2.3 * var(--cetp-font-size-small));
+}
+
+// A term row's later columns hold its release and its release count.
+.children.terms {
+  --_cetp-acronym-room: calc(100cqi - var(--_cetp-row-least) - var(--_cetp-column-least) - var(--_cetp-release-count));
+}
+
+// A branch row's later columns hold its descendant count, its release and its release count.
+.children.branches {
+  --_cetp-acronym-room: calc(
+    100cqi - var(--_cetp-row-least) - 2 * var(--_cetp-column-least) - var(--_cetp-release-count)
+  );
+}
+
+// A property row's later column holds its kind.
+.children.properties {
+  --_cetp-acronym-room: calc(100cqi - var(--_cetp-row-least) - var(--_cetp-column-least));
+}
+
+// A twin row's least width also holds a margin and 2.5em of what tells it from its twins. Where the
+// group shows a release count, the acronym leaves that room too, so the release is not squeezed to
+// nothing. Where it shows none, the room kept for one already holds it, and the
+// acronym keeps its width.
+.children:has(.child > button.of) .child .grow:has(.under) .who {
+  max-width: max(2.5em, var(--_cetp-acronym-room) - #{tokens.$space-1} - 2.5 * var(--cetp-font-size-small));
 }
 
 // A pin naming an extraction a later one corrected. Marked rather than alarming: the pin resolves,
@@ -1001,7 +1166,8 @@ mark {
 // Which repository the copy came from. Muted and last of the names, because it qualifies the
 // ontology rather than identifying it, and it gives way before the acronym does.
 .child .grow .from {
-  flex: 0 4 auto;
+  flex: 0 4 max-content;
+  width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1014,6 +1180,14 @@ mark {
   text-align: right;
 }
 
+// A column that gives way to a row's name ends in an ellipsis, and its title holds the whole.
+.child > .meta.inline,
+.child > .version,
+.row > .version {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .child {
   grid-column: 1 / -1;
   display: grid;
@@ -1024,7 +1198,8 @@ mark {
   padding: var(--cedar-space-1) var(--cedar-space-2);
   border-bottom: 1px solid var(--cetp-color-border);
 
-  &:last-child {
+  // The fold's last row, unless a history or a detail it opened follows it.
+  .hit:last-child > &:last-child {
     border-bottom: none;
   }
 }
@@ -1038,7 +1213,7 @@ mark {
   white-space: nowrap;
 
   &.pinned {
-    background: var(--cetp-color-tint);
+    background: var(--_cetp-selection-surface);
     color: var(--cetp-color-heading);
     border-radius: tokens.$radius;
     padding: 0 var(--cedar-space-1);
@@ -1246,11 +1421,57 @@ mark {
   .chosen.awaiting {
     display: none;
   }
+  // Twins share the word before a parent's name, so a narrow row shows the name alone and the
+  // ellipsis cuts the name instead. The whole text stays in the row's accessible text and in its
+  // title. The separator is drawn apart from the name, so the title holds all the text the row
+  // shows, and is silent, since the hidden text already says it.
+  .under .full-parent {
+    @include patterns.visually-hidden;
+  }
+  .under .bare-parent {
+    display: inline;
+  }
+  .under:has(> .bare-parent)::before {
+    content: '· ' / '';
+  }
   // A tighter gap keeps the four tabs on one row while few of them carry a count. A count on every
   // tab still wraps the row at phone width, at any gap.
   .tabs {
     flex-wrap: wrap;
     column-gap: var(--cedar-space-3);
+  }
+  // Four columns do not fit, so a release takes two lines: its declared version and its tag, then
+  // its date and its hash. The head keeps to the same two columns. Its count takes the first line
+  // whole, and the names of the date and the hash stand over them on the second.
+  .releases-head,
+  .history .release {
+    grid-template-columns: minmax(0, 1fr) 7.5em;
+    grid-template-areas:
+      'declared tag'
+      'date hash';
+    gap: 0 var(--cedar-space-3);
+
+    .declared {
+      grid-area: declared;
+    }
+    .date {
+      grid-area: date;
+    }
+    .hash {
+      grid-area: hash;
+    }
+    .tag {
+      grid-area: tag;
+    }
+  }
+  .releases-head {
+    .grow {
+      grid-area: 1 / 1 / 2 / -1;
+    }
+    // The head's tag is an empty cell that holds the column at ordinary widths.
+    .tag {
+      display: none;
+    }
   }
 }
 

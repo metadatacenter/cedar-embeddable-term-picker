@@ -2,6 +2,7 @@
   "schema": 1,
   "repo": "cedar-embeddable-term-picker",
   "browserHelper": "browser/tests/surface-contracts.generated.mjs",
+  "layoutHelper": "browser/tests/layout-resilience.generated.mjs",
   "surfaces": [
     {
       "id": "cetp.terms",
@@ -54,11 +55,10 @@
       "selector": "cedar-embeddable-term-picker",
       "states": ["open"],
       "test": "browser/tests/surfaces.spec.ts",
-      "scaleDebt": [
+      "scaleRoles": [
         {
-          "property": "background-color",
-          "value": "color(srgb 0.887059 0.935529 0.943059)",
-          "reason": "CETP mixes its selection tint from the host's primary colour so a re-pointed theme keeps a matching tint; at the default primary it is within 2/255 of surface-selected."
+          "selector": "mark",
+          "role": "search-match-tint"
         }
       ]
     },
@@ -77,11 +77,10 @@
       "selector": "cedar-embeddable-term-picker",
       "states": ["open"],
       "test": "browser/tests/surfaces.spec.ts",
-      "scaleDebt": [
+      "scaleRoles": [
         {
-          "property": "background-color",
-          "value": "color(srgb 0.887059 0.935529 0.943059)",
-          "reason": "CETP mixes its selection tint from the host's primary colour so a re-pointed theme keeps a matching tint; at the default primary it is within 2/255 of surface-selected."
+          "selector": ".child.marked",
+          "role": "selection-tint"
         }
       ]
     },
