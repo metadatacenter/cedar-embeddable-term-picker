@@ -5,28 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Fixed
-
-- Every target meets WCAG 2.2's 24px minimum. A hierarchy's rows stand 24px apart, each twist is
-  24px square and each term 24px tall. A release in the history and the release count on a result
-  row are each 24px tall, so a row that carries a count grows from 27px to 33px. Glyphs and text
-  keep their sizes.
-- On a host narrower than 480px, each release in the history takes two lines: its declared version
-  and tag, then its date and hash. The history no longer scrolls sideways at 320 CSS px, and its
-  count no longer runs over the column headings beside it.
-- The selection's source line and a value set row's line carry their whole text as a title, as the
-  lines beside them do.
-- The narrowing panel opens above its chip when more room is there than below, as in a short or
-  zoomed window, and takes the room on the side it opens.
-- Each result is a list item in a list, which holds the row and the history and detail it opens.
-  The row's name is a button that opens the detail and states whether it is open, and the release
-  count is a second button. A selected row's button says so after its name, in the words of the
-  bar's heading. The name is the row's Tab stop, and the focus ring stays on the row. A click
-  anywhere on a row opens it and moves focus to its name, a double click chooses it, and Space now
-  opens it as Enter does. Nothing visible changes.
-
 ## [0.1.0] - 2026-11-09
 
 Aligns with `cedar-model-typescript-library@1.0.27`.
