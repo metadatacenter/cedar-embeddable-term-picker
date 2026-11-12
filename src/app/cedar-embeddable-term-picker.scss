@@ -137,6 +137,11 @@ input[type='search'] {
   // their width whether or not anything is selected, so marking a row does not move the input.
   flex: 1 1 50%;
   min-width: 0;
+
+  input::placeholder {
+    color: var(--cetp-color-muted);
+    opacity: 1;
+  }
 }
 
 .chosen {

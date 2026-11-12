@@ -131,6 +131,12 @@ const MINIMUM_CONTRAST = 4.5;
 const SETTLED: readonly Settled[] = [
   {
     rule: 'color-contrast',
+    selector: '.detail dt',
+    measured: { ratio: 6.87, text: '#555555', background: '#f4f6f6' },
+    why: 'WebKit reports the definition-list label as partly obscured. Its visible text sits on the detail surface; the screenshot probe measures that surface again on every run.',
+  },
+  {
+    rule: 'color-contrast',
     selector: '.row.pick:not(.marked) > .meta.inline',
     measured: { ratio: 7.46, text: '#555555', background: '#ffffff' },
     why:
@@ -424,7 +430,7 @@ async function stubTree(page: Page): Promise<void> {
 /** Marks the first term of the first fold, which draws its tree. */
 async function markTree(page: Page): Promise<void> {
   await picker(page).locator('.rowhead').first().click();
-  await picker(page).locator('.child').first().click();
+  await picker(page).locator('.child').first().locator('.opens').click();
   await expect(picker(page).locator('.tree button.twist')).toHaveCount(3);
 }
 
@@ -466,7 +472,7 @@ async function hoveredAndFocused(page: Page, kind: string, control: Locator): Pr
   await expectAccessible(page, `${kind}, hovered`);
   // A key pressed first makes the browser treat the focus as the keyboard's, and draw its ring.
   await page.mouse.move(0, 0);
-  await page.keyboard.press('Shift');
+  await page.keyboard.press('Tab');
   await control.focus();
   expect(await control.evaluate((element) => element.matches(':focus-visible')), kind).toBe(true);
   await expectAccessible(page, `${kind}, focused`);

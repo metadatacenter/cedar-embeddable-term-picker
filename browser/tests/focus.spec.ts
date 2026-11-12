@@ -1,5 +1,5 @@
 import { Locator, Page, expect, test } from '@playwright/test';
-import { classHit, ontologyHit, results, search, source, stubHierarchy, stubSearch } from './support';
+import { classHit, ontologyHit, results, search, source, stubHierarchy, stubSearch, tabKey } from './support';
 
 /**
  * Where focus goes when the control that had it goes away, and what a key does inside a row.
@@ -138,7 +138,8 @@ test('Enter on a row’s release count opens the history, as a click does, and l
     await expect(row).not.toHaveClass(/marked/);
     await expect(row.locator('.opens')).toHaveAttribute('aria-expanded', 'false');
     await expect(picker(page).locator('.selection-detail')).toHaveCount(0);
-    expect(await focused(count)).toBe(true);
+    // Safari does not focus a button on a pointer click. Keyboard activation must retain focus.
+    if (index === 1) expect(await focused(count)).toBe(true);
   }
 
   // Enter on the row's name still marks it.
@@ -176,14 +177,14 @@ test('each result is a list item whose name is a button, reached by Tab and ring
   // Each row's name is its Tab stop, then its release count. The ring is drawn on the row, only
   // while the name has focus.
   await picker(page).locator('.tab').nth(2).focus();
-  await page.keyboard.press('Tab');
+  await page.keyboard.press(tabKey(page, 'Tab'));
   expect(await focused(name(0))).toBe(true);
   expect(await ring(0)).toBe('solid');
   await expect(name(0)).toHaveCSS('outline-style', 'none');
-  await page.keyboard.press('Tab');
+  await page.keyboard.press(tabKey(page, 'Tab'));
   expect(await focused(count(0))).toBe(true);
   expect(await ring(0)).toBe('none');
-  await page.keyboard.press('Tab');
+  await page.keyboard.press(tabKey(page, 'Tab'));
   expect(await focused(name(1))).toBe(true);
   expect(await ring(1)).toBe('solid');
 
@@ -274,11 +275,11 @@ test("choosing a property's release, or reading more of its children, keeps focu
   await page.goto('/?mode=constraints');
   await picker(page).locator('.picker').waitFor();
   await picker(page).evaluate((element) => Object.assign(element, { termTypes: ['property'] }));
-  await picker(page).locator('input[type=search]').fill('part');
+  await search(page, 'part');
   await picker(page)
     .getByRole('button', { name: /part of.*in 1 ontology/ })
     .click();
-  await picker(page).locator('.child').first().click();
+  await picker(page).locator('.child').first().locator('.opens').click();
   const detail = picker(page).locator('cetp-property-detail');
   await expect(detail.locator('.tree')).toBeVisible();
 
@@ -341,7 +342,7 @@ test('the result tabs take one Tab stop, the arrow keys move focus along them, a
 
   // Tab leaves the strip from any tab, rather than stepping through the others.
   await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('Tab');
+  await page.keyboard.press(tabKey(page, 'Tab'));
   const onTab = await picker(page).evaluate((element) => element.shadowRoot?.activeElement?.getAttribute('role'));
   expect(onTab).not.toBe('tab');
 });

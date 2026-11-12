@@ -27,7 +27,14 @@ export default defineConfig({
     baseURL: `http://localhost:${port}`,
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    ...(['firefox', 'webkit'] as const).map((browserName) => ({
+      name: `${browserName}-accessibility`,
+      testMatch: /(?:accessibility|layout-resilience|focus|announcements)\.spec\.ts/,
+      use: { browserName, viewport: { width: 1280, height: 720 } },
+    })),
+  ],
   webServer: {
     command: 'node serve.mjs',
     url: `http://localhost:${port}`,
