@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 
 /**
  * Behaviour, not screenshots.
@@ -15,42 +15,26 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const port = Number(process.env.PORT ?? 4599);
 
-// Functional browser contracts share the existing worker budget; pixel baselines keep their own projects.
-const functionalSpecs = [
-  'picker.spec.ts',
-  'properties.spec.ts',
-  'state-coordination.spec.ts',
-  'structure.spec.ts',
-  'language.spec.ts',
-];
-
 export default defineConfig({
   testDir: './tests',
   testIgnore: 'unicode-policy.spec.ts',
   fullyParallel: true,
   workers: process.env.CEDAR_TEST_WORKERS ? Number(process.env.CEDAR_TEST_WORKERS) : undefined,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
-  // Stop a known-red CI/reactor run after a test exhausts its retry.
+  retries: 0,
+  // A retry must not hide an unreliable case.
   maxFailures: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'line' : 'list',
   use: {
     baseURL: `http://localhost:${port}`,
-    trace: 'on-first-retry',
+    trace: process.env.CEDAR_TEST_TRACE === 'on' ? 'retain-on-failure' : 'off',
+    screenshot: process.env.CI ? 'only-on-failure' : 'off',
   },
-  projects: [
-    ...(['firefox', 'webkit'] as const).map((browserName) => ({
-      name: `${browserName}-functional`,
-      testMatch: functionalSpecs,
-      use: { browserName },
-    })),
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    ...(['firefox', 'webkit'] as const).map((browserName) => ({
-      name: `${browserName}-accessibility`,
-      testMatch: /(?:accessibility|layout-resilience|focus|announcements)\.spec\.ts/,
-      use: { browserName, viewport: { width: 1280, height: 720 } },
-    })),
-  ],
+  // New functional/accessibility specs automatically run in every engine.
+  projects: (['chromium', 'firefox', 'webkit'] as const).map((browserName) => ({
+    name: browserName,
+    use: { browserName, viewport: { width: 1280, height: 720 } },
+  })),
   webServer: {
     command: 'node serve.mjs',
     url: `http://localhost:${port}`,
