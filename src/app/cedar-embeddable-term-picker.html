@@ -1,6 +1,7 @@
 <!-- Not with a field's constraints: one search covers all of them, so there is no source to step between. -->
 @if (selectionMode() === 'term' && !fieldScope() && safeSources().length > 1) {
-<label class="scope-selector"
+<!-- Repeat the host language at shadow-tree roots: browser engines differ in inherited :lang updates. -->
+<label class="scope-selector" [attr.lang]="language()"
   >{{ 'scope.label' | translate }}
   <select [value]="scopeIndex()" (change)="scopeIndex.set(numberOf($event))">
     @for (source of safeSources(); track $index) {
@@ -13,6 +14,7 @@
 </label>
 } @if (tableMode()) {
 <cetp-constraint-table
+  [attr.lang]="language()"
   [set]="displayedDraft()"
   [hashes]="constraintHashes()"
   (removed)="removeConstraint($event)"
@@ -20,11 +22,11 @@
   (depthChanged)="updateBranchDepth($event.index, $event.depth)"
 />
 } @if (configurationError(); as message) {
-<p class="selection-error" role="alert">{{ localizer.say(message) }}</p>
+<p class="selection-error" role="alert" [attr.lang]="language()">{{ localizer.say(message) }}</p>
 } @if (draftError(); as message) {
-<p class="selection-error" role="alert">{{ localizer.say(message) }}</p>
+<p class="selection-error" role="alert" [attr.lang]="language()">{{ localizer.say(message) }}</p>
 } @if (selectionError(); as message) {
-<p class="selection-error" role="alert">{{ message }}</p>
+<p class="selection-error" role="alert" [attr.lang]="language()">{{ message }}</p>
 }
 <cetp-font-registrar />
 
@@ -209,8 +211,8 @@
       <dd>
         @for (name of names; track name.label) {
         <span class="alias"
-          ><span [attr.lang]="languageTag(name.language)">{{ elide(name.label, 44, 12) }}</span>@if (name.language) {
-          · {{ name.language }}}</span
+          ><span [attr.lang]="languageTag(name.language)">{{ elide(name.label, 44, 12) }}</span>@if (name.language) { ·
+          {{ name.language }}}</span
         >
         } @if (moreNames(hit); as more) {
         <span class="meta inline">{{ 'detail.moreNames' | translate: { count: more } }}</span>
@@ -284,7 +286,7 @@
   }
 </ng-template>
 
-<section class="picker" [class.set-mode]="tableMode()">
+<section class="picker" [class.set-mode]="tableMode()" [attr.lang]="language()">
   <header class="bar">
     <!--
       The bar's two captions are drawn as section headings, and each is exposed as one. The
@@ -439,9 +441,8 @@
     <span class="chip within" [title]="constraintUri(constraint)"
       ><span class="kind">{{ constraintKind(constraint) | translate }}</span> {{ constraintLabel(constraint) }}
       <span class="source"
-        >· {{ constraintAcronym(constraint) }}@if (constraint.version; as version) {
-        · {{ version.declaredVersion ?? shortHash(version.id) }}
-        }</span
+        >· {{ constraintAcronym(constraint) }}@if (constraint.version; as version) { · {{ version.declaredVersion ??
+        shortHash(version.id) }} }</span
       ></span
     >
     }
@@ -547,9 +548,9 @@
       <label class="candidate" [class.on]="isDrafted(candidate.sourceAcronym)">
         <span class="who">{{ candidate.sourceAcronym }}</span>
         <!-- A long name gives way to an ellipsis, so its title holds the whole of it. -->
-        <span class="dim ellipsis" [title]="candidateName(candidate.sourceAcronym)">{{
-          candidateName(candidate.sourceAcronym)
-        }}</span>
+        <span class="dim ellipsis" [title]="candidateName(candidate.sourceAcronym)"
+          >{{ candidateName(candidate.sourceAcronym) }}</span
+        >
         <span class="meta inline"
           >{{ candidate.matchCount === undefined ? '' : localizer.number(candidate.matchCount) }}@if
           (candidate.matchCount !== undefined) {<span class="sr-only"> {{ 'narrowing.matchingTerms' | translate }}</span
@@ -614,9 +615,7 @@
     a search runs: rendering it into existence pushed the results down a line at the moment an
     author was reading them.
   -->
-  <p class="working" [class.idle]="!searching()">
-    {{ 'status.searching' | translate }}
-  </p>
+  <p class="working" [class.idle]="!searching()">{{ 'status.searching' | translate }}</p>
   <!--
     The one live region. It says each outcome once, as it happens: a search starting and what it
     found, a failure, the list reading more and the list ending. The lines on screen that show the
@@ -685,8 +684,8 @@
           <!-- The phrase is in the picker's language and the name inside it in its own. -->
           @let matched = group.hits[0].matchedLabels![0]; @let words = around('results.matched', 'label');
           <span class="chip attached" [title]="matched.label"
-            >{{ words[0] }}<span [attr.lang]="languageTag(matched.language)">{{ elide(matched.label, 64, 20) }}</span
-            >{{ words[1] }}@if (matched.language) { · {{ matched.language }}}</span
+            >{{ words[0] }}<span [attr.lang]="languageTag(matched.language)">{{ elide(matched.label, 64, 20) }}</span>{{
+            words[1] }}@if (matched.language) { · {{ matched.language }}}</span
           >
           }
         </span>
@@ -918,8 +917,11 @@
                 are apart on screen. The row is a grid, which renders a space between its cells as nothing.
                 At a narrow width the kind gives way to the row's name, so its title holds the whole.
               -->
-              @let kind = 'results.propertyKind.' + hit.propertyKind | translate;
-              &ngsp;<span class="meta inline" [title]="kind">{{ kind }}</span>
+              @let kind = 'results.propertyKind.' + hit.propertyKind | translate; &ngsp;<span
+                class="meta inline"
+                [title]="kind"
+                >{{ kind }}</span
+              >
             </div>
             @if (isMarked(hit)) {
             <cetp-property-detail
@@ -998,7 +1000,7 @@
   while the results scroll under them. Beside the table they sat at the top of a long dialog, in two
   sizes, away from where an author finishes choosing.
 -->
-<footer class="actions">
+<footer class="actions" [attr.lang]="language()">
   <button type="button" (click)="onCancel()">{{ 'table.cancel' | translate }}</button>
   <button type="button" class="primary" (click)="applyConstraints()">{{ 'table.done' | translate }}</button>
 </footer>

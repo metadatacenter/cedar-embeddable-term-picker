@@ -689,8 +689,9 @@ test('a node bigger than one read scrolls on rather than ending early', async ({
   // and twenty and the rest of the node is unreachable.
   const toBottom = () =>
     tree.evaluate((el: HTMLElement) => {
+      // Setting scrollTop already emits a native scroll. A second synthetic event can request
+      // another page after the first reply, making the intermediate count engine-dependent.
       el.scrollTop = el.scrollHeight;
-      el.dispatchEvent(new Event('scroll'));
     });
   await toBottom();
   await expect(terms).toHaveCount(100);
@@ -698,7 +699,7 @@ test('a node bigger than one read scrolls on rather than ending early', async ({
   await expect(terms.first()).toHaveText('term 000');
   await toBottom();
   await expect(terms).toHaveCount(120);
-  await expect(terms.last()).toHaveText('term 119');
+  await expect(terms).toHaveText(ALL.map((term) => term.termLabel));
 });
 
 test('a marked term shows what it is offering', async ({ page }) => {
@@ -1477,9 +1478,18 @@ for (const language of ['en', 'hu']) {
       }, size);
       for (const width of [900, 540, 375, 320, 900]) {
         await page.setViewportSize({ width, height: 1000 });
-        const stacked = width <= 375 || (width === 540 && size === 20);
         const label = (await details.locator('dt').first().boundingBox())!;
         const value = (await details.locator('dd').first().boundingBox())!;
+        // At 540px/14px the Hungarian cell is near the container breakpoint. Different engines'
+        // font metrics can legitimately stack it earlier; both arrangements must preserve its text.
+        // The narrow and enlarged-font cases must stack, and 900px must restore two columns.
+        const stacked =
+          width === 540 && size === 14
+            ? await details.evaluate((element) => {
+                const container = element.closest('details')!;
+                return container.getBoundingClientRect().width <= 14 * parseFloat(getComputedStyle(container).fontSize);
+              })
+            : width <= 375 || (width === 540 && size === 20);
         if (stacked) {
           expect(value.y).toBeGreaterThanOrEqual(label.y + label.height);
           expect(value.width).toBeCloseTo((await details.boundingBox())!.width, 1);
@@ -1488,6 +1498,7 @@ for (const language of ['en', 'hu']) {
           expect(value.y).toBeCloseTo(label.y, 1);
         }
         expect(value.width).toBeGreaterThan(0);
+        expect(await details.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
         await expect(details).toHaveText(initialText);
         await expect(details.locator('dd').first()).toHaveCSS('line-height', `${size * 1.5}px`);
         expect(await picker.locator('.constraint-row-actions button').boundingBox()).toMatchObject({

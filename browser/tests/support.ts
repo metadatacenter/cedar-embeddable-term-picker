@@ -1,4 +1,4 @@
-import { Page, Route } from '@playwright/test';
+import { expect, Page, Route } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -55,14 +55,11 @@ function isRefusal(body: unknown): body is HierarchyRefusal {
   );
 }
 
-export async function stubSearch(
-  page: Page,
-  reply: (body: SearchBody) => unknown,
-): Promise<Recorded> {
+export async function stubSearch(page: Page, reply: (body: SearchBody) => unknown): Promise<Recorded> {
   const recorded: { bodies: unknown[] } = { bodies: [] };
   await page.route('**/search', async (route: Route) => {
     if (route.request().url().includes('/properties/search')) {
-      await route.fulfill({json: {total: 0, page: 1, pageSize: 25, items: []}});
+      await route.fulfill({ json: { total: 0, page: 1, pageSize: 25, items: [] } });
       return;
     }
     const body = route.request().postDataJSON() as SearchBody;
@@ -208,7 +205,18 @@ export async function openPicker(page: Page): Promise<void> {
 
 /** Types a query and waits for the debounce and the reply. */
 export async function search(page: Page, query: string): Promise<void> {
-  await page.locator('cedar-embeddable-term-picker input[type=search]').fill(query);
+  const input = page.locator('cedar-embeddable-term-picker input[type=search]');
+  if ((await input.inputValue()) !== query) {
+    const answered = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/search') &&
+        response.request().method() === 'POST' &&
+        response.request().postDataJSON()?.query === query,
+    );
+    await input.fill(query);
+    await answered;
+  }
+  await expect(page.locator('cedar-embeddable-term-picker .working')).toHaveClass(/\bidle\b/);
   await page.locator('cedar-embeddable-term-picker .tabs .badge').first().waitFor();
 }
 
@@ -250,4 +258,11 @@ export async function useHostFontsBuild(page: Page, options: { readonly hostFace
       await route.fulfill({ response, body });
     },
   );
+}
+
+/** Safari on macOS uses Option-Tab to include every control with its default keyboard settings. */
+export function tabKey(page: Page, key = 'Tab'): string {
+  return process.platform === 'darwin' && page.context().browser()?.browserType().name() === 'webkit'
+    ? `Alt+${key}`
+    : key;
 }

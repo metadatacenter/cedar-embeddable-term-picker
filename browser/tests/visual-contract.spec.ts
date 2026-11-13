@@ -38,9 +38,11 @@ for (const { width, hostFonts } of cases) {
       expect(tabBox!.x + tabBox!.width).toBeLessThanOrEqual(box!.x + box!.width);
     }
     expect(box!.x + box!.width).toBeLessThanOrEqual(width);
-    if (process.env.CETP_VISUAL) {
+    if (process.env.CETP_VISUAL && testInfo.project.use.browserName === 'chromium') {
       await expect(picker).toHaveScreenshot(`picker-${width}.png`, {
-        animations: 'disabled', maxDiffPixels: 0, threshold: 0.02,
+        animations: 'disabled',
+        maxDiffPixels: 0,
+        threshold: 0.02,
       });
     }
     await testInfo.attach('picker appearance', { body: await picker.screenshot(), contentType: 'image/png' });

@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 
 /**
  * Behaviour, not screenshots.
@@ -21,13 +21,20 @@ export default defineConfig({
   fullyParallel: true,
   workers: process.env.CEDAR_TEST_WORKERS ? Number(process.env.CEDAR_TEST_WORKERS) : undefined,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  retries: 0,
+  // A retry must not hide an unreliable case.
+  maxFailures: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'line' : 'list',
   use: {
     baseURL: `http://localhost:${port}`,
-    trace: 'on-first-retry',
+    trace: process.env.CEDAR_TEST_TRACE === 'on' ? 'retain-on-failure' : 'off',
+    screenshot: process.env.CI ? 'only-on-failure' : 'off',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // New functional/accessibility specs automatically run in every engine.
+  projects: (['chromium', 'firefox', 'webkit'] as const).map((browserName) => ({
+    name: browserName,
+    use: { browserName, viewport: { width: 1280, height: 720 } },
+  })),
   webServer: {
     command: 'node serve.mjs',
     url: `http://localhost:${port}`,
