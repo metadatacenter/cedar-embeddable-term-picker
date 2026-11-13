@@ -15,6 +15,15 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const port = Number(process.env.PORT ?? 4599);
 
+// Functional browser contracts share the existing worker budget; pixel baselines keep their own projects.
+const functionalSpecs = [
+  'picker.spec.ts',
+  'properties.spec.ts',
+  'state-coordination.spec.ts',
+  'structure.spec.ts',
+  'language.spec.ts',
+];
+
 export default defineConfig({
   testDir: './tests',
   testIgnore: 'unicode-policy.spec.ts',
@@ -22,12 +31,19 @@ export default defineConfig({
   workers: process.env.CEDAR_TEST_WORKERS ? Number(process.env.CEDAR_TEST_WORKERS) : undefined,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  // Stop a known-red CI/reactor run after a test exhausts its retry.
+  maxFailures: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'line' : 'list',
   use: {
     baseURL: `http://localhost:${port}`,
     trace: 'on-first-retry',
   },
   projects: [
+    ...(['firefox', 'webkit'] as const).map((browserName) => ({
+      name: `${browserName}-functional`,
+      testMatch: functionalSpecs,
+      use: { browserName },
+    })),
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     ...(['firefox', 'webkit'] as const).map((browserName) => ({
       name: `${browserName}-accessibility`,

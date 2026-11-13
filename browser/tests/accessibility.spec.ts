@@ -73,9 +73,18 @@ async function expectAccessible(page: Page, state: string): Promise<void> {
         .map((animation) => animation.finished.catch(() => undefined)),
     );
   });
-  const { violations: tagged, incomplete } = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-  const { violations: named } = await new AxeBuilder({ page }).withRules([LABEL_IN_NAME]).analyze();
-  const violations = [...tagged, ...named];
+  // Explicitly enabling the named rule retains it alongside the tagged rules in one analysis.
+  // options() precedes withTags() because it replaces the builder's previous options.
+  const scan = await new AxeBuilder({ page })
+    .options({ rules: { [LABEL_IN_NAME]: { enabled: true } } })
+    .withTags(WCAG)
+    .analyze();
+  const evaluated = [scan.passes, scan.violations, scan.incomplete, scan.inapplicable].flat();
+  expect(
+    evaluated.some((result) => result.id === LABEL_IN_NAME),
+    `${LABEL_IN_NAME} did not run`,
+  ).toBe(true);
+  const { violations, incomplete } = scan;
   // A label on an element whose role takes none is ignored by screen readers, decided or not.
   const ignoredLabels = incomplete.filter((result) => result.id === 'aria-prohibited-attr');
   const failures: string[] = [];
@@ -552,7 +561,7 @@ test('the vocabulary and release selector, hovered and focused', async ({ page }
   await hoveredAndFocused(page, 'the selector', picker(page).locator('.scope-selector select'));
 });
 
-test("a property's detail, its releases and their controls, hovered and focused", async ({ page }) => {
+async function propertyDetail(page: Page, releases = false): Promise<void> {
   await stubSearch(page, () => ({ sources: [], results: { class: results([]) } }));
   const parent = {
     iri: 'urn:related',
@@ -615,22 +624,40 @@ test("a property's detail, its releases and their controls, hovered and focused"
   await page.goto('/?mode=constraints');
   await picker(page).locator('.picker').waitFor();
   await picker(page).evaluate((element) => Object.assign(element, { termTypes: ['property'] }));
-  await picker(page).locator('input[type=search]').fill('part');
+  // Wait for the property-only configuration and its search to settle before opening a group.
+  // The development host starts with a disease query, which may already have supplied a count.
+  await expect(picker(page).getByRole('tab')).toHaveText([/^\s*Properties(?:\s+\d+)?\s*$/]);
+  await search(page, 'part');
   await picker(page)
     .getByRole('button', { name: /part of.*in 1 ontology/ })
     .click();
   const row = picker(page).getByRole('button', { name: 'part of in RO, object property', exact: true });
   await row.click();
   await expect(picker(page).locator('cetp-property-detail .tree')).toBeVisible();
+  if (releases) {
+    await picker(page).locator('.release-toggle').click();
+    await expect(picker(page).getByRole('group', { name: 'Property ontology releases' })).toBeVisible();
+  }
+}
+
+// Keep all ten scans while sharing them across workers instead of serializing them in one test.
+test('property detail: the hierarchy', async ({ page }) => {
+  await propertyDetail(page);
   await expectAccessible(page, 'property detail');
-  await picker(page).locator('.release-toggle').click();
-  await expect(picker(page).getByRole('group', { name: 'Property ontology releases' })).toBeVisible();
-  await expectAccessible(page, 'property releases');
-  for (const [kind, selector] of Object.entries({
-    "the property's release toggle": '.release-toggle',
-    'a property release': 'cetp-property-detail button.release',
-    "a property's parent": 'cetp-property-detail button.term',
-    "the property's select button": 'cetp-property-detail .use',
-  }))
-    await hoveredAndFocused(page, kind, picker(page).locator(selector).first());
 });
+
+test('property detail: ontology releases', async ({ page }) => {
+  await propertyDetail(page, true);
+  await expectAccessible(page, 'property releases');
+});
+
+for (const [kind, selector] of Object.entries({
+  "the property's release toggle": '.release-toggle',
+  'a property release': 'cetp-property-detail button.release',
+  "a property's parent": 'cetp-property-detail button.term',
+  "the property's select button": 'cetp-property-detail .use',
+}))
+  test(`property detail: ${kind}, hovered and focused`, async ({ page }) => {
+    await propertyDetail(page, true);
+    await hoveredAndFocused(page, kind, picker(page).locator(selector).first());
+  });
