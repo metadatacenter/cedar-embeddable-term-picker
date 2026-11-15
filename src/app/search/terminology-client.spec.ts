@@ -118,6 +118,43 @@ it('asks for a page by limit and offset, never by page number', async () => {
   }
 });
 
+it('searches each source at the system and release it names', async () => {
+  // The server reads `sourceSystem`, `sourceAcronym` and `version` from each entry. A pin that does
+  // not reach it is a search at latest, whose rows belong to another release than the field's.
+  const sent: { url: string; init?: RequestInit }[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      sent.push({ url, init });
+      return new Response(JSON.stringify({ query: 'melanoma', sources: [], results: {} }), { status: 200 });
+    }),
+  );
+  const client = new TerminologyClient();
+  client.setBaseUrl('https://local.example/');
+  const sources = [
+    { sourceSystem: 'bioportal', sourceAcronym: 'DOID', version: { id: 'hash-2025' } },
+    { sourceAcronym: 'NCIT', version: 'latest' as const },
+    { sourceSystem: 'agroportal', sourceAcronym: 'AGROVOC' },
+  ];
+
+  await client.search({ query: 'melanoma', types: ['class', 'branch'], sources, lang: 'hu', pageSize: 25 });
+
+  expect(sent).toHaveLength(1);
+  expect(sent[0].url).toBe('https://local.example/search');
+  expect(sent[0].init?.method).toBe('POST');
+  expect(JSON.parse(String(sent[0].init?.body))).toEqual({
+    query: 'melanoma',
+    types: ['class', 'branch'],
+    sources: [
+      { sourceSystem: 'bioportal', sourceAcronym: 'DOID', version: { id: 'hash-2025' } },
+      { sourceAcronym: 'NCIT', version: 'latest' },
+      { sourceSystem: 'agroportal', sourceAcronym: 'AGROVOC' },
+    ],
+    lang: 'hu',
+    limit: 25,
+  });
+});
+
 it('pages a property search by offset too', async () => {
   const bodies: Record<string, unknown>[] = [];
   vi.stubGlobal(

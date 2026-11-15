@@ -7,6 +7,7 @@ import {
   pageOf,
   results,
   search,
+  SearchBody,
   source,
   stubHierarchy,
   stubSearch,
@@ -88,6 +89,40 @@ test('a tab counts what the author will see, not what matched', async ({ page })
   // 2,552 labels, not 5,439 hits: the hit count saturates on every query worth typing.
   await expect(page.locator('cedar-embeddable-term-picker .tab').first()).toContainText('2,552');
   await expect(page.locator('cedar-embeddable-term-picker .tab').first()).not.toContainText('5,439');
+});
+
+test('a source the host pins is searched at its release, not at latest', async ({ page }) => {
+  const pin = { sourceSystem: 'bioportal', sourceAcronym: 'DOID', version: { id: 'hash-2025' } };
+  // Only a request that names the pinned release is answered with rows. A search sent at latest
+  // reads another release, and here it finds nothing.
+  const pinned = (body: SearchBody) =>
+    body.sources?.length === 1 &&
+    body.sources[0].sourceSystem === pin.sourceSystem &&
+    body.sources[0].sourceAcronym === pin.sourceAcronym &&
+    typeof body.sources[0].version === 'object' &&
+    body.sources[0].version.id === pin.version.id;
+  const recorded = await stubSearch(page, (body) =>
+    pinned(body)
+      ? {
+          sources: [source('DOID', { name: 'Human Disease Ontology' })],
+          results: { class: results([classHit('DOID', 'melanoma')]) },
+        }
+      : { sources: [], results: { class: results([]) } },
+  );
+  await openPicker(page);
+  await page.locator('cedar-embeddable-term-picker').evaluate(
+    (element, sources) => {
+      Object.assign(element, { sources });
+    },
+    [pin],
+  );
+  await search(page, 'melanoma');
+
+  await expect(page.locator('cedar-embeddable-term-picker .rowhead')).toHaveCount(1);
+  await expect(page.locator('cedar-embeddable-term-picker .rowhead')).toContainText('melanoma');
+  const bodies = recorded.bodies as SearchBody[];
+  expect(bodies.length).toBeGreaterThan(0);
+  expect(bodies.filter((body) => !pinned(body))).toEqual([]);
 });
 
 test('identical labels fold into one row, counting the ontologies that offer it', async ({ page }) => {

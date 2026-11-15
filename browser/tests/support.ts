@@ -89,7 +89,11 @@ function answer(replied: unknown, body: SearchBody): unknown {
 export interface SearchBody {
   readonly query: string;
   readonly types?: readonly string[];
-  readonly sources?: readonly { sourceAcronym: string }[];
+  readonly sources?: readonly {
+    readonly sourceSystem?: string;
+    readonly sourceAcronym: string;
+    readonly version?: { readonly id: string } | 'latest';
+  }[];
   readonly limit?: number;
   readonly offset?: number;
   readonly includeVersions?: boolean;
