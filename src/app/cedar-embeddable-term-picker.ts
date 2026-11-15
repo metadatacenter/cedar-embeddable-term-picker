@@ -1736,6 +1736,8 @@ export class CedarEmbeddableTermPicker {
     const marked = this.marked();
     if (marked !== null && (marked.type === 'class' || marked.type === 'branch')) {
       void this.readHierarchy(marked).then(() => this.followPick(acronym));
+    } else if (marked?.type === 'valueSet') {
+      void this.readValueSet(marked);
     }
   }
 
@@ -2157,7 +2159,40 @@ export class CedarEmbeddableTermPicker {
     this.picked.set(hit);
     if (hit.type === 'class' || hit.type === 'branch') {
       void this.readHierarchy(hit);
+    } else if (hit.type === 'valueSet') {
+      void this.readValueSet(hit);
     }
+  }
+
+  /**
+   * Asks whether the pinned release holds a value set, once per value set and release.
+   *
+   * A value-set row shows no tree, so the read is only the check `unrecordable` waits on, and a
+   * row of an unpinned collection needs none: its constraint records no release to disagree with.
+   */
+  private async readValueSet(hit: ValueSetHit): Promise<void> {
+    const version = this.hierarchyVersion(hit.sourceAcronym);
+    if (!version) return;
+    const key = `${this.keyOf(hit)}\u0000${version}`;
+    if (this.hierarchies().has(key) && this.hierarchies().get(key)?.kind !== 'failed') return;
+    const operation = this.state.begin(`valueSet:${key}`, () => this.treeQuestion(hit.sourceAcronym));
+    let outcome: HierarchyOutcome;
+    try {
+      outcome = await this.client.hierarchy(
+        hit.sourceAcronym,
+        hit.termBaseIri,
+        version,
+        undefined,
+        undefined,
+        'valueSet',
+      );
+    } catch (error) {
+      // As for a tree, a read that failed says nothing about the release, and the bar says so.
+      outcome = { kind: 'failed', reason: messageOf(error, String(error)) };
+    }
+    if (!operation.current()) return;
+    operation.finish();
+    this.hierarchies.update((held) => new Map(held).set(key, outcome));
   }
 
   /**
@@ -2503,7 +2538,9 @@ export class CedarEmbeddableTermPicker {
    * predates its import of MONDO — so the step is allowed and the recording is not.
    *
    * Only for a release the author pinned. An unpinned constraint records no release and is resolved
-   * at publish time, so there is nothing here to be inconsistent with.
+   * at publish time, so there is nothing here to be inconsistent with. A value set is held to its
+   * release as a class or branch is. A value-set constraint pinned to a release without that value
+   * set resolves to no values.
    */
   protected unrecordable(hit: Hit | null): Message | null {
     if (hit && this.actionMode() && hit.type !== 'class') return phrase('errors.actionNeedsTerm');
@@ -2515,7 +2552,7 @@ export class CedarEmbeddableTermPicker {
       !this.effectiveSources().some((source) => source.sourceAcronym === hit.sourceAcronym)
     )
       return phrase('errors.outsideFieldVocabulary');
-    if (hit === null || (hit.type !== 'class' && hit.type !== 'branch')) {
+    if (hit === null || (hit.type !== 'class' && hit.type !== 'branch' && hit.type !== 'valueSet')) {
       return null;
     }
     if (!this.hierarchyVersion(hit.sourceAcronym)) {

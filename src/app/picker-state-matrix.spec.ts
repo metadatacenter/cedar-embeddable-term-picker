@@ -3,7 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { CedarEmbeddableTermPicker } from './cedar-embeddable-term-picker';
 import { TerminologyClient, HierarchyOutcome } from './search/terminology-client';
 import { ControlledTermConfig } from './search/constraint-set';
-import { BranchHit, ClassHit, Hierarchy, SearchResponse } from './search/search-types';
+import { BranchHit, ClassHit, Hierarchy, SearchResponse, ValueSetHit } from './search/search-types';
+import { phrase } from './i18n/localization';
 import { hierarchyRows } from './search/hierarchy-rows';
 import { validHierarchy, validSearchResponse } from './search/response-validation';
 import { validIri } from './search/constraint-validation';
@@ -325,6 +326,69 @@ describe('picker state transition matrix', () => {
       expect(picker['unrecordable'](term)).toBeNull();
     });
   }
+
+  /*
+   * A value set pinned to a release is held to that release, as a class or branch is. It was recorded
+   * with its release at once and never checked, so a release without the value set went into the
+   * template and resolved to no values.
+   */
+  const valueSet: ValueSetHit = {
+    type: 'valueSet',
+    sourceSystem: 'bioportal',
+    sourceAcronym: 'TEST',
+    termBaseIri: 'urn:values',
+    termBaseLabel: 'Values',
+    termCount: 3,
+  };
+
+  it('records an unpinned value set without asking its release', () => {
+    const { picker } = setup();
+    picker['mark'](valueSet);
+    expect(client.hierarchy, 'an unpinned constraint records no release to check').not.toHaveBeenCalled();
+    expect(picker['unrecordable'](valueSet)).toBeNull();
+  });
+
+  it('checks a pinned value set against its release before it can be recorded', async () => {
+    const { fixture, picker } = setup();
+    // One constraint, so a pick is emitted rather than added to a table.
+    fixture.componentRef.setInput('selectionMode', 'constraint');
+    fixture.detectChanges();
+    const emitted = vi.fn();
+    picker.selected.subscribe(emitted);
+    picker['pinned'].set(new Map([['TEST', { id: 'old' }]]));
+    const absent = deferred<HierarchyOutcome>();
+    client.hierarchy.mockReturnValueOnce(absent.promise);
+    picker['mark'](valueSet);
+    expect(client.hierarchy).toHaveBeenCalledWith('TEST', 'urn:values', 'old', undefined, undefined, 'valueSet');
+    // The class and branch sentences, said of the value set while its release is read and after.
+    expect(picker['unrecordable'](valueSet)).toEqual(phrase('errors.checkingRelease'));
+    picker['choose'](valueSet);
+    expect(emitted, 'a value set its release was not yet asked about was recorded').not.toHaveBeenCalled();
+    absent.resolve({ kind: 'absent', reason: 'Release old of TEST does not contain urn:values.' });
+    await vi.waitFor(() =>
+      expect(picker['unrecordable'](valueSet)).toBe('Release old of TEST does not contain urn:values.'),
+    );
+    picker['choose'](valueSet);
+    expect(emitted, 'a value set its release lacks was recorded').not.toHaveBeenCalled();
+
+    // Stepping to a release that holds it asks again, and the pick then carries that release.
+    client.hierarchy.mockResolvedValueOnce({ kind: 'found', hierarchy: { ...tree, termIri: 'urn:values' } });
+    picker['pinTo'](valueSet, { id: 'new' }, 1);
+    expect(client.hierarchy).toHaveBeenLastCalledWith('TEST', 'urn:values', 'new', undefined, undefined, 'valueSet');
+    await vi.waitFor(() => expect(picker['unrecordable'](valueSet)).toBeNull());
+    picker['choose'](valueSet);
+    expect(emitted).toHaveBeenCalledWith({ ...valueSet, version: { id: 'new' } });
+  });
+
+  it('lets a pinned value set be retried after a read that failed', async () => {
+    const { picker } = setup();
+    picker['pinned'].set(new Map([['TEST', { id: 'release' }]]));
+    client.hierarchy.mockResolvedValueOnce({ kind: 'failed', reason: 'offline' });
+    await picker['readValueSet'](valueSet);
+    expect(picker['unrecordable'](valueSet)).toBe('offline');
+    await picker['readValueSet'](valueSet);
+    expect(picker['unrecordable'](valueSet)).toBeNull();
+  });
 
   for (const failure of [false, true])
     for (const operation of ['page', 'candidates', 'history']) {

@@ -1348,6 +1348,105 @@ test('a term the pinned release does not hold cannot be recorded', async ({ page
   expect(await page.evaluate(() => (window as unknown as { picks: number }).picks)).toBe(0);
 });
 
+test('a value set the pinned release does not hold cannot be recorded', async ({ page }) => {
+  // A value set was recorded with its release unchecked, so a release without it went into the
+  // template and resolved to no values. It is now asked of its release as a term is, and the bar
+  // says the same two things: that the release is being checked, and that it lacks the value set.
+  const iri = 'http://vs.example/study-type';
+  const versions = [
+    { id: 'hash-new', declaredVersion: '0.2.2' },
+    { id: 'hash-mid', declaredVersion: '0.2.0' },
+    { id: 'hash-old', declaredVersion: '0.1.0' },
+  ];
+  await stubSearch(page, (body) =>
+    body.includeVersions
+      ? { sources: [source('CEDARVS', { versionCount: 3, declaredVersion: '0.2.2', versions })], results: {} }
+      : {
+          ...MELANOMA,
+          sources: [...MELANOMA.sources, source('CEDARVS', { versionCount: 3, declaredVersion: '0.2.2' })],
+          results: {
+            ...MELANOMA.results,
+            valueSet: results([
+              {
+                type: 'valueSet',
+                sourceSystem: 'bioportal',
+                sourceAcronym: 'CEDARVS',
+                termBaseIri: iri,
+                termBaseLabel: 'Study Type',
+                termCount: 4,
+              },
+            ]),
+          },
+        },
+  );
+  const asked: URLSearchParams[] = [];
+  let answer: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => (answer = resolve));
+  await page.route('**/search/hierarchy*', async (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    asked.push(query);
+    await held;
+    await route.fulfill(
+      query.get('versionId') === 'hash-old'
+        ? {
+            status: 404,
+            json: {
+              message: `Release hash-old of CEDARVS does not contain ${iri}. Another release of the same source may contain it.`,
+            },
+          }
+        : {
+            json: {
+              sourceAcronym: 'CEDARVS',
+              termIri: iri,
+              termLabel: 'Study Type',
+              childCount: 4,
+              descendantCount: 4,
+            },
+          },
+    );
+  });
+  await openPicker(page);
+  await page.evaluate(() => {
+    const host = window as unknown as { picks: string[] };
+    host.picks = [];
+    document
+      .querySelector('cedar-embeddable-term-picker')
+      ?.addEventListener('selected', (event) =>
+        host.picks.push((event as CustomEvent<{ version?: { id: string } }>).detail.version?.id ?? 'latest'),
+      );
+  });
+  const picks = () => page.evaluate(() => (window as unknown as { picks: string[] }).picks);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.locator('.tab').nth(3).click();
+  await expect(picker.locator('.tab').nth(3)).toHaveAttribute('aria-selected', 'true');
+  const row = picker.locator('.row.pick', { hasText: 'Study Type' });
+  await row.click();
+  // Unpinned, the constraint records no release, so nothing is asked.
+  expect(asked).toHaveLength(0);
+
+  await row.locator('button.of').click();
+  await picker.locator('.release').nth(2).click();
+  const chosen = picker.locator('.chosen');
+  await expect(chosen.locator('.blocked')).toHaveText('Checking whether this release contains the term.');
+  expect(asked.map((query) => [query.get('termIri'), query.get('versionId'), query.get('type')])).toEqual([
+    [iri, 'hash-old', 'valueSet'],
+  ]);
+  answer();
+  await expect(chosen.locator('.blocked')).toContainText('does not contain');
+  await expect(chosen).toContainText('Study Type');
+  await expect(picker.locator('.selection-detail button.use')).toBeDisabled();
+  await row.dblclick();
+  expect(await picks()).toEqual([]);
+
+  // A release that holds it is asked in turn, lifts the refusal, and is the release recorded.
+  await picker.locator('.release').nth(1).click();
+  await expect(chosen.locator('.blocked')).toHaveCount(0);
+  expect(asked.map((query) => query.get('versionId'))).toEqual(['hash-old', 'hash-mid']);
+  await picker.locator('.selection-detail button.use').click();
+  await expect.poll(picks).toEqual(['hash-mid']);
+});
+
 test('authors a constraint set in compact tables and applies it as one event', async ({ page }) => {
   await stubSearch(page, () => MELANOMA);
   await stubHierarchy(page, () => null);
