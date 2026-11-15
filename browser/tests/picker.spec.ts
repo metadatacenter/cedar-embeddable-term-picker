@@ -1054,25 +1054,31 @@ test('the list fills itself, asks for one type, and keeps the ontologies it lear
   const arrived = page.locator('cedar-embeddable-term-picker .rowhead', { hasText: 'Intraocular melanoma' });
   await expect(arrived).toBeVisible();
 
-  // Appended once. The list keeps asking until a page comes back short, and a page appended to
-  // itself would be the failure that hides.
-  expect(await page.locator('cedar-embeddable-term-picker .rowhead').count()).toBe(3);
-  expect(await arrived.count()).toBe(1);
+  // A short page is the end of the list, and the list says so rather than asking again. Only the
+  // handled answer to page two can say it, so everything below reads a list that has stopped growing.
+  await expect(page.locator('cedar-embeddable-term-picker .tail')).toContainText('no more matches');
+  await expect(page.locator('cedar-embeddable-term-picker .working')).toHaveClass(/\bidle\b/);
+  // And it never claimed to be reading more of a list that did not exist yet.
+  await expect(page.locator('cedar-embeddable-term-picker .tail')).not.toContainText('reading more');
 
-  const asked = recorded.bodies.at(-1) as { types?: string[]; limit?: number; offset?: number; page?: number };
-  expect(asked.types).toEqual(['class']);
-  expect(asked.offset).toBe(25);
-  expect(asked.limit).toBe(25);
-  expect(asked.page, 'the request pages by offset alone').toBeUndefined();
+  // Asked once past page one. A second request for page two, or one past the short page, shows here.
+  const paged = (recorded.bodies as (SearchBody & { page?: number })[]).filter((body) => (body.offset ?? 0) > 0);
+  expect(paged.map((body) => body.offset)).toEqual([25]);
+  expect(paged[0].types).toEqual(['class']);
+  expect(paged[0].limit).toBe(25);
+  expect(paged[0].page, 'the request pages by offset alone').toBeUndefined();
+
+  // Appended once. A page appended to itself folds into the row it repeats, so the number of rows
+  // cannot show it. The row's count of the terms under it, and the terms themselves, can.
+  await expect(page.locator('cedar-embeddable-term-picker .rowhead')).toHaveCount(3);
+  await expect(arrived).toHaveCount(1);
+  await expect(arrived).toContainText('in 1 ontology');
 
   // A row reads its ontology's name from the envelope, and page two names one page one did not.
   await arrived.click();
-  await expect(page.locator('cedar-embeddable-term-picker .child').first()).toContainText('An Ontology From Page Two');
-
-  // A short page is the end of the list, and the list says so rather than asking again.
-  await expect(page.locator('cedar-embeddable-term-picker .tail')).toContainText('no more matches');
-  // And it never claimed to be reading more of a list that did not exist yet.
-  await expect(page.locator('cedar-embeddable-term-picker .tail')).not.toContainText('reading more');
+  const terms = page.locator('cedar-embeddable-term-picker .child');
+  await expect(terms).toHaveCount(1);
+  await expect(terms.first()).toContainText('An Ontology From Page Two');
 });
 
 test('the release count opens the whole history, and choosing from it pins', async ({ page }) => {
