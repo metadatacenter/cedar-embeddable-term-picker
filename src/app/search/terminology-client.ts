@@ -10,7 +10,7 @@ import {
   VersionInfo,
 } from './search-types';
 import { Message, MessageError, messageOf, phrase } from '../i18n/localization';
-import { validHierarchy, validSearchResponse } from './response-validation';
+import { readSearchResponse, validHierarchy } from './response-validation';
 import type { ControlledTermSet } from './constraint-set';
 import { INTEGRATED_SEARCH_PATH, integratedSearchRequest, integratedSearchResponse } from './integrated-search';
 
@@ -106,8 +106,9 @@ export class TerminologyClient {
     if (!response.ok) {
       throw new MessageError(refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }));
     }
-    if (!validSearchResponse(body)) throw new MessageError(phrase('errors.invalidResponse'));
-    return body;
+    const answer = readSearchResponse(body);
+    if (answer === null) throw new MessageError(phrase('errors.invalidResponse'));
+    return answer;
   }
 
   /**

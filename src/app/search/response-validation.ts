@@ -1,5 +1,5 @@
 import { validIri } from './constraint-validation';
-import { Hierarchy, SearchResponse, TAB_ORDER } from './search-types';
+import { Hierarchy, SearchKind, SearchResponse, TAB_ORDER } from './search-types';
 
 type RecordValue = Record<string, unknown>;
 const object = (value: unknown): value is RecordValue => !!value && typeof value === 'object' && !Array.isArray(value);
@@ -11,6 +11,22 @@ const refs = (value: unknown): boolean =>
     value.every(
       (ref) => object(ref) && validIri(ref['termIri']) && (ref['termLabel'] === undefined || text(ref['termLabel'])),
     ));
+
+/**
+ * The search answer as the picker reads it, or null when it cannot be used.
+ *
+ * A result kind the picker does not know is left out rather than refused. A server that adds a kind
+ * still answers the kinds the picker shows, and refusing the whole answer would turn every search
+ * into an error. A known kind that is malformed still refuses the answer.
+ */
+export function readSearchResponse(value: unknown): SearchResponse | null {
+  if (!object(value) || !object(value['results'])) return null;
+  const results = Object.fromEntries(
+    Object.entries(value['results']).filter(([kind]) => TAB_ORDER.includes(kind as SearchKind)),
+  );
+  const response = { ...value, results };
+  return validSearchResponse(response) ? response : null;
+}
 
 /** Reject unusable envelopes at the transport boundary, before computed views consume them. */
 export function validSearchResponse(value: unknown): value is SearchResponse {

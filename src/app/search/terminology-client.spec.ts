@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
+import { messageOf, phrase } from '../i18n/localization';
 import { TerminologyClient } from './terminology-client';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -153,6 +154,56 @@ it('searches each source at the system and release it names', async () => {
     lang: 'hu',
     limit: 25,
   });
+});
+
+it('shows the kinds it knows when the server answers one it does not', async () => {
+  const term = { type: 'class', sourceSystem: 'bioportal', sourceAcronym: 'DOID', termIri: 'urn:m', termLabel: 'm' };
+  const individual = { type: 'individual', sourceSystem: 'bioportal', sourceAcronym: 'DOID', iri: 'urn:i' };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            query: 'm',
+            sources: [],
+            results: {
+              class: { totalCount: 1, countCapped: false, page: 1, pageSize: 20, collection: [term] },
+              individual: { totalCount: 1, collection: [individual] },
+            },
+          }),
+          { status: 200 },
+        ),
+    ),
+  );
+
+  const answer = await new TerminologyClient().search({ query: 'm', types: ['class'] });
+
+  expect(answer.results.class?.collection).toEqual([term]);
+  expect(Object.keys(answer.results)).toEqual(['class']);
+});
+
+it('still refuses an answer whose known kind is malformed', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            query: 'm',
+            sources: [],
+            results: { class: { totalCount: 1, collection: [{ type: 'class', termIri: 'not an iri' }] } },
+          }),
+          { status: 200 },
+        ),
+    ),
+  );
+
+  const failure = await new TerminologyClient().search({ query: 'm', types: ['class'] }).then(
+    () => null,
+    (error: unknown) => error,
+  );
+  expect(messageOf(failure, phrase('errors.searchFailed'))).toEqual(phrase('errors.invalidResponse'));
 });
 
 it('pages a property search by offset too', async () => {
