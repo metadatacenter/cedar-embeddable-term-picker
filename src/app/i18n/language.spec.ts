@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { CedarEmbeddableTermPicker } from '../cedar-embeddable-term-picker';
 import { TerminologyClient } from '../search/terminology-client';
@@ -115,6 +116,42 @@ describe('the language input', () => {
     await hungarian.whenStable();
     expect(text(english, '.search .label')).toBe('Find terms');
     expect(text(hungarian, '.search .label')).toBe('Fogalmak keresése');
+  });
+});
+
+/*
+ * A search asks for no label language, and the store answers with its default labels.
+ *
+ * `lang` chooses the language of the labels a search returns, and a pick records the label it was
+ * shown. The language a field's terms are in belongs to the field, and the constraint's
+ * term-language key will state it. Until that key exists there is no language to send. The
+ * picker's own language is the author's: sent as `lang`, it would have a Hungarian-speaking author
+ * record Hungarian labels in an English template. Once the key exists, the picker sends its
+ * language as `lang`, and this test changes with it.
+ */
+describe('the label language a search asks for', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('is none, whatever language the picker speaks', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('/properties/search')) {
+          return new Response(JSON.stringify({ total: 0, page: 1, pageSize: 25, items: [] }), { status: 200 });
+        }
+        bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+        return new Response(JSON.stringify({ query: 'melanoma', sources: [], results: {} }), { status: 200 });
+      }),
+    );
+    TestBed.configureTestingModule({});
+    const fixture = TestBed.createComponent(CedarEmbeddableTermPicker);
+    fixture.componentRef.setInput('language', 'hu');
+    fixture.componentRef.setInput('query', 'melanoma');
+    await settle(fixture);
+
+    expect(bodies, 'the picker searched with the client it ships with').not.toHaveLength(0);
+    for (const body of bodies) expect(body).not.toHaveProperty('lang');
   });
 });
 
