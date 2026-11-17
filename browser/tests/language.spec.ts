@@ -194,11 +194,16 @@ async function openHungarian(page: Page, mode = 'constraint'): Promise<Locator> 
 
 test("a server's refusal is read in English, and the picker's own failure in its language", async ({ page }) => {
   let reachable = true;
-  await page.route('**/search', (route) =>
-    reachable
+  await page.route('**/search', (route) => {
+    // The host starts with "disease" before its language is changed. That answer
+    // must not satisfy the assertions for the search made in Hungarian below.
+    if (route.request().postDataJSON()?.query === 'disease') {
+      return route.fulfill({ json: { sources: [], results: {} } });
+    }
+    return reachable
       ? route.fulfill({ status: 400, json: { message: 'A source needs a sourceAcronym.' } })
-      : route.abort('failed'),
-  );
+      : route.abort('failed');
+  });
   const picker = await openHungarian(page);
   await picker.locator('input[type=search]').fill('melanoma');
   const notice = picker.locator('.notice');
