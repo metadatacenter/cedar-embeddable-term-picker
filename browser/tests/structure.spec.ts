@@ -163,7 +163,12 @@ test("a property's tree states its parents, the property and its children at the
   await page.goto('/?mode=constraints');
   await picker(page).locator('.picker').waitFor();
   await picker(page).evaluate((element) => Object.assign(element, { termTypes: ['property'] }));
-  await picker(page).locator('input[type=search]').fill('part');
+  // The host starts with a different query, and this fixture also answers it.
+  // Keep that old answer present so setup cannot accidentally rely on an empty list.
+  await expect(picker(page).getByRole('button', { name: /part of.*in 1 ontology/ })).toBeVisible();
+  // Rows deliberately remain visible during the debounce. Wait for this query's
+  // answer before opening its tree, or the arriving answer closes the old tree.
+  await search(page, 'part');
   await picker(page)
     .getByRole('button', { name: /part of.*in 1 ontology/ })
     .click();

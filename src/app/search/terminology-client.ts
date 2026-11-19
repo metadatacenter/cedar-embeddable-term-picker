@@ -10,7 +10,7 @@ import {
   VersionInfo,
 } from './search-types';
 import { Message, MessageError, messageOf, phrase } from '../i18n/localization';
-import { validHierarchy, validSearchResponse } from './response-validation';
+import { readSearchResponse, validHierarchy } from './response-validation';
 import type { ControlledTermSet } from './constraint-set';
 import { INTEGRATED_SEARCH_PATH, integratedSearchRequest, integratedSearchResponse } from './integrated-search';
 
@@ -106,8 +106,9 @@ export class TerminologyClient {
     if (!response.ok) {
       throw new MessageError(refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }));
     }
-    if (!validSearchResponse(body)) throw new MessageError(phrase('errors.invalidResponse'));
-    return body;
+    const answer = readSearchResponse(body);
+    if (answer === null) throw new MessageError(phrase('errors.invalidResponse'));
+    return answer;
   }
 
   /**
@@ -225,6 +226,10 @@ export class TerminologyClient {
    * answers to, a release that does not contain the term, a term the index does not hold — so the
    * server's own sentence is carried through rather than replaced by a guess. Any other status is a
    * failure, and a failure is not evidence about the store's contents.
+   *
+   * `valueSet` asks about a value set rather than a class or branch. The server then answers only
+   * where the release holds the IRI with values below it, which a tree read cannot say. A value of
+   * the collection, or a class of an ontology, is a term the release holds too.
    */
   async hierarchy(
     sourceAcronym: string,
@@ -232,6 +237,7 @@ export class TerminologyClient {
     versionId?: string,
     signal?: AbortSignal,
     offset?: number,
+    type?: 'valueSet',
   ): Promise<HierarchyOutcome> {
     const query = new URLSearchParams({ sourceAcronym, termIri });
     if (versionId) {
@@ -239,6 +245,9 @@ export class TerminologyClient {
     }
     if (offset) {
       query.set('offset', String(offset));
+    }
+    if (type) {
+      query.set('type', type);
     }
     const response = await reach(`${this.endpoint}/hierarchy?${query}`, { signal });
     const body: unknown = await response.json().catch(() => null);

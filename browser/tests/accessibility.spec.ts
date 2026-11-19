@@ -277,17 +277,28 @@ function contrastOf(one: readonly number[], other: readonly number[]): number {
 const hex = (rgb: readonly number[]) =>
   `#${rgb.map((channel) => Math.round(channel).toString(16).padStart(2, '0')).join('')}`;
 
-test('the picker opened, and each tab of an answer', async ({ page }) => {
+// Give each rendered state its own test budget. Five complete axe scans in one test
+// exhausted thirty seconds during the final scan despite successful UI transitions.
+test('the picker opened is accessible', async ({ page }) => {
   await stubSearch(page, () => ANSWER);
   await openPicker(page);
   await expectAccessible(page, 'opened');
-  await search(page, 'melanoma');
-  const tabs = picker(page).locator('.tab');
-  for (let index = 0; index < (await tabs.count()); index++) {
-    await tabs.nth(index).click();
-    await expectAccessible(page, `tab ${index + 1}`);
-  }
 });
+
+const answerTabs = ['Terms', 'Branches', 'Ontologies', 'Value sets'];
+for (const [index, label] of answerTabs.entries()) {
+  test(`the ${label} tab of an answer is accessible`, async ({ page }) => {
+    await stubSearch(page, () => ANSWER);
+    await openPicker(page);
+    await search(page, 'melanoma');
+    const tabs = picker(page).locator('.tab');
+    // Keep the inventory explicit so a new tab cannot silently escape this scan.
+    await expect(tabs).toHaveCount(answerTabs.length);
+    await expect(tabs.nth(index)).toContainText(label);
+    await tabs.nth(index).click();
+    await expectAccessible(page, label);
+  });
+}
 
 for (const [mode, width] of [
   ['constraint', 1280],

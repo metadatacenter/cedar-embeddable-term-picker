@@ -7,6 +7,7 @@ import {
   pageOf,
   results,
   search,
+  SearchBody,
   source,
   stubHierarchy,
   stubSearch,
@@ -88,6 +89,40 @@ test('a tab counts what the author will see, not what matched', async ({ page })
   // 2,552 labels, not 5,439 hits: the hit count saturates on every query worth typing.
   await expect(page.locator('cedar-embeddable-term-picker .tab').first()).toContainText('2,552');
   await expect(page.locator('cedar-embeddable-term-picker .tab').first()).not.toContainText('5,439');
+});
+
+test('a source the host pins is searched at its release, not at latest', async ({ page }) => {
+  const pin = { sourceSystem: 'bioportal', sourceAcronym: 'DOID', version: { id: 'hash-2025' } };
+  // Only a request that names the pinned release is answered with rows. A search sent at latest
+  // reads another release, and here it finds nothing.
+  const pinned = (body: SearchBody) =>
+    body.sources?.length === 1 &&
+    body.sources[0].sourceSystem === pin.sourceSystem &&
+    body.sources[0].sourceAcronym === pin.sourceAcronym &&
+    typeof body.sources[0].version === 'object' &&
+    body.sources[0].version.id === pin.version.id;
+  const recorded = await stubSearch(page, (body) =>
+    pinned(body)
+      ? {
+          sources: [source('DOID', { name: 'Human Disease Ontology' })],
+          results: { class: results([classHit('DOID', 'melanoma')]) },
+        }
+      : { sources: [], results: { class: results([]) } },
+  );
+  await openPicker(page);
+  await page.locator('cedar-embeddable-term-picker').evaluate(
+    (element, sources) => {
+      Object.assign(element, { sources });
+    },
+    [pin],
+  );
+  await search(page, 'melanoma');
+
+  await expect(page.locator('cedar-embeddable-term-picker .rowhead')).toHaveCount(1);
+  await expect(page.locator('cedar-embeddable-term-picker .rowhead')).toContainText('melanoma');
+  const bodies = recorded.bodies as SearchBody[];
+  expect(bodies.length).toBeGreaterThan(0);
+  expect(bodies.filter((body) => !pinned(body))).toEqual([]);
 });
 
 test('identical labels fold into one row, counting the ontologies that offer it', async ({ page }) => {
@@ -1019,25 +1054,31 @@ test('the list fills itself, asks for one type, and keeps the ontologies it lear
   const arrived = page.locator('cedar-embeddable-term-picker .rowhead', { hasText: 'Intraocular melanoma' });
   await expect(arrived).toBeVisible();
 
-  // Appended once. The list keeps asking until a page comes back short, and a page appended to
-  // itself would be the failure that hides.
-  expect(await page.locator('cedar-embeddable-term-picker .rowhead').count()).toBe(3);
-  expect(await arrived.count()).toBe(1);
+  // A short page is the end of the list, and the list says so rather than asking again. Only the
+  // handled answer to page two can say it, so everything below reads a list that has stopped growing.
+  await expect(page.locator('cedar-embeddable-term-picker .tail')).toContainText('no more matches');
+  await expect(page.locator('cedar-embeddable-term-picker .working')).toHaveClass(/\bidle\b/);
+  // And it never claimed to be reading more of a list that did not exist yet.
+  await expect(page.locator('cedar-embeddable-term-picker .tail')).not.toContainText('reading more');
 
-  const asked = recorded.bodies.at(-1) as { types?: string[]; limit?: number; offset?: number; page?: number };
-  expect(asked.types).toEqual(['class']);
-  expect(asked.offset).toBe(25);
-  expect(asked.limit).toBe(25);
-  expect(asked.page, 'the request pages by offset alone').toBeUndefined();
+  // Asked once past page one. A second request for page two, or one past the short page, shows here.
+  const paged = (recorded.bodies as (SearchBody & { page?: number })[]).filter((body) => (body.offset ?? 0) > 0);
+  expect(paged.map((body) => body.offset)).toEqual([25]);
+  expect(paged[0].types).toEqual(['class']);
+  expect(paged[0].limit).toBe(25);
+  expect(paged[0].page, 'the request pages by offset alone').toBeUndefined();
+
+  // Appended once. A page appended to itself folds into the row it repeats, so the number of rows
+  // cannot show it. The row's count of the terms under it, and the terms themselves, can.
+  await expect(page.locator('cedar-embeddable-term-picker .rowhead')).toHaveCount(3);
+  await expect(arrived).toHaveCount(1);
+  await expect(arrived).toContainText('in 1 ontology');
 
   // A row reads its ontology's name from the envelope, and page two names one page one did not.
   await arrived.click();
-  await expect(page.locator('cedar-embeddable-term-picker .child').first()).toContainText('An Ontology From Page Two');
-
-  // A short page is the end of the list, and the list says so rather than asking again.
-  await expect(page.locator('cedar-embeddable-term-picker .tail')).toContainText('no more matches');
-  // And it never claimed to be reading more of a list that did not exist yet.
-  await expect(page.locator('cedar-embeddable-term-picker .tail')).not.toContainText('reading more');
+  const terms = page.locator('cedar-embeddable-term-picker .child');
+  await expect(terms).toHaveCount(1);
+  await expect(terms.first()).toContainText('An Ontology From Page Two');
 });
 
 test('the release count opens the whole history, and choosing from it pins', async ({ page }) => {
@@ -1305,6 +1346,105 @@ test('a term the pinned release does not hold cannot be recorded', async ({ page
   // Committing is refused: a constraint naming a term its release lacks resolves to nothing later.
   await ncit.dblclick();
   expect(await page.evaluate(() => (window as unknown as { picks: number }).picks)).toBe(0);
+});
+
+test('a value set the pinned release does not hold cannot be recorded', async ({ page }) => {
+  // A value set was recorded with its release unchecked, so a release without it went into the
+  // template and resolved to no values. It is now asked of its release as a term is, and the bar
+  // says the same two things: that the release is being checked, and that it lacks the value set.
+  const iri = 'http://vs.example/study-type';
+  const versions = [
+    { id: 'hash-new', declaredVersion: '0.2.2' },
+    { id: 'hash-mid', declaredVersion: '0.2.0' },
+    { id: 'hash-old', declaredVersion: '0.1.0' },
+  ];
+  await stubSearch(page, (body) =>
+    body.includeVersions
+      ? { sources: [source('CEDARVS', { versionCount: 3, declaredVersion: '0.2.2', versions })], results: {} }
+      : {
+          ...MELANOMA,
+          sources: [...MELANOMA.sources, source('CEDARVS', { versionCount: 3, declaredVersion: '0.2.2' })],
+          results: {
+            ...MELANOMA.results,
+            valueSet: results([
+              {
+                type: 'valueSet',
+                sourceSystem: 'bioportal',
+                sourceAcronym: 'CEDARVS',
+                termBaseIri: iri,
+                termBaseLabel: 'Study Type',
+                termCount: 4,
+              },
+            ]),
+          },
+        },
+  );
+  const asked: URLSearchParams[] = [];
+  let answer: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => (answer = resolve));
+  await page.route('**/search/hierarchy*', async (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    asked.push(query);
+    await held;
+    await route.fulfill(
+      query.get('versionId') === 'hash-old'
+        ? {
+            status: 404,
+            json: {
+              message: `Release hash-old of CEDARVS does not contain ${iri}. Another release of the same source may contain it.`,
+            },
+          }
+        : {
+            json: {
+              sourceAcronym: 'CEDARVS',
+              termIri: iri,
+              termLabel: 'Study Type',
+              childCount: 4,
+              descendantCount: 4,
+            },
+          },
+    );
+  });
+  await openPicker(page);
+  await page.evaluate(() => {
+    const host = window as unknown as { picks: string[] };
+    host.picks = [];
+    document
+      .querySelector('cedar-embeddable-term-picker')
+      ?.addEventListener('selected', (event) =>
+        host.picks.push((event as CustomEvent<{ version?: { id: string } }>).detail.version?.id ?? 'latest'),
+      );
+  });
+  const picks = () => page.evaluate(() => (window as unknown as { picks: string[] }).picks);
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  await picker.locator('.tab').nth(3).click();
+  await expect(picker.locator('.tab').nth(3)).toHaveAttribute('aria-selected', 'true');
+  const row = picker.locator('.row.pick', { hasText: 'Study Type' });
+  await row.click();
+  // Unpinned, the constraint records no release, so nothing is asked.
+  expect(asked).toHaveLength(0);
+
+  await row.locator('button.of').click();
+  await picker.locator('.release').nth(2).click();
+  const chosen = picker.locator('.chosen');
+  await expect(chosen.locator('.blocked')).toHaveText('Checking whether this release contains the term.');
+  expect(asked.map((query) => [query.get('termIri'), query.get('versionId'), query.get('type')])).toEqual([
+    [iri, 'hash-old', 'valueSet'],
+  ]);
+  answer();
+  await expect(chosen.locator('.blocked')).toContainText('does not contain');
+  await expect(chosen).toContainText('Study Type');
+  await expect(picker.locator('.selection-detail button.use')).toBeDisabled();
+  await row.dblclick();
+  expect(await picks()).toEqual([]);
+
+  // A release that holds it is asked in turn, lifts the refusal, and is the release recorded.
+  await picker.locator('.release').nth(1).click();
+  await expect(chosen.locator('.blocked')).toHaveCount(0);
+  expect(asked.map((query) => query.get('versionId'))).toEqual(['hash-old', 'hash-mid']);
+  await picker.locator('.selection-detail button.use').click();
+  await expect.poll(picks).toEqual(['hash-mid']);
 });
 
 test('authors a constraint set in compact tables and applies it as one event', async ({ page }) => {

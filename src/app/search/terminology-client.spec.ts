@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
+import { messageOf, phrase } from '../i18n/localization';
 import { TerminologyClient } from './terminology-client';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -116,6 +117,93 @@ it('asks for a page by limit and offset, never by page number', async () => {
     expect(body).not.toHaveProperty('page');
     expect(body).not.toHaveProperty('pageSize');
   }
+});
+
+it('searches each source at the system and release it names', async () => {
+  // The server reads `sourceSystem`, `sourceAcronym` and `version` from each entry. A pin that does
+  // not reach it is a search at latest, whose rows belong to another release than the field's.
+  const sent: { url: string; init?: RequestInit }[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      sent.push({ url, init });
+      return new Response(JSON.stringify({ query: 'melanoma', sources: [], results: {} }), { status: 200 });
+    }),
+  );
+  const client = new TerminologyClient();
+  client.setBaseUrl('https://local.example/');
+  const sources = [
+    { sourceSystem: 'bioportal', sourceAcronym: 'DOID', version: { id: 'hash-2025' } },
+    { sourceAcronym: 'NCIT', version: 'latest' as const },
+    { sourceSystem: 'agroportal', sourceAcronym: 'AGROVOC' },
+  ];
+
+  await client.search({ query: 'melanoma', types: ['class', 'branch'], sources, lang: 'hu', pageSize: 25 });
+
+  expect(sent).toHaveLength(1);
+  expect(sent[0].url).toBe('https://local.example/search');
+  expect(sent[0].init?.method).toBe('POST');
+  expect(JSON.parse(String(sent[0].init?.body))).toEqual({
+    query: 'melanoma',
+    types: ['class', 'branch'],
+    sources: [
+      { sourceSystem: 'bioportal', sourceAcronym: 'DOID', version: { id: 'hash-2025' } },
+      { sourceAcronym: 'NCIT', version: 'latest' },
+      { sourceSystem: 'agroportal', sourceAcronym: 'AGROVOC' },
+    ],
+    lang: 'hu',
+    limit: 25,
+  });
+});
+
+it('shows the kinds it knows when the server answers one it does not', async () => {
+  const term = { type: 'class', sourceSystem: 'bioportal', sourceAcronym: 'DOID', termIri: 'urn:m', termLabel: 'm' };
+  const individual = { type: 'individual', sourceSystem: 'bioportal', sourceAcronym: 'DOID', iri: 'urn:i' };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            query: 'm',
+            sources: [],
+            results: {
+              class: { totalCount: 1, countCapped: false, page: 1, pageSize: 20, collection: [term] },
+              individual: { totalCount: 1, collection: [individual] },
+            },
+          }),
+          { status: 200 },
+        ),
+    ),
+  );
+
+  const answer = await new TerminologyClient().search({ query: 'm', types: ['class'] });
+
+  expect(answer.results.class?.collection).toEqual([term]);
+  expect(Object.keys(answer.results)).toEqual(['class']);
+});
+
+it('still refuses an answer whose known kind is malformed', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            query: 'm',
+            sources: [],
+            results: { class: { totalCount: 1, collection: [{ type: 'class', termIri: 'not an iri' }] } },
+          }),
+          { status: 200 },
+        ),
+    ),
+  );
+
+  const failure = await new TerminologyClient().search({ query: 'm', types: ['class'] }).then(
+    () => null,
+    (error: unknown) => error,
+  );
+  expect(messageOf(failure, phrase('errors.searchFailed'))).toEqual(phrase('errors.invalidResponse'));
 });
 
 it('pages a property search by offset too', async () => {
