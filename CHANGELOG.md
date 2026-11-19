@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-11-19
+
+Aligns with `cedar-model-typescript-library@1.0.29`.
+
+### Fixed
+
+- Shows the result kinds the picker knows when a search answer also carries one it does not, instead of refusing the whole answer as invalid.
+
 ## [0.1.2] - 2026-11-13
 
 Aligns with `cedar-model-typescript-library@1.0.28`.
