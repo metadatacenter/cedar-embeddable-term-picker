@@ -1508,7 +1508,7 @@ test('two pickers keep their terminology endpoints separate', async ({ page }) =
     requests.push({ query: body.query, path });
     await route.fulfill({
       json: path.includes('/properties/')
-        ? { total: 0, page: 1, pageSize: 25, items: [] }
+        ? { totalCount: 0, request: { limit: 25, offset: 0 }, currentOffset: 0, items: [] }
         : { query: body.query, sources: [], results: {} },
     });
   });

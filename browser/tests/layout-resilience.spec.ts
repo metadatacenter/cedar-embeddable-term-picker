@@ -212,9 +212,9 @@ async function stubAll(page: Page, answer: Answer = ANSWER, propertySource = 'RO
   await page.route('**/properties/search', (route) =>
     route.fulfill({
       json: {
-        total: 1,
-        page: 1,
-        pageSize: 25,
+        totalCount: 1,
+        request: { limit: 25, offset: 0 },
+        currentOffset: 0,
         items:
           (route.request().postDataJSON().offset ?? 0) > 0
             ? []
