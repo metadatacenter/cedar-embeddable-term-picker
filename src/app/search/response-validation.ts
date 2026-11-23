@@ -22,10 +22,28 @@ const refs = (value: unknown): boolean =>
 export function readSearchResponse(value: unknown): SearchResponse | null {
   if (!object(value) || !object(value['results'])) return null;
   const results = Object.fromEntries(
-    Object.entries(value['results']).filter(([kind]) => TAB_ORDER.includes(kind as SearchKind)),
+    Object.entries(value['results'])
+      .filter(([kind]) => TAB_ORDER.includes(kind as SearchKind))
+      .map(([kind, block]) => [kind, withPage(block)]),
   );
   const response = { ...value, results };
   return validSearchResponse(response) ? response : null;
+}
+
+/**
+ * A kind's block with its one-based `page` and its `pageSize` worked out from the limit and offset
+ * it was served at. The server states a page by `request` and `currentOffset` alone.
+ */
+function withPage(block: unknown): unknown {
+  if (!object(block)) return block;
+  const request = block['request'];
+  if (!object(request)) return block;
+  const limit = request['limit'];
+  const offset = block['currentOffset'] ?? request['offset'];
+  if (typeof limit !== 'number' || typeof offset !== 'number' || !count(limit) || limit < 1 || !count(offset)) {
+    return block;
+  }
+  return { ...block, page: Math.floor(offset / limit) + 1, pageSize: limit };
 }
 
 /** Reject unusable envelopes at the transport boundary, before computed views consume them. */

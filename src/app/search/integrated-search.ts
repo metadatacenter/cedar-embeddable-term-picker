@@ -30,8 +30,8 @@ export function searchableConstraints(set: ControlledTermSet | undefined): reado
   return (set?.constraints ?? []).filter((c) => wireConstraint(c) !== null);
 }
 
-/** The request for one page of terms matching `query` within the set. */
-export function integratedSearchRequest(query: string, set: ControlledTermSet, page: number, pageSize: number) {
+/** The request for one page of terms matching `query` within the set, stated as a limit and an offset. */
+export function integratedSearchRequest(query: string, set: ControlledTermSet, limit: number, offset: number) {
   const valueConstraints = {
     ontologies: [] as object[],
     branches: [] as object[],
@@ -43,7 +43,7 @@ export function integratedSearchRequest(query: string, set: ControlledTermSet, p
     const wire = wireConstraint(constraint);
     if (wire !== null) valueConstraints[wire.list].push(wire.entry);
   }
-  return { parameterObject: { valueConstraints, inputText: query }, page, pageSize };
+  return { parameterObject: { valueConstraints, inputText: query }, limit, offset };
 }
 
 type WireList = 'ontologies' | 'branches' | 'classes' | 'valueSets';
@@ -158,12 +158,12 @@ export function integratedSearchResponse(
   body: unknown,
   query: string,
   set: ControlledTermSet,
-  page: number,
-  pageSize: number,
+  limit: number,
+  offset: number,
 ): SearchResponse | null {
   if (!object(body) || !Array.isArray(body['collection'])) return null;
   const total = body['totalCount'];
-  if (!Number.isSafeInteger(total) || (total as number) < 0) return null;
+  if (!count(total)) return null;
   const hits: ClassHit[] = [];
   for (const item of body['collection']) {
     const hit = object(item) ? hitOf(item, set) : null;
@@ -173,13 +173,23 @@ export function integratedSearchResponse(
   for (const hit of hits) {
     if (!sources.has(hit.sourceAcronym)) sources.set(hit.sourceAcronym, sourceOf(hit, set));
   }
+  // The server states the window it answered. The picker counts pages, so the window becomes one.
+  const request = body['request'];
+  const answeredLimit = object(request) && count(request['limit']) && request['limit'] > 0 ? request['limit'] : limit;
+  const answeredOffset = count(body['currentOffset']) ? body['currentOffset'] : offset;
+  const page = Math.floor(answeredOffset / answeredLimit) + 1;
   return {
     query,
     sources: [...sources.values()],
     results: {
-      class: { totalCount: total as number, countCapped: false, page, pageSize, collection: hits },
+      class: { totalCount: total, countCapped: false, page, pageSize: answeredLimit, collection: hits },
     },
   };
+}
+
+/** A count as the server states one: a non-negative safe integer. */
+function count(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= 0;
 }
 
 /**
