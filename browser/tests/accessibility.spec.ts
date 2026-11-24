@@ -140,6 +140,12 @@ const MINIMUM_CONTRAST = 4.5;
 const SETTLED: readonly Settled[] = [
   {
     rule: 'color-contrast',
+    selector: '.child > .version.pinned',
+    measured: { ratio: 9.82, text: '#173f3e', background: '#e2eff0' },
+    why: 'WebKit reports the wrapping pinned-version span as obscured by itself. Its glyphs receive the hit test below; the screenshot probe remeasures their painted background on every undecided result.',
+  },
+  {
+    rule: 'color-contrast',
     selector: '.detail dt',
     measured: { ratio: 6.87, text: '#555555', background: '#f4f6f6' },
     why: 'WebKit reports the definition-list label as partly obscured. Its visible text sits on the detail surface; the screenshot probe measures that surface again on every run.',
@@ -477,8 +483,29 @@ for (const width of [1280, 375]) {
     await expectAccessible(page, 'release history');
     await picker(page).locator('.history button.release').nth(1).click();
     await expect(picker(page).locator('.child').first().locator('.version')).toHaveText('26.06e');
+    // Read the pinned identity in full before measuring its contrast; the history
+    // click can leave this now-wrapping summary partly above the scroll viewport.
+    await picker(page).locator('.child').first().locator('.version').scrollIntoViewIfNeeded();
+    expect(
+      await picker(page)
+        .locator('.child')
+        .first()
+        .locator('.version')
+        .evaluate((element) => {
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          const root = element.getRootNode() as ShadowRoot;
+          return [...range.getClientRects()].every((box) =>
+            [box.left + 1, box.left + box.width / 2, box.right - 1].every((x) =>
+              element.contains(root.elementFromPoint(x, box.top + box.height / 2)),
+            ),
+          );
+        }),
+      'the complete pinned label is unobstructed',
+    ).toBe(true);
     await expectAccessible(page, 'pinned release');
     await picker(page).evaluate((element) => element.setAttribute('language', 'hu'));
+    await picker(page).locator('.child').first().locator('.version').scrollIntoViewIfNeeded();
     await expectAccessible(page, 'pinned release in Hungarian');
   });
 }
@@ -595,9 +622,9 @@ async function propertyDetail(page: Page, releases = false): Promise<void> {
   await page.route('**/properties/search', (route) =>
     route.fulfill({
       json: {
-        total: 1,
-        page: 1,
-        pageSize: 25,
+        totalCount: 1,
+        request: { limit: 25, offset: 0 },
+        currentOffset: 0,
         items:
           (route.request().postDataJSON().offset ?? 0) > 0
             ? []

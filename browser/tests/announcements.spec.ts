@@ -88,7 +88,7 @@ test('a tab with nothing in it says so with the counts', async ({ page }) => {
 test('a search that failed says why, as the notice does', async ({ page }) => {
   await page.route('**/search', (route) =>
     route.request().url().includes('/properties/')
-      ? route.fulfill({ json: { total: 0, page: 1, pageSize: 25, items: [] } })
+      ? route.fulfill({ json: { totalCount: 0, request: { limit: 25, offset: 0 }, currentOffset: 0, items: [] } })
       : route.fulfill({ status: 503, json: { message: 'the index is being rebuilt' } }),
   );
   await openEmpty(page);
@@ -127,7 +127,7 @@ test('scrolling for more says the list is reading, then that it has ended', asyn
   const held = new Promise<void>((resolve) => (release = resolve));
   await page.route('**/search', async (route) => {
     if (route.request().url().includes('/properties/')) {
-      await route.fulfill({ json: { total: 0, page: 1, pageSize: 25, items: [] } });
+      await route.fulfill({ json: { totalCount: 0, request: { limit: 25, offset: 0 }, currentOffset: 0, items: [] } });
       return;
     }
     const body = route.request().postDataJSON();

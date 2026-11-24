@@ -10,9 +10,9 @@ it('searches properties locally with the requested ontology pin and merges them 
         JSON.stringify(
           url.endsWith('/properties/search')
             ? {
-                total: 1,
-                page: 1,
-                pageSize: 25,
+                totalCount: 1,
+                request: { limit: 25, offset: 0 },
+                currentOffset: 0,
                 items: [
                   {
                     sourceAcronym: 'RO',
@@ -212,14 +212,78 @@ it('pages a property search by offset too', async () => {
     'fetch',
     vi.fn(async (_url: string, init?: RequestInit) => {
       bodies.push(JSON.parse(String(init?.body)));
-      return new Response(JSON.stringify({ total: 0, page: 2, pageSize: 25, items: [] }), { status: 200 });
+      return new Response(
+        JSON.stringify({ totalCount: 30, request: { limit: 25, offset: 25 }, currentOffset: 25, items: [] }),
+        { status: 200 },
+      );
     }),
   );
   const client = new TerminologyClient();
   client.setBaseUrl('https://local.example/');
 
-  await client.search({ query: 'part', types: ['property'], page: 2, pageSize: 25 });
+  const answer = await client.search({ query: 'part', types: ['property'], page: 2, pageSize: 25 });
 
   expect(bodies[0]).toMatchObject({ query: 'part', limit: 25, offset: 25 });
   expect(bodies[0]).not.toHaveProperty('page');
+  expect(answer.results.property).toMatchObject({ totalCount: 30, page: 2, pageSize: 25 });
+});
+
+it('asks for a page within a field by limit and offset, and reads the page from the answered window', async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const urls: string[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      urls.push(url);
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(
+        JSON.stringify({ totalCount: 60, request: { limit: 25, offset: 50 }, currentOffset: 50, collection: [] }),
+        { status: 200 },
+      );
+    }),
+  );
+  const client = new TerminologyClient();
+  client.setBaseUrl('https://local.example/');
+
+  const answer = await client.searchWithin(
+    { query: 'asthma', types: ['class'], page: 3, pageSize: 25 },
+    { constraints: [{ sourceType: 'ontology', ontologyId: 'HP' }], actions: [] },
+  );
+
+  expect(urls[0]).toMatch(/bioportal\/integrated-search$/);
+  expect(bodies[0]).toMatchObject({ limit: 25, offset: 50 });
+  expect(bodies[0]).not.toHaveProperty('page');
+  expect(bodies[0]).not.toHaveProperty('pageSize');
+  expect(answer.results.class).toMatchObject({ totalCount: 60, page: 3, pageSize: 25 });
+});
+
+it("works out each kind's page from the limit and offset it was served at", async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            query: 'x',
+            sources: [],
+            results: {
+              class: {
+                totalCount: 120,
+                countCapped: false,
+                request: { limit: 25, offset: 50 },
+                currentOffset: 50,
+                collection: [],
+              },
+            },
+          }),
+          { status: 200 },
+        ),
+    ),
+  );
+  const client = new TerminologyClient();
+  client.setBaseUrl('https://local.example/');
+
+  const answer = await client.search({ query: 'x', types: ['class'], page: 3, pageSize: 25 });
+
+  expect(answer.results.class).toMatchObject({ page: 3, pageSize: 25, totalCount: 120 });
 });

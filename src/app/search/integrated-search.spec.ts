@@ -46,7 +46,7 @@ const field: ControlledTermSet = {
 
 describe('searching within a field', () => {
   it('sends each constraint as the server takes it, and leaves a property out', () => {
-    const body = integratedSearchRequest('asthma', field, 2, 20);
+    const body = integratedSearchRequest('asthma', field, 20, 20);
     expect(body).toEqual({
       parameterObject: {
         inputText: 'asthma',
@@ -75,8 +75,8 @@ describe('searching within a field', () => {
           ],
         },
       },
-      page: 2,
-      pageSize: 20,
+      limit: 20,
+      offset: 20,
     });
     expect(searchableConstraints(field)).toHaveLength(4);
   });
@@ -87,8 +87,8 @@ describe('searching within a field', () => {
     const body = integratedSearchRequest(
       'x',
       { constraints: [{ ...branch, searchDepth: undefined }], actions: [] },
-      1,
       20,
+      0,
     );
     expect(body.parameterObject.valueConstraints.branches[0]).not.toHaveProperty('maxDepth');
   });
@@ -123,8 +123,8 @@ describe('searching within a field', () => {
       },
       'a',
       field,
-      1,
       20,
+      0,
     );
     expect(answer?.results.class?.totalCount).toBe(3);
     expect(answer?.results.class?.collection).toEqual([
@@ -158,9 +158,20 @@ describe('searching within a field', () => {
     ]);
   });
 
+  it('reads the page from the window the server answered', () => {
+    const answer = integratedSearchResponse(
+      { totalCount: 45, request: { limit: 20, offset: 40 }, currentOffset: 40, collection: [] },
+      'a',
+      field,
+      20,
+      0,
+    );
+    expect(answer?.results.class).toMatchObject({ totalCount: 45, page: 3, pageSize: 20 });
+  });
+
   it('is not an answer without a count and a collection', () => {
-    expect(integratedSearchResponse({ collection: [] }, 'a', field, 1, 20)).toBeNull();
-    expect(integratedSearchResponse({ totalCount: 0 }, 'a', field, 1, 20)).toBeNull();
-    expect(integratedSearchResponse(null, 'a', field, 1, 20)).toBeNull();
+    expect(integratedSearchResponse({ collection: [] }, 'a', field, 20, 0)).toBeNull();
+    expect(integratedSearchResponse({ totalCount: 0 }, 'a', field, 20, 0)).toBeNull();
+    expect(integratedSearchResponse(null, 'a', field, 20, 0)).toBeNull();
   });
 });

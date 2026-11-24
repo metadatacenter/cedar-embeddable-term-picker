@@ -59,7 +59,7 @@ export async function stubSearch(page: Page, reply: (body: SearchBody) => unknow
   const recorded: { bodies: unknown[] } = { bodies: [] };
   await page.route('**/search', async (route: Route) => {
     if (route.request().url().includes('/properties/search')) {
-      await route.fulfill({ json: { total: 0, page: 1, pageSize: 25, items: [] } });
+      await route.fulfill({ json: { totalCount: 0, request: { limit: 25, offset: 0 }, currentOffset: 0, items: [] } });
       return;
     }
     const body = route.request().postDataJSON() as SearchBody;

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-11-24
+
+Aligns with `cedar-model-typescript-library@1.0.29`.
+
+### Changed
+
+- Pages integrated and property search by limit and offset rather than by page number, which the terminology server is withdrawing, and reads the paging envelope the server answers with. The published `TypeResults` type still reports each kind's page and page size.
+- Shows complete ontology names, term labels and release versions, wrapping them rather than shortening them, including on narrow hosts.
+- Scrolls the picker's content within its own area on a short host, rather than painting it behind the Done button.
+
 ## [0.1.3] - 2026-11-19
 
 Aligns with `cedar-model-typescript-library@1.0.29`.

@@ -118,19 +118,19 @@ export class TerminologyClient {
    * results and nothing else. See `integrated-search.ts` for why it is a different route.
    */
   async searchWithin(query: SearchQuery, within: ControlledTermSet, signal?: AbortSignal): Promise<SearchResponse> {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? SEARCH_DEFAULT_LIMIT;
+    const limit = query.pageSize ?? SEARCH_DEFAULT_LIMIT;
+    const offset = ((query.page ?? 1) - 1) * limit;
     const response = await reach(this.endpoint.replace(/search$/, INTEGRATED_SEARCH_PATH), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(integratedSearchRequest(query.query, within, page, pageSize)),
+      body: JSON.stringify(integratedSearchRequest(query.query, within, limit, offset)),
       signal,
     });
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       throw new MessageError(refusalMessage(body) ?? phrase('errors.serverAnswered', { status: response.status }));
     }
-    const answer = integratedSearchResponse(body, query.query, within, page, pageSize);
+    const answer = integratedSearchResponse(body, query.query, within, limit, offset);
     if (answer === null) throw new MessageError(phrase('errors.invalidResponse'));
     return answer;
   }
@@ -152,10 +152,11 @@ export class TerminologyClient {
   }
 
   private async searchProperties(query: SearchQuery, signal?: AbortSignal): Promise<SearchResponse> {
+    const paging = pagingOf(query, SEARCH_DEFAULT_LIMIT);
     const result = await this.propertyRequest<{
-      total: number;
-      page: number;
-      pageSize: number;
+      totalCount: number;
+      currentOffset?: number;
+      request?: { limit?: number; offset?: number };
       items: { sourceAcronym: string; versionId: string; property: PropertySummary }[];
     }>('/search', {
       method: 'POST',
@@ -163,22 +164,25 @@ export class TerminologyClient {
       signal,
       body: JSON.stringify({
         query: query.query,
-        ...pagingOf(query, SEARCH_DEFAULT_LIMIT),
+        ...paging,
         sources: query.sources?.map((source) => ({
           sourceAcronym: source.sourceAcronym,
           versionId: typeof source.version === 'object' ? source.version.id : undefined,
         })),
       }),
     });
+    // The server states the window it answered; the picker counts pages, so the window becomes one.
+    const pageSize = Math.max(1, result.request?.limit ?? paging.limit ?? SEARCH_DEFAULT_LIMIT);
+    const offset = result.currentOffset ?? paging.offset ?? 0;
     return {
       query: query.query,
       sources: [],
       results: {
         property: {
-          totalCount: result.total,
+          totalCount: result.totalCount,
           countCapped: false,
-          page: result.page,
-          pageSize: result.pageSize,
+          page: Math.floor(offset / pageSize) + 1,
+          pageSize,
           collection: result.items.map(({ sourceAcronym, versionId, property }): PropertyHit => ({
             type: 'property',
             sourceSystem: 'bioportal',

@@ -121,9 +121,9 @@ test('a property description is read in the language its literal carries', async
   await page.route('**/properties/search', (route) =>
     route.fulfill({
       json: {
-        total: 1,
-        page: 1,
-        pageSize: 25,
+        totalCount: 1,
+        request: { limit: 25, offset: 0 },
+        currentOffset: 0,
         items:
           (route.request().postDataJSON().offset ?? 0) > 0
             ? []
@@ -343,9 +343,9 @@ test("a property search's or a property's failure is read in the server's Englis
   await page.route('**/properties/search', (route) =>
     route.fulfill({
       json: {
-        total: 1,
-        page: 1,
-        pageSize: 25,
+        totalCount: 1,
+        request: { limit: 25, offset: 0 },
+        currentOffset: 0,
         items:
           (route.request().postDataJSON().offset ?? 0) > 0
             ? []

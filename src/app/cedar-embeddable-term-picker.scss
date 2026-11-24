@@ -89,12 +89,18 @@
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
+  // On short hosts the search, details and minimum results height may not fit.
+  // Scroll that content within its allocation instead of painting behind Done.
+  @include scrolls.scrolls;
 }
 
 // At least five rows however tall the table above grows. It holds up to 38vh of its own.
 :host(.cetp-table-mode) .results {
   flex: 1 1 auto;
   min-height: calc(5 * var(--cedar-control-height-default));
+  // Nested grid overflow belongs to this scrollport. Without containment it can
+  // enlarge the outer picker's scroll range, leaving blank space above the footer.
+  contain: layout;
 }
 
 *,
@@ -500,6 +506,9 @@ button {
 // in an ellipsis, and its title holds the whole. The count and the release count keep their widths.
 .results {
   display: grid;
+  // Scrollable history panels must contribute their bounded content height even
+  // when the results exceed the host and their rows are shared through subgrids.
+  grid-auto-rows: minmax(max-content, auto);
   grid-template-columns: minmax(calc(1.5em + var(--cedar-space-2)), 1fr) max-content minmax(0, max-content) max-content;
   column-gap: var(--cedar-space-3);
 
@@ -807,6 +816,9 @@ button.of {
   border-radius: tokens.$radius;
   @include spacing.apply(margin, compact-status);
   max-height: 11rem;
+  // A scroll container contributes no automatic minimum to a subgrid track. Give the
+  // history its content height (bounded above) so following ontology rows cannot cover it.
+  height: max-content;
   margin-bottom: 0;
 
   // A visible track, rather than one that appears once an author is already scrolling. It is the
@@ -1211,7 +1223,9 @@ $release-count-frame: 3 * tokens.$space-1 + tokens.$icon-size-small;
 
 // Stepping back through releases. Muted until an author steps off latest, at which point the row is
 // carrying a decision and says so.
+// Free-text versionInfo can be prose; bound its column without shortening ordinary release labels.
 .version {
+  max-width: 24ch;
   font-size: var(--cetp-font-size-small);
   color: var(--cetp-color-muted);
   text-align: right;
@@ -1488,3 +1502,67 @@ textarea {
 }
 
 @include icon-contract.styles;
+
+// Names and release identities remain readable instead of losing their distinguishing text.
+.result-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@container (max-width: 480px) {
+  .children:is(.terms, .branches) .child {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--cedar-space-1) var(--cedar-space-2);
+
+    > .grow {
+      grid-column: 1 / -1;
+      display: block;
+      min-width: 0;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      overflow: visible;
+
+      .who,
+      .dim,
+      .under {
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        overflow: visible;
+        white-space: normal;
+      }
+    }
+    > .meta.inline,
+    > .version {
+      grid-column: 1;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      overflow: visible;
+      text-align: left;
+    }
+    > .of {
+      grid-column: 2;
+      grid-row: 2;
+    }
+  }
+  .children.branches .child > .of {
+    grid-row: 3;
+  }
+  .ontology-result {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--cedar-space-1) var(--cedar-space-2);
+    > .opens {
+      grid-column: 1 / -1;
+    }
+    > .meta.inline {
+      text-align: left;
+    }
+    > .version {
+      grid-column: 1;
+      text-align: left;
+    }
+    > .of {
+      grid-column: 2;
+      grid-row: 2 / span 2;
+    }
+  }
+}
