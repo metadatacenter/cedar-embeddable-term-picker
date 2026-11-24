@@ -209,11 +209,11 @@ test("the bar's two captions are headings, and the search's still names its fiel
 
   await search(page, 'melanoma');
   await picker(page).locator('.rowhead').first().click();
-  await expect(headings).toHaveText(['Find terms', 'Selected term']);
+  await expect(headings).toHaveText(['Find terms', 'Term details']);
 
   // In the table mode the table's heading is the same level as the bar's.
   await picker(page).evaluate((element) => element.setAttribute('selection-mode', 'constraints'));
-  await expect(headings).toHaveText(['Selected terms', 'Find terms', 'Selected term']);
+  await expect(headings).toHaveText(['Selected terms', 'Find terms', 'Term details']);
   await expect(headings.first()).toHaveJSProperty('tagName', 'H2');
 
   await picker(page).evaluate((element) => element.setAttribute('language', 'hu'));

@@ -39,7 +39,7 @@
   <!-- Empty where the source named no release, which is a cell holding nothing rather than a word. -->
   @if (versionOf(acronym); as version) {
   <span class="version" [class.pinned]="isPinned(acronym)" [title]="'stepper.versionTitle' | translate: { version }"
-    >{{ elide(version, 20, 8) }}</span
+    >{{ version }}</span
   >
   } @else {
   <span class="version"></span>
@@ -243,7 +243,7 @@
       and the effective date is what identifies a release to a person, so the panel shows both.
     -->
   <div class="history">
-    @if (historyOf(acronym); as releases) {
+    @let releases = historyOf(acronym); @if (releases.length) {
     <!--
           The heading stays put while the list moves under it, which is what says the list moves.
           It also names the hash column: a bare row of hex beside a date explains nothing.
@@ -332,7 +332,7 @@
           say the same thing twice, and the one up here is the further of the two from the term.
         -->
       <div class="selection-heading">
-        <span class="label" role="heading" aria-level="2">{{ 'selection.heading.' + chosen.noun | translate }}</span>
+        <span class="label" role="heading" aria-level="2">{{ 'selection.details.' + chosen.noun | translate }}</span>
       </div>
       <p class="phrase">
         <strong [title]="chosen.what">{{ elide(chosen.what, 72, 20) }}</strong>
@@ -363,7 +363,7 @@
       <p class="selection-release">
         @if (authorityOf(chosen.acronym); as from) { <span class="release-part meta inline dim from">{{ from }}</span> }
         @if (chosen.pinned) { @if (chosen.version) {
-        <span class="release-part meta inline">{{ elide(chosen.version, 20, 8) }}</span> } @if (chosen.effectiveDate &&
+        <span class="release-part meta inline">{{ chosen.version }}</span> } @if (chosen.effectiveDate &&
         chosen.effectiveDate !== chosen.version) {
         <span class="release-part meta inline">{{ chosen.effectiveDate }}</span> } @if (!chosen.version &&
         !chosen.effectiveDate) { <em class="release-part meta inline">{{ 'common.pinned' | translate }}</em> } @if
@@ -666,13 +666,13 @@
         <span class="twist"
           ><cetp-icon size="small" [name]="expanded() === group.label ? 'chevron-down' : 'chevron-right'"
         /></span>
-        <span class="grow ellipsis">
+        <span class="grow result-name">
           <span
             class="title"
             [class.obsolete]="group.hits[0].obsolete"
             [title]="group.label"
             [attr.lang]="group.language"
-            >{{ elide(group.label) }}</span
+            >{{ group.label }}</span
           >
           @if (group.code) {
           <!-- As on an ontology row, an unseen space sets the code apart in the row's name. -->
@@ -757,8 +757,8 @@
         <span class="twist"
           ><cetp-icon size="small" [name]="expanded() === group.label ? 'chevron-down' : 'chevron-right'"
         /></span>
-        <span class="grow ellipsis">
-          <span class="title" [title]="group.label">{{ elide(group.label) }}</span>
+        <span class="grow result-name">
+          <span class="title" [title]="group.label">{{ group.label }}</span>
         </span>
         <span class="meta inline">
           @if (group.hits.length !== group.ontologyCount) { {{ localizer.pluralOf('counts.branchesInOntologies',
@@ -829,16 +829,16 @@
       <li class="hit" [style.--_cetp-grid-rows]="gridRowsOf([hit])">
         <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -- the row's name is its keyboard route, and a click on the row does what a click on the name does -->
         <div
-          class="row oneline pick"
+          class="row oneline pick ontology-result"
           [class.marked]="isSelected(hit)"
           (click)="mark(hit); opens.focus({ preventScroll: true })"
           (dblclick)="choose(hit)"
         >
-          <!-- At a narrow width the line gives way to an ellipsis, so its title holds the whole of it. -->
+          <!-- Keep the ontology identity complete, including on narrow surfaces. -->
           <button
             #opens
             type="button"
-            class="grow ellipsis opens"
+            class="grow result-name opens"
             [title]="ontologyLine(hit)"
             [attr.aria-expanded]="isMarked(hit)"
             [attr.aria-description]="selectedWords(hit)"

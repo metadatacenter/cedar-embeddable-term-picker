@@ -64,7 +64,14 @@
       "property": "Selected property"
     },
     "supersededTitle": "A later reading of these same source bytes exists. This pin still resolves.",
-    "superseded": "superseded"
+    "superseded": "superseded",
+    "details": {
+      "term": "Term details",
+      "branch": "Branch details",
+      "ontology": "Ontology details",
+      "valueSet": "Value set details",
+      "property": "Property details"
+    }
   },
   "narrowing": {
     "searchingOnly": "Searching only",

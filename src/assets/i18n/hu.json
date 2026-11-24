@@ -64,7 +64,14 @@
       "property": "Kiválasztott tulajdonság"
     },
     "supersededTitle": "Ugyanezen forrásbájtoknak létezik egy későbbi beolvasása. Ez a rögzítés továbbra is feloldható.",
-    "superseded": "felülírt"
+    "superseded": "felülírt",
+    "details": {
+      "term": "Fogalom részletei",
+      "branch": "Ág részletei",
+      "ontology": "Ontológia részletei",
+      "valueSet": "Értékkészlet részletei",
+      "property": "Tulajdonság részletei"
+    }
   },
   "narrowing": {
     "searchingOnly": "Keresés csak ezekben:",

@@ -421,7 +421,7 @@ test('the bar says what is selected, and nothing before anything is', async ({ p
   await page.locator('cedar-embeddable-term-picker .row.pick').first().click();
   // The heading names the kind, so a constraint on one term and a constraint on a whole ontology
   // are told apart without reading the phrasing under it.
-  await expect(chosen.locator('.label')).toHaveText('Selected ontology');
+  await expect(chosen.locator('.label')).toHaveText('Ontology details');
   const after = await page.locator('cedar-embeddable-term-picker .tabs').boundingBox();
   expect(after!.y).toBe(before!.y);
   await expect(chosen).toContainText('Melanoma Ontology');
@@ -444,13 +444,13 @@ test('the bar says what is selected, and nothing before anything is', async ({ p
   // The heading follows the tab, and a branch carries the size of what it brings with it.
   await page.locator('cedar-embeddable-term-picker .tab').nth(1).click();
   await pickFirstUnder();
-  await expect(chosen.locator('.label')).toHaveText('Selected branch');
+  await expect(chosen.locator('.label')).toHaveText('Branch details');
   await expect(chosen).toContainText('descendants');
 
   // A term is one term: it has no size to state, only a name.
   await page.locator('cedar-embeddable-term-picker .tab').nth(0).click();
   await pickFirstUnder();
-  await expect(chosen.locator('.label')).toHaveText('Selected term');
+  await expect(chosen.locator('.label')).toHaveText('Term details');
   await expect(chosen.locator('.about .who')).toHaveText('National Cancer Institute Thesaurus (NCIT)');
   const sourceBox = await chosen.locator('.about').boundingBox();
   const releaseBox = await chosen.locator('.selection-release').boundingBox();
@@ -860,7 +860,7 @@ test('a click marks a row and a second act chooses it', async ({ page }) => {
   expect((chosen[1] as { sourceAcronym: string }).sourceAcronym).toBe('MELO');
 });
 
-test('a version that is prose is elided, not laid out', async ({ page }) => {
+test('a prose version is visually bounded while its full text remains available', async ({ page }) => {
   // owl:versionInfo is free text. The longest one the catalog holds is 782 characters of prose,
   // and a row that lays it out is a row with no room for anything else.
   const prose =
@@ -877,8 +877,8 @@ test('a version that is prose is elided, not laid out', async ({ page }) => {
   const version = page.locator('cedar-embeddable-term-picker .version');
   await expect(version).toHaveAttribute('title', `Version ${prose}`);
   const shown = (await version.innerText()).trim();
-  expect(shown.length).toBeLessThanOrEqual(20);
-  expect(shown).toContain('…');
+  expect(shown).toBe(prose);
+  expect(await version.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(true);
 
   // The row it sits in stays the height of an ordinary one.
   const rows = page.locator('cedar-embeddable-term-picker .row');
@@ -1686,6 +1686,62 @@ test('in a host of fixed height the table fills it, and an answer of any length 
   expect(await footer.boundingBox()).toEqual(foot);
 });
 
+for (const width of [375, 1440]) {
+  test(`release controls remain reachable above the footer in a bounded host at ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width === 375 ? 667 : 1000 });
+    await stubReleasesAndTree(page);
+    await page.goto('/?mode=constraints');
+    await page.locator('cedar-embeddable-term-picker .picker').waitFor();
+    // Match the Designer's fixed-height flex dialog and its retained heading.
+    await page.locator('cedar-embeddable-term-picker').evaluate((element) => {
+      const dialog = document.createElement('div');
+      dialog.style.cssText =
+        'position:fixed;inset:5vh 24px;height:90vh;display:flex;flex-direction:column;overflow:auto;background:white';
+      const heading = document.createElement('div');
+      heading.style.cssText = 'flex:0 0 86px';
+      heading.textContent = 'Controlled-term constraints';
+      element.before(dialog);
+      dialog.append(heading, element);
+      (element as HTMLElement).style.cssText = 'flex:1 1 auto;min-height:0';
+      (element as HTMLElement & { termTypes: string[] }).termTypes = ['ontology', 'class', 'branch', 'valueSet'];
+    });
+    await search(page, 'melanoma');
+    const picker = page.locator('cedar-embeddable-term-picker');
+    await picker.locator('.rowhead').first().click();
+    await expect(picker.getByRole('heading', { name: 'Term details', exact: true })).toBeVisible();
+    for (const tab of ['Terms', 'Branches', 'Ontologies']) {
+      await picker.getByRole('tab', { name: new RegExp(`^${tab}`) }).click();
+      const panel = picker.getByRole('tabpanel', { name: new RegExp(`^${tab}`) });
+      await panel.waitFor();
+      const release = panel.locator('button.of').first();
+      await release.scrollIntoViewIfNeeded();
+      const box = (await release.boundingBox())!;
+      const content = (await picker.locator('.picker').boundingBox())!;
+      const footer = (await picker.locator('.actions').boundingBox())!;
+      expect(box.y).toBeGreaterThanOrEqual(content.y);
+      expect(box.y + box.height).toBeLessThanOrEqual(Math.min(content.y + content.height, footer.y));
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await expect(release).toHaveAttribute('aria-expanded', 'true');
+      if (width === 375) {
+        await expect(panel.locator('.release').first()).toBeAttached();
+        const unusedSpace = await picker.evaluate((element) => {
+          const content = element.shadowRoot!.querySelector<HTMLElement>('.picker')!;
+          const results = element.shadowRoot!.querySelector<HTMLElement>('.results')!;
+          content.scrollTop = content.scrollHeight;
+          return (
+            content.getBoundingClientRect().bottom -
+            results.getBoundingClientRect().bottom -
+            parseFloat(getComputedStyle(content).paddingBottom)
+          );
+        });
+        expect(unusedSpace).toBeLessThanOrEqual(1);
+      }
+      await release.click();
+      await expect(release).toHaveAttribute('aria-expanded', 'false');
+    }
+  });
+}
+
 const RELEASES = [
   { id: 'hash-c-0123456789abcdef', effectiveDate: '2026-07-01T00:00:00.000-07:00', declaredVersion: '26.07d' },
   { id: 'hash-b-0123456789abcdef', effectiveDate: '2026-06-03T00:00:00.000-07:00', declaredVersion: '26.06e' },
@@ -1945,16 +2001,16 @@ test("an ontology row's line carries its whole text as a title", async ({ page }
   await picker.locator('.tab').nth(2).click();
   await expect(picker.locator('.tab').nth(2)).toHaveAttribute('aria-selected', 'true');
 
-  const melo = picker.locator('.row.pick', { hasText: 'MELO' }).locator('.grow.ellipsis');
+  const melo = picker.locator('.row.pick', { hasText: 'MELO' }).locator('.opens');
   await expect(melo).toHaveAttribute('title', 'Melanoma Ontology MELO');
   await titleHoldsText(melo);
-  const ncit = picker.locator('.row.pick', { hasText: 'NCIT' }).locator('.grow.ellipsis');
+  const ncit = picker.locator('.row.pick', { hasText: 'NCIT' }).locator('.opens');
   await expect(ncit).toHaveAttribute('title', 'National Cancer Institute Thesaurus NCIT');
   await titleHoldsText(ncit);
   await expect(ncit).not.toHaveAccessibleDescription(/Thesaurus/);
 });
 
-test('at 320 CSS px a branch row shows the start of its source name, and the count gives way', async ({ page }) => {
+test('at 320 CSS px a branch row keeps its full source name and descendant count', async ({ page }) => {
   await stubSearch(page, () => ({
     ...MELANOMA,
     results: {
@@ -1978,7 +2034,7 @@ test('at 320 CSS px a branch row shows the start of its source name, and the cou
         width: box.width,
         em: parseFloat(getComputedStyle(name).fontSize),
         inside: box.left >= line.left && box.right <= line.right + 1,
-        nameWhole: name.scrollWidth <= name.clientWidth,
+        nameWhole: getComputedStyle(name).overflowX !== 'hidden' || name.scrollWidth <= name.clientWidth,
         countWhole: count.scrollWidth <= count.clientWidth,
       };
     });
@@ -1989,13 +2045,12 @@ test('at 320 CSS px a branch row shows the start of its source name, and the cou
   await picker.locator('.tab').nth(1).click();
   await expect(picker.locator('.tab').nth(1)).toHaveAttribute('aria-selected', 'true');
   await picker.locator('.rowhead').first().click();
-  // The separator, a letter or two and the ellipsis show, inside the row's name. The title completes it.
+  // The complete source name and count wrap inside the row, and their tooltips remain available.
   const narrow = await measured();
   expect(narrow.width).toBeGreaterThanOrEqual(2.5 * narrow.em - 1);
   expect(narrow.inside).toBe(true);
-  expect(narrow.nameWhole).toBe(false);
-  // The room comes from the count, which ends in an ellipsis and keeps its whole in a title.
-  expect(narrow.countWhole).toBe(false);
+  expect(narrow.nameWhole).toBe(true);
+  expect(narrow.countWhole).toBe(true);
   await expect(row.locator(':scope > .meta')).toHaveAttribute('title', '321 descendants');
 
   // Where there is room, both show whole, as before.
@@ -2181,3 +2236,112 @@ for (const mode of ['constraints', 'constraint']) {
       if (index) expect(box.top).toBeGreaterThanOrEqual(boxes[index - 1].bottom - 0.5);
   });
 }
+
+for (const width of [375, 1440]) {
+  test(`loaded ontology releases remain visible among many results at ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const others = Array.from({ length: 30 }, (_, i) => `OTHER${i}`);
+    await stubSearch(page, (body) =>
+      body.includeVersions
+        ? {
+            sources: [
+              source('NCIT', { name: 'National Cancer Institute Thesaurus', versionCount: 3, versions: RELEASES }),
+            ],
+            results: { ontology: results([]) },
+          }
+        : {
+            sources: [...MELANOMA.sources, ...others.map((id) => source(id, { name: `Other ontology ${id}` }))],
+            results: {
+              ontology: results([ontologyHit('NCIT', 950, false), ...others.map((id) => ontologyHit(id, 10, false))]),
+            },
+          },
+    );
+    let releaseHistory!: () => void;
+    const held = new Promise<void>((resolve) => {
+      releaseHistory = resolve;
+    });
+    await page.route('**/search', async (route) => {
+      if (route.request().postDataJSON().includeVersions) await held;
+      await route.fallback();
+    });
+    try {
+      await page.goto('/?mode=constraints');
+      await search(page, 'melanoma');
+      const picker = page.locator('cedar-embeddable-term-picker');
+      await picker.getByRole('tab', { name: /^Ontologies/ }).click();
+      const first = picker.locator('.results > .hits > .hit').first();
+      await first.locator('button.of').click();
+      const history = first.locator('.history');
+      await expect(history).toContainText('Reading the releases');
+      await expect(history.locator('.releases-head')).toHaveCount(0);
+      releaseHistory();
+      const releases = history.locator('button.release');
+      await expect(releases).toHaveCount(3);
+      await expect(history.locator('.releases-head')).toContainText('3 releases');
+      for (const release of await releases.all()) {
+        await release.scrollIntoViewIfNeeded();
+        const box = (await release.boundingBox())!;
+        const bounds = (await history.boundingBox())!;
+        expect(box.height).toBeGreaterThanOrEqual(24);
+        expect(box.y).toBeGreaterThanOrEqual(bounds.y);
+        expect(box.y + box.height).toBeLessThanOrEqual(bounds.y + bounds.height + 1);
+        expect(
+          await release.evaluate((element) => {
+            const box = element.getBoundingClientRect();
+            const root = element.getRootNode() as ShadowRoot;
+            const receiver = root.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+            return element.contains(receiver) ? 'target' : (receiver?.outerHTML ?? 'none');
+          }),
+        ).toBe('target');
+      }
+      const next = (await picker.locator('.results > .hits > .hit').nth(1).boundingBox())!;
+      const bounds = (await history.boundingBox())!;
+      expect(next.y).toBeGreaterThanOrEqual(bounds.y + bounds.height - 1);
+      await releases.nth(1).click();
+      await expect(releases.nth(1)).toHaveClass(/on/);
+    } finally {
+      releaseHistory();
+    }
+  });
+}
+
+test('phone source rows expose full names, providers, descendant counts and versions', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 900 });
+  await stubReleasesAndTree(page);
+  await page.goto('/?mode=constraints');
+  await search(page, 'melanoma');
+  const picker = page.locator('cedar-embeddable-term-picker');
+  for (const tab of ['Terms', 'Branches']) {
+    await picker.getByRole('tab', { name: new RegExp(`^${tab}`) }).click();
+    await picker.getByRole('tabpanel', { name: new RegExp(`^${tab}`) }).waitFor();
+    const group = picker.locator('.row.group').first();
+    if (!(await group.locator('.children').count())) await group.locator('.rowhead').click();
+    const row = group.locator('.child').filter({ hasText: 'NCIT' }).first();
+    await row.scrollIntoViewIfNeeded();
+    await expect(row).toContainText('National Cancer Institute Thesaurus');
+    await expect(row).toContainText('26.07d');
+    if (tab === 'Branches') await expect(row).toContainText('321 descendants');
+    const clipped = await row.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return [...element.querySelectorAll('.name, .from, :scope > .meta.inline, :scope > .version')].flatMap((part) => {
+        const range = document.createRange();
+        range.selectNodeContents(part);
+        return [...range.getClientRects()]
+          .filter(
+            (rect) =>
+              rect.width &&
+              (rect.left < bounds.left - 1 ||
+                rect.right > bounds.right + 1 ||
+                rect.top < bounds.top - 1 ||
+                rect.bottom > bounds.bottom + 1),
+          )
+          .map(() => part.textContent);
+      });
+    });
+    expect(clipped).toEqual([]);
+    await expect(row.locator('button.of')).toBeInViewport({ ratio: 1 });
+    const version = (await row.locator(':scope > .version').boundingBox())!;
+    const history = (await row.locator('button.of').boundingBox())!;
+    expect(Math.abs(history.y + history.height / 2 - version.y - version.height / 2)).toBeLessThanOrEqual(1);
+  }
+});

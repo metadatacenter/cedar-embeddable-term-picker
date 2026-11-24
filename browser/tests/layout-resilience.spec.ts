@@ -439,17 +439,17 @@ async function answeredLong(page: Page): Promise<void> {
  * at 320 CSS px: give way to the row's other parts, show whole, or not appear.
  */
 const LONG_STATES: Readonly<
-  Record<string, { reach: (page: Page) => Promise<void>; release: 'cut' | 'whole' | 'absent' }>
+  Record<string, { reach: (page: Page) => Promise<void>; release: 'whole' | 'whole' | 'absent' }>
 > = {
-  'the terms tab': { reach: (page) => picker(page).locator('.rowhead').first().click(), release: 'cut' },
+  'the terms tab': { reach: (page) => picker(page).locator('.rowhead').first().click(), release: 'whole' },
   'the branches tab': {
     reach: async (page) => {
       await showTab(page, 1);
       await picker(page).locator('.rowhead').first().click();
     },
-    release: 'cut',
+    release: 'whole',
   },
-  'the ontologies tab': { reach: (page) => showTab(page, 2), release: 'cut' },
+  'the ontologies tab': { reach: (page) => showTab(page, 2), release: 'whole' },
   'the value sets tab': { reach: (page) => showTab(page, 3), release: 'whole' },
   'the properties tab': {
     reach: async (page) => {
@@ -478,7 +478,10 @@ async function longRow(page: Page) {
     });
     const row = rows.find((candidate) => candidate.textContent!.includes(acronym))!;
     const shown = (node: Element | null) =>
-      node && { cut: node.scrollWidth > node.clientWidth + 1, title: node.getAttribute('title') ?? '' };
+      node && {
+        cut: getComputedStyle(node).overflowX === 'hidden' && node.scrollWidth > node.clientWidth + 1,
+        title: node.getAttribute('title') ?? '',
+      };
     const who = row.querySelector('.who')!;
     return {
       within,
@@ -490,8 +493,8 @@ async function longRow(page: Page) {
 
 /**
  * Every kind of result row fits at 320 CSS px however long its source's acronym and release. Each
- * gives way to an ellipsis and keeps its whole text in a title, as the rest of the row's cut text
- * does. Where the row has room, the two show whole.
+ * keeps its complete identity within the row; terms and branches wrap their metadata at phone
+ * width. Value-set and property rows retain their compact treatment.
  */
 for (const [state, { reach, release }] of Object.entries(LONG_STATES)) {
   test(`reflow at 320 CSS px with a long acronym and release: ${state}`, async ({ page }) => {
@@ -516,7 +519,9 @@ for (const [state, { reach, release }] of Object.entries(LONG_STATES)) {
 
     const narrow = await longRow(page);
     expect(narrow.within, 'every cell within its row').toBe(true);
-    expect(narrow.acronym?.cut, 'the acronym is cut short').toBe(true);
+    expect(narrow.acronym?.cut, 'term, branch and ontology identities remain readable').toBe(
+      ['the value sets tab', 'the properties tab'].includes(state),
+    );
     expect(narrow.acronym?.title).toContain(LONG_ACRONYM);
     if (release === 'absent') {
       expect(narrow.release).toBeNull();
@@ -548,7 +553,7 @@ const TWIN_STATES: Readonly<Record<string, (page: Page) => Promise<void>>> = {
 async function distinguishers(page: Page) {
   return picker(page).evaluate((element) =>
     [...element.shadowRoot!.querySelectorAll('.child .under')].map((node) => {
-      const cut = node.scrollWidth > node.clientWidth + 1;
+      const cut = getComputedStyle(node).overflowX === 'hidden' && node.scrollWidth > node.clientWidth + 1;
       const context = document.createElement('canvas').getContext('2d')!;
       context.font = getComputedStyle(node).font;
       const end = node.getBoundingClientRect().right - (cut ? context.measureText('…').width : 0);
@@ -561,7 +566,7 @@ async function distinguishers(page: Page) {
           range.setStart(text, at);
           range.setEnd(text, at + 1);
           const { width, right } = range.getBoundingClientRect();
-          if (width > 0 && right <= end + 0.5) shown += text.data[at];
+          if ((width > 0 || /\s/.test(text.data[at])) && right <= end + 0.5) shown += text.data[at];
         }
       }
       return { cut, title: node.getAttribute('title') ?? '', shown: shown.replace(/\s+/g, ' ').trim() };
@@ -571,8 +576,8 @@ async function distinguishers(page: Page) {
 
 /**
  * Two rows of one source keep what tells them apart at 320 CSS px. Squeezed to no width, the
- * parent showed nothing and the rows read identically. It now gives way to an ellipsis and keeps
- * its whole text in a title, and where the row has room it shows whole.
+ * parent showed nothing and the rows read identically. Each parent now wraps in its source row
+ * while retaining the complete tooltip and the existing phone wording.
  */
 for (const [state, reach] of Object.entries(TWIN_STATES)) {
   test(`reflow at 320 CSS px with two rows of one source: ${state}`, async ({ page }) => {
@@ -598,10 +603,14 @@ for (const [state, reach] of Object.entries(TWIN_STATES)) {
       scrollsInPlace: SCROLLS_IN_PLACE,
     });
 
-    // The check measured the narrow rows it exists for: both parents are present and cut short.
+    // Both parent names remain distinct and fully readable at phone width.
     const narrow = await distinguishers(page);
     expect(narrow.map(({ title }) => title)).toEqual(TWIN_PARENTS);
-    expect(narrow.every(({ cut }) => cut), 'each parent is cut short').toBe(true);
+    expect(
+      narrow.every(({ cut }) => !cut),
+      'each parent name shows whole',
+    ).toBe(true);
+    expect(narrow.map(({ shown }) => shown)).toEqual(TWIN_PARENTS.map((parent) => parent.replace(/^under /, '')));
 
     // Twins share the word before the parent, so a narrow row shows the parent's name first, and
     // the two rows show different text.
