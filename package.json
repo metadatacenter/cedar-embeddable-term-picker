@@ -31,20 +31,20 @@
     "test:unicode": "npm --prefix browser run test:unicode"
   },
   "dependencies": {
-    "@angular/common": "^22.2.0",
-    "@angular/compiler": "^22.2.0",
-    "@angular/core": "^22.2.0",
-    "@angular/elements": "^22.2.0",
-    "@angular/platform-browser": "^22.2.0",
+    "@angular/common": "^22.3.0",
+    "@angular/compiler": "^22.3.0",
+    "@angular/core": "^22.3.0",
+    "@angular/elements": "^22.3.0",
+    "@angular/platform-browser": "^22.3.0",
     "@ngx-translate/core": "~18.0.0",
     "cedar-model-typescript-library": "npm:@org.metadatacenter/cedar-model-typescript-library@1.0.30-dev.20261119.026a31c",
     "rxjs": "~7.8.0",
     "tslib": "^2.8.1"
   },
   "devDependencies": {
-    "@angular/build": "22.2.6",
-    "@angular/cli": "22.2.6",
-    "@angular/compiler-cli": "^22.2.0",
+    "@angular/build": "22.3.0",
+    "@angular/cli": "22.3.0",
+    "@angular/compiler-cli": "^22.3.0",
     "@eslint/js": "^10.0.1",
     "@org.metadatacenter/cedar-design-tokens": "0.1.0-dev.20261118.97a9f152",
     "@types/node": "^24.9.2",
@@ -73,7 +73,7 @@
     "@parcel/watcher@2.6.0": true,
     "esbuild@0.28.2": true,
     "fsevents@2.3.3": true,
-    "lmdb@3.5.6": true,
+    "lmdb@3.5.9": true,
     "msgpackr-extract@3.0.6": true
   },
   "overrides": {
