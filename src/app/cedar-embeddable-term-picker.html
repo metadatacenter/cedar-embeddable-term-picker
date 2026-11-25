@@ -303,6 +303,14 @@
       />
     </label>
     <!--
+      In the compact picker the filter shares a row with the selection, under a search that keeps
+      the bar's whole width. The selection holds its space from the start, so marking a row moves
+      neither the search, the filter nor anything below them.
+    -->
+    @if (tableMode()) {
+    <ng-container [ngTemplateOutlet]="narrowingRow" />
+    }
+    <!--
       Dismissal, not an answer. It emits `cancelled` and nothing else, so a host that closes on it
       closes with the field's constraints as they were. The label is the glyph, so it carries the
       words for anyone who cannot see it.
@@ -428,6 +436,11 @@
     }
   </header>
 
+  <!--
+    Where the search is narrowed. Its own row under the bar, except in the compact picker, which
+    draws it beside the selection.
+  -->
+  <ng-template #narrowingRow>
   @if (fieldScope(); as scope) {
   <!--
     What a chosen term has to satisfy, one chip a constraint. Each says what kind of constraint it
@@ -583,6 +596,10 @@
     </footer>
   </section>
   } }
+  </ng-template>
+  @if (!tableMode()) {
+  <ng-container [ngTemplateOutlet]="narrowingRow" />
+  }
   <!--
     The ARIA tabs pattern with manual activation. The shown tab is the only Tab stop, the arrow keys
     and Home and End move focus along the strip, and Enter or Space shows the focused tab. Showing a
