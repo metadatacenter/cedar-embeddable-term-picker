@@ -73,7 +73,7 @@ async function openTree(page: Page): Promise<void> {
     results: { class: results([classHit('NCIT', 'Melanoma', { descendantCount: 5 })], { distinctLabelCount: 1 }) },
   }));
   await stubHierarchy(page, (query) => {
-    const iri = query.get('termIri')!;
+    const iri = query.get('term_iri')!;
     return { sourceAcronym: 'NCIT', termIri: iri, descendantCount: 5, ...SUBTREES[iri] };
   });
   await page.goto('/?mode=constraints');

@@ -144,8 +144,8 @@ const scenarios: Record<string, (page: Page) => Promise<void>> = {
   },
   'term-detail': async (page) => {
     await stubHierarchy(page, (query) => ({
-      sourceAcronym: query.get('sourceAcronym'),
-      termIri: query.get('termIri'),
+      sourceAcronym: query.get('source_acronym'),
+      termIri: query.get('term_iri'),
       termLabel: 'Melanoma',
       path: [{ termIri: 'http://ncit.example/parent', termLabel: 'Melanocytic Neoplasm' }],
       childCount: 0,

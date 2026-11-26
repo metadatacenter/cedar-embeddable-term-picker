@@ -265,7 +265,7 @@ test("choosing a property's release, or reading more of its children, keeps focu
     const offset = Number(query.get('offset') ?? 0);
     return route.fulfill({
       json: {
-        selected: { sourceAcronym: 'RO', versionId: query.get('versionId'), property: { ...property, literals: [] } },
+        selected: { sourceAcronym: 'RO', versionId: query.get('version_id'), property: { ...property, literals: [] } },
         ancestors: [parent],
         children: children(offset, offset ? 3 : 50),
         offset,

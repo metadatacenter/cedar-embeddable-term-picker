@@ -202,9 +202,9 @@ export class TerminologyClient {
   propertyHierarchy(hit: PropertyHit, signal?: AbortSignal, offset = 0): Promise<PropertyHierarchy> {
     return this.propertyRequest(
       `/hierarchy?${new URLSearchParams({
-        sourceAcronym: hit.sourceAcronym,
-        versionId: hit.versionId,
-        propertyIri: hit.termIri,
+        source_acronym: hit.sourceAcronym,
+        version_id: hit.versionId,
+        property_iri: hit.termIri,
         kind: hit.propertyKind,
         offset: String(offset),
       })}`,
@@ -216,7 +216,7 @@ export class TerminologyClient {
     acronym: string,
     signal?: AbortSignal,
   ): Promise<readonly (VersionInfo & { propertiesAvailable: boolean })[]> {
-    return this.propertyRequest(`/versions?${new URLSearchParams({ sourceAcronym: acronym })}`, { signal });
+    return this.propertyRequest(`/versions?${new URLSearchParams({ source_acronym: acronym })}`, { signal });
   }
 
   /**
@@ -243,9 +243,9 @@ export class TerminologyClient {
     offset?: number,
     type?: 'valueSet',
   ): Promise<HierarchyOutcome> {
-    const query = new URLSearchParams({ sourceAcronym, termIri });
+    const query = new URLSearchParams({ source_acronym: sourceAcronym, term_iri: termIri });
     if (versionId) {
-      query.set('versionId', versionId);
+      query.set('version_id', versionId);
     }
     if (offset) {
       query.set('offset', String(offset));

@@ -224,8 +224,8 @@ test('branches fold across and within ontologies, and open onto their parents', 
   await expect(children.nth(1)).toContainText('under Nevi and Melanomas');
   await expect(children.nth(2)).not.toContainText('under');
   await stubHierarchy(page, (query) => ({
-    sourceAcronym: query.get('sourceAcronym'),
-    termIri: query.get('termIri'),
+    sourceAcronym: query.get('source_acronym'),
+    termIri: query.get('term_iri'),
     termLabel: 'Melanoma',
     path: [{ termIri: 'http://rh-mesh/parent', termLabel: 'Neuroendocrine Tumors' }],
     childCount: 0,
@@ -525,9 +525,9 @@ test('a term picked from the tree becomes what the tree is about, ancestors kept
   // Labels follow the IRI asked for, so the test can tell which term the panel is addressing.
   // Amelanotic answers with Melanoma above it, which is what re-rooting has to keep on screen.
   await stubHierarchy(page, (query) =>
-    query.get('termIri') === amelanotic
+    query.get('term_iri') === amelanotic
       ? {
-          sourceAcronym: query.get('sourceAcronym'),
+          sourceAcronym: query.get('source_acronym'),
           termIri: amelanotic,
           termLabel: 'Amelanotic Melanoma',
           path: [{ termIri: 'http://ncit/Melanoma', termLabel: 'Melanoma' }],
@@ -538,8 +538,8 @@ test('a term picked from the tree becomes what the tree is about, ancestors kept
           descendantCount: 4,
         }
       : {
-          sourceAcronym: query.get('sourceAcronym'),
-          termIri: query.get('termIri'),
+          sourceAcronym: query.get('source_acronym'),
+          termIri: query.get('term_iri'),
           termLabel: 'Melanoma',
           children: [{ termIri: amelanotic, termLabel: 'Amelanotic Melanoma', hasChildren: true, descendantCount: 4 }],
           childCount: 1,
@@ -596,8 +596,8 @@ test('a term selected in one release is looked for in the next, and falls back w
   );
   // The older release holds both children; the newer one dropped the second.
   await stubHierarchy(page, (query) => {
-    const iri = query.get('termIri');
-    const old = query.get('versionId') === 'hash-old';
+    const iri = query.get('term_iri');
+    const old = query.get('version_id') === 'hash-old';
     if (iri === goneLater && !old) {
       return null;
     }
@@ -701,8 +701,8 @@ test('a node bigger than one read scrolls on rather than ending early', async ({
   await stubHierarchy(page, (query) => {
     const offset = Number(query.get('offset') ?? 0);
     return {
-      sourceAcronym: query.get('sourceAcronym'),
-      termIri: query.get('termIri'),
+      sourceAcronym: query.get('source_acronym'),
+      termIri: query.get('term_iri'),
       termLabel: 'Melanoma',
       children: ALL.slice(offset, offset + 50),
       childCount: ALL.length,
@@ -742,10 +742,10 @@ test('a marked term shows what it is offering', async ({ page }) => {
   // Each node answers with its own children, as the server does: Neoplasm holds the path's next
   // step beside a sibling, and Melanoma holds the term below it.
   await stubHierarchy(page, (query) => {
-    const neoplasm = query.get('termIri') === 'http://ncit/Neoplasm';
+    const neoplasm = query.get('term_iri') === 'http://ncit/Neoplasm';
     return {
-      sourceAcronym: query.get('sourceAcronym'),
-      termIri: query.get('termIri'),
+      sourceAcronym: query.get('source_acronym'),
+      termIri: query.get('term_iri'),
       termLabel: neoplasm ? 'Neoplasm' : 'Melanoma',
       path: neoplasm
         ? []
@@ -1111,9 +1111,9 @@ test('the release count opens the whole history, and choosing from it pins', asy
   );
   // The hierarchy is asked for per release, so the stub answers whichever one is requested.
   await stubHierarchy(page, (query) => ({
-    sourceAcronym: query.get('sourceAcronym'),
-    termIri: query.get('termIri'),
-    termLabel: `Melanoma at ${query.get('versionId') ?? 'latest'}`,
+    sourceAcronym: query.get('source_acronym'),
+    termIri: query.get('term_iri'),
+    termLabel: `Melanoma at ${query.get('version_id') ?? 'latest'}`,
     childCount: 0,
     descendantCount: 0,
   }));
@@ -1270,8 +1270,8 @@ test('a capped list of children says how much of itself is on screen', async ({ 
   // 3 of 194, the shape of DOID's "disease": the panel must not present the three as the whole of
   // what the node has, which is how a reader concludes a term is missing from a release.
   await stubHierarchy(page, (query) => ({
-    sourceAcronym: query.get('sourceAcronym'),
-    termIri: query.get('termIri'),
+    sourceAcronym: query.get('source_acronym'),
+    termIri: query.get('term_iri'),
     termLabel: 'Melanoma',
     children: [
       { termIri: 'http://ncit/A', termLabel: 'Amelanotic Melanoma', hasChildren: false, descendantCount: 0 },
@@ -1312,11 +1312,11 @@ test('a term the pinned release does not hold cannot be recorded', async ({ page
       : MELANOMA,
   );
   await stubHierarchy(page, (query) =>
-    query.get('versionId') === 'hash-old'
-      ? { status: 404, message: 'Release hash-old of NCIT does not contain ' + query.get('termIri') + '.' }
+    query.get('version_id') === 'hash-old'
+      ? { status: 404, message: 'Release hash-old of NCIT does not contain ' + query.get('term_iri') + '.' }
       : {
           sourceAcronym: 'NCIT',
-          termIri: query.get('termIri'),
+          termIri: query.get('term_iri'),
           termLabel: 'Melanoma',
           children: [],
           childCount: 0,
@@ -1387,7 +1387,7 @@ test('a value set the pinned release does not hold cannot be recorded', async ({
     asked.push(query);
     await held;
     await route.fulfill(
-      query.get('versionId') === 'hash-old'
+      query.get('version_id') === 'hash-old'
         ? {
             status: 404,
             json: {
@@ -1429,7 +1429,7 @@ test('a value set the pinned release does not hold cannot be recorded', async ({
   await picker.locator('.release').nth(2).click();
   const chosen = picker.locator('.chosen');
   await expect(chosen.locator('.blocked')).toHaveText('Checking whether this release contains the term.');
-  expect(asked.map((query) => [query.get('termIri'), query.get('versionId'), query.get('type')])).toEqual([
+  expect(asked.map((query) => [query.get('term_iri'), query.get('version_id'), query.get('type')])).toEqual([
     [iri, 'hash-old', 'valueSet'],
   ]);
   answer();
@@ -1442,7 +1442,7 @@ test('a value set the pinned release does not hold cannot be recorded', async ({
   // A release that holds it is asked in turn, lifts the refusal, and is the release recorded.
   await picker.locator('.release').nth(1).click();
   await expect(chosen.locator('.blocked')).toHaveCount(0);
-  expect(asked.map((query) => query.get('versionId'))).toEqual(['hash-old', 'hash-mid']);
+  expect(asked.map((query) => query.get('version_id'))).toEqual(['hash-old', 'hash-mid']);
   await picker.locator('.selection-detail button.use').click();
   await expect.poll(picks).toEqual(['hash-mid']);
 });
@@ -1766,8 +1766,8 @@ async function stubReleasesAndTree(page: import('@playwright/test').Page): Promi
       : MELANOMA,
   );
   await stubHierarchy(page, (query) => ({
-    sourceAcronym: query.get('sourceAcronym'),
-    termIri: query.get('termIri'),
+    sourceAcronym: query.get('source_acronym'),
+    termIri: query.get('term_iri'),
     termLabel: 'Melanoma',
     path: [{ termIri: 'http://ncit/Neoplasm', termLabel: 'Melanocytic Neoplasm' }],
     children: [

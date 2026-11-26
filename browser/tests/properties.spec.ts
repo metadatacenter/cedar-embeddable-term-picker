@@ -51,11 +51,11 @@ test('property-only table enforces the maximum and browses parents at the select
   const seen: string[] = [];
   await page.route('**/properties/hierarchy?*', (route) => {
     const query = new URL(route.request().url()).searchParams;
-    seen.push(query.get('versionId')!);
-    const isParent = query.get('propertyIri') === parent.iri;
+    seen.push(query.get('version_id')!);
+    const isParent = query.get('property_iri') === parent.iri;
     return route.fulfill({
       json: {
-        selected: { sourceAcronym: 'RO', versionId: query.get('versionId'), property: isParent ? parent : child },
+        selected: { sourceAcronym: 'RO', versionId: query.get('version_id'), property: isParent ? parent : child },
         ancestors: isParent ? [] : [parent],
         children: isParent ? [{ ...child, hasChildren: false }] : [],
         offset: 0,
