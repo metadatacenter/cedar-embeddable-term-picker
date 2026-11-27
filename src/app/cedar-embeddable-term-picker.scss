@@ -1298,14 +1298,25 @@ $release-count-frame: 3 * tokens.$space-1 + tokens.$icon-size-small;
   padding: var(--cedar-space-2) var(--cedar-space-3);
   // The footer's rule closes the picker.
   border-bottom: 0;
-  .chosen.awaiting {
-    display: none;
+  // The search keeps the bar's whole width. The filter and the selection share the row under it,
+  // and the selection holds its space before anything is marked, so a first selection moves
+  // neither the search, the filter nor the tabs and results below them.
+  .bar {
+    flex-wrap: wrap;
+    row-gap: var(--cedar-space-2);
   }
   .search {
+    flex: 1 1 100%;
     padding-right: var(--cedar-space-6);
   }
-  .narrowing {
-    margin-top: var(--cedar-space-1);
+  .bar > .narrowing {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-top: 0;
+    align-self: start;
+  }
+  .chosen {
+    flex: 1 1 0;
   }
   .tabs {
     margin-top: var(--cedar-space-1);
@@ -1433,12 +1444,32 @@ $release-count-frame: 3 * tokens.$space-1 + tokens.$icon-size-small;
     flex-direction: column;
   }
   .search,
-  .chosen {
+  .chosen,
+  .bar > .narrowing {
     width: 100%;
     flex-basis: auto;
   }
   .chosen.awaiting {
     display: none;
+  }
+  // A phone keeps the selection between the search and the filter, as before the two shared a row,
+  // and keeps no space for it before anything is marked.
+  .bar > .narrowing {
+    order: 1;
+  }
+  .picker.set-mode {
+    .bar {
+      flex-wrap: nowrap;
+    }
+    .search,
+    .chosen,
+    .bar > .narrowing {
+      flex: 0 0 auto;
+      width: 100%;
+    }
+    .chosen.awaiting {
+      display: none;
+    }
   }
   // Twins share the word before a parent's name, so a narrow row shows the name alone and the
   // ellipsis cuts the name instead. The whole text stays in the row's accessible text and in its

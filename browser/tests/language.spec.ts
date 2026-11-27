@@ -261,7 +261,7 @@ test("why a term's tree is missing is read in the store's English", async ({ pag
       }),
     },
   }));
-  await stubHierarchy(page, (query) => refusals[query.get('sourceAcronym')!]);
+  await stubHierarchy(page, (query) => refusals[query.get('source_acronym')!]);
   const picker = await openHungarian(page, 'constraints');
   await search(page, 'melanoma');
   await picker.locator('.rowhead').first().click();
@@ -308,9 +308,9 @@ test('a release that lacks the term says why in English', async ({ page }) => {
         },
   );
   await stubHierarchy(page, (query) =>
-    query.get('versionId') === 'hash-old'
+    query.get('version_id') === 'hash-old'
       ? { status: 404, message: 'Release hash-old of NCIT does not contain http://ncit/Melanoma.' }
-      : { sourceAcronym: 'NCIT', termIri: query.get('termIri'), termLabel: 'Melanoma', childCount: 0 },
+      : { sourceAcronym: 'NCIT', termIri: query.get('term_iri'), termLabel: 'Melanoma', childCount: 0 },
   );
   const picker = await openHungarian(page);
   await search(page, 'melanoma');

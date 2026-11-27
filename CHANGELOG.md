@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2026-11-27
+
+Aligns with `cedar-model-typescript-library@1.0.29`.
+
+### Changed
+
+- Sends terminology query parameters in the terminology server's canonical snake case, such as `source_acronym`, `term_iri` and `version_id`.
+- Keeps the compact picker's search at full width when a term is picked, so marking a row moves neither the search, the Ontologies filter nor the results.
+
 ## [0.1.4] - 2026-11-24
 
 Aligns with `cedar-model-typescript-library@1.0.29`.

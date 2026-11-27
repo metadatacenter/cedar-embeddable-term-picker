@@ -440,8 +440,8 @@ async function stubTree(page: Page): Promise<void> {
       : ANSWER,
   );
   await stubHierarchy(page, (query) => ({
-    sourceAcronym: query.get('sourceAcronym'),
-    termIri: query.get('termIri'),
+    sourceAcronym: query.get('source_acronym'),
+    termIri: query.get('term_iri'),
     termLabel: 'Melanoma',
     path: [{ termIri: 'http://ncit/Neoplasm', termLabel: 'Melanocytic Neoplasm' }],
     children: [
